@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "853964414879",
+    "project_id": "toklo-e79b1",
+    "storage_bucket": "toklo-e79b1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:853964414879:android:590af14dafab657949a7aa",
+        "android_client_info": {
+          "package_name": "com.devdocdoc.Toklo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBIloY0kumYI62S_dfjT0VaelBJblX5yKQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:853964414879:android:8396ae6d0b1e719e49a7aa",
+        "android_client_info": {
+          "package_name": "com.devdocdoc.toklo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBIloY0kumYI62S_dfjT0VaelBJblX5yKQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

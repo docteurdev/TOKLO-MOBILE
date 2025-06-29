@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Toklo",
+    "slug": "Toklo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logos/adaptive-icon.png",
+        "monochromeForegroundImage": "./assets/logos/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.devdocdoc.Toklo",
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/logos/splash-icon-dark.png",
+          "imageWidth": 300,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark":{
+            "image": "./assets/logos/splash-icon-light.png",
+            "backgroundColor": "#000000"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "56721e72-1917-41ea-bf77-23dc20f45d89"
+      }
+    }
+  }
+}
