@@ -1,0 +1,32 @@
+const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+
+const [selectedMonth, setSelectedMonth] = useState<number>(date.getMonth()+1);
+
+
+const { data, isLoading, error, refetch } = useQuery<IStats, Error>({
+    queryKey: [QueryKeys.orders.stats],
+    queryFn: async (): Promise<IStats> => {
+      console.log("changing month", selectedMonth)
+      const d = {
+        toklo_menid: 1,
+        month: selectedMonth,
+        year: date.getFullYear(),
+        status: "FINISHED"
+       }
+  // Explicit return type
+      try {
+        const resp = await axios.post(baseURL+"/stats/weekly", d);
+        // console.log("ààààààààààààààà", resp.data)
+        return resp.data; 
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to fetch clients"); // Rethrow to handle error properly
+      }
+    },
+});
+
+useEffect(() => {
+  // console.log("selectedMonth changed to:", selectedMonth);
+  // Trigger the refetch when the state actually changes
+  refetch();
+}, [selectedMonth]);
