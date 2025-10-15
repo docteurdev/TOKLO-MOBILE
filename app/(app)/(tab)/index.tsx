@@ -127,7 +127,7 @@ const convertToDisplayFormat = (isoDateString: string) => {
   const agendaItems = transformedData[selectedDate] || [];
 
   const markedDates = Object.keys(transformedData).reduce((acc, date) => {
-    acc[date] = { selected: true, selectedColor: 'red' };
+    acc[date] = { selected: true, selectedColor: Colors.app.primary,  };
     return acc;
   }, {} as { [key: string]: { selected: boolean; selectedColor: string } });
 
@@ -164,9 +164,11 @@ const convertToDisplayFormat = (isoDateString: string) => {
         }}
         markedDates={{
           ...markedDates,
-          [selectedDate]: { selected: true, disableTouchEvent: true, selectedDotColor: 'orange' }
+          [selectedDate]: { selected: true, disableTouchEvent: true, selectedDotColor: 'white', selectedColor: "black" }
         }}
       />
+
+      
 
       {/* AgendaList Component */}
       <View style={styles.agendaContainer}>

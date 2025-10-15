@@ -6,10 +6,10 @@ import { Colors } from "@/constants/Colors";
 
 type TmodifMeasure = {
   onChangeValue: (name: string, value: string) => void;
-
+  measurementKey?: string;
 }
 
-const ModifMeasure = ({ image, title, value,onChangeValue,  }) => {
+const ModifMeasure = ({ image, title, value, onChangeValue, measurementKey }) => {
 
   return (
     <View
@@ -74,7 +74,7 @@ const ModifMeasure = ({ image, title, value,onChangeValue,  }) => {
             height: '60%',
           }}
           value={value}
-          onChangeText={onChangeValue}
+          onChangeText={(text) => onChangeValue(measurementKey || '', text)}
           keyboardType="numeric"
         />
       </View>

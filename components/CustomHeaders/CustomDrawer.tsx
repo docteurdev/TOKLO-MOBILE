@@ -6,7 +6,7 @@ import { Feather } from '@expo/vector-icons'
 import { Rs, SIZES } from '@/util/comon'
 import { usePathname, useRouter } from 'expo-router'
 import { Colors } from '@/constants/Colors'
-import { BanknotesIcon, ChartBarSquareIcon, ChatBubbleBottomCenterIcon, Cog6ToothIcon, HomeIcon, PhotoIcon, ShoppingBagIcon, UserGroupIcon } from 'react-native-heroicons/solid'
+import { BanknotesIcon, ChartBarSquareIcon, ChatBubbleBottomCenterIcon, Cog6ToothIcon, HomeIcon, PhotoIcon, ShoppingBagIcon, ShoppingCartIcon, UserGroupIcon } from 'react-native-heroicons/solid'
 import ProfileShower from './drawer/ProfileShower'
 import RoundedBtn from '../form/RoundedBtn'
 import { useUserStore } from '@/stores/user'
@@ -53,6 +53,13 @@ const CustomDrawer = (props: any) => {
     )
   },
   {
+    link: "toklo-market", 
+    label: "Toklo market",
+    icon: ({color, focused}: {color: string, focused: boolean}) => (
+      <ShoppingCartIcon fill={focused ? Colors.app.primary : color} size={27}/>
+    )
+  },
+  {
     link: "settings", 
     label: "Paramètres", 
     icon: ({color, focused}: {color: string, focused: boolean}) => (
@@ -86,9 +93,9 @@ function handleNav(link: string){
 }
 
   return (
-    <ImageBackground
-    source={require('@/assets/images/drawer/bg-2.jpg')}
-    resizeMode="stretch"
+    <View
+    // source={require('@/assets/images/drawer/bg-2.jpg')}
+    // resizeMode="stretch"
     style={{flex: 1, backgroundColor: 'white'}}>
 
       <ProfileShower />
@@ -128,7 +135,7 @@ function handleNav(link: string){
             router.push('/login')
           }} />
         </View>
-    </ImageBackground>
+    </View>
   )
 }
 

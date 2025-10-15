@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   PhotoIcon,
   UserIcon,
@@ -161,6 +161,7 @@ const Page = (props: Props) => {
 
   const router = useRouter();
 
+
   // const sheet = useRef<TrueSheet>(null);
   // const chooseFileSheet = useRef<TrueSheet>(null);
 
@@ -202,25 +203,10 @@ const Page = (props: Props) => {
   const [amount, setamount] = useState<string>("");
   const [paiement, setpaiement] = useState<string>("");
 
-  const subscribeBottomSheet = useRef<BottomSheetModal>(null);
-  const claimeActiveAccountBottomSheet = useRef<BottomSheetModal>(null);
-
-  const [invoice, setInvoice] = useState < TInvoice> ();
-
-
-  const { mutate, isPending } = useCreateOrder(closeBottomSheet,
-     () => subscribeBottomSheet.current?.present(),
-     () => handleInvoice(invoice));
- 
-  useEffect(() => {
-    if(!subscribe) claimeActiveAccountBottomSheet.current?.present();
-    
-  }, [!subscribe]);
-
-  useEffect(() => {
-
-    const total = Number(amount) * Number(quantity)
-    setInvoice({
+  // Memoized invoice calculation to avoid recalculation on every render
+  const invoiceData = useMemo(() => {
+    const total = Number(amount) * Number(quantity);
+    return {
       storeName: user?.store_name ?? "",
       sotreSlogan: user?.store_slogan ?? "",
       storeAddress: "123 Avenue de la Mode, 75008 Paris",
@@ -235,17 +221,55 @@ const Page = (props: Props) => {
       price: Number(amount),
       totalPrice: total,
       paiement: Number(paiement),
-      biTotal: total -  Number(paiement)
+      biTotal: total - Number(paiement)
+    };
+  }, [amount, quantity, paiement, selectedDress?.nom, selectedUser?.name, selectedUser?.lastname, selectedUser?.telephone, user?.store_name, user?.store_slogan, user?.phone]);
 
-    })
-  }, [paiement , amount, quantity, selectedDress, selectedUser]);
+  const subscribeBottomSheet = useRef<BottomSheetModal>(null);
+  const claimeActiveAccountBottomSheet = useRef<BottomSheetModal>(null);
 
-  const handleInputChange = (typemesurename: string, value: string) => {
-    setInputValues((prevValues) => ({
-      ...prevValues,
-      [typemesurename]: value,
-    }));
-  };
+  const { mutate, isPending } = useCreateOrder(closeBottomSheet,
+      () => subscribeBottomSheet.current?.present(),
+      () => handleInvoice(invoiceData));
+
+  useEffect(() => {
+    if(!subscribe) claimeActiveAccountBottomSheet.current?.present();
+
+  }, [!subscribe]);
+
+  // Debounced input change handler with useCallback to prevent recreation
+  const handleInputChange = useCallback((typemesurename: string, value: string) => {
+    const timeoutId = setTimeout(() => {
+      setInputValues((prevValues) => ({
+        ...prevValues,
+        [typemesurename]: value,
+      }));
+    }, 150); // 150ms debounce delay
+
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  // Optimized setters with useCallback and debouncing to prevent recreation and excessive re-renders
+  const handleQuantityChange = useCallback((value: string) => {
+    const timeoutId = setTimeout(() => {
+      setquantity(value);
+    }, 150); // 150ms debounce delay
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  const handleAmountChange = useCallback((value: string) => {
+    const timeoutId = setTimeout(() => {
+      setamount(value);
+    }, 150); // 150ms debounce delay
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  const handlePaiementChange = useCallback((value: string) => {
+    const timeoutId = setTimeout(() => {
+      setpaiement(value);
+    }, 150); // 150ms debounce delay
+    return () => clearTimeout(timeoutId);
+  }, []);
 
     const handleSubmit = async () => {
 
@@ -665,9 +689,8 @@ const Page = (props: Props) => {
                     image={""}
                     title={item?.typemesure?.nom}
                     value={inputValues[item.typemesure?.nom] || ""}
-                    onChangeValue={(text: string) =>
-                      handleInputChange(item.typemesure?.nom, text)
-                    }
+                    onChangeValue={handleInputChange}
+                    measurementKey={item.typemesure?.nom}
                   />
                 );
               })}
@@ -694,7 +717,7 @@ const Page = (props: Props) => {
                     <Square3Stack3DIcon fill={Colors.app.primary} size={27} />
                   }
                   value={quantity}
-                  setValue={setquantity}
+                  setValue={handleQuantityChange}
                   keyboardType="numeric"
                 />
                 
@@ -706,7 +729,7 @@ const Page = (props: Props) => {
                   placeholder="Saisissez le montant"
                   icon={<BanknotesIcon fill={Colors.app.primary} size={27} />}
                   value={amount}
-                  setValue={setamount}
+                  setValue={handleAmountChange}
                   keyboardType="numeric"
                 />
               </View>
@@ -716,7 +739,7 @@ const Page = (props: Props) => {
                   placeholder="Saisissez l'avance"
                   icon={<MinusCircleIcon fill={Colors.app.primary} size={27} />}
                   value={paiement}
-                  setValue={setpaiement}
+                  setValue={handlePaiementChange}
                   keyboardType="numeric"
                 />
                 { Number(paiement) > Number(amount) * Number(quantity) &&                

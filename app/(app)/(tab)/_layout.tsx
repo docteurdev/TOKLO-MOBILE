@@ -8,6 +8,11 @@ import { Colors } from '@/constants/Colors';
 import { useEffect } from 'react';
 import axios from 'axios';
 import { baseURL } from '@/util/axios';
+import Needle from '@/components/svgCompo/Needle';
+import BtnFill from '@/components/svgCompo/BtnFill';
+import Measure from '@/components/svgCompo/Measure';
+import Patron from '@/components/svgCompo/Patron';
+import Pin from '@/components/svgCompo/Pin';
 
 
 export default function AppLayout() {
@@ -38,7 +43,7 @@ export default function AppLayout() {
           <Tabs 
           //  initialRouteName='(drawer)'
           screenOptions={{
-            tabBarShowLabel: false,
+            tabBarShowLabel: true,
             headerShown: false,
             tabBarActiveTintColor: Colors.app.primary,
             
@@ -48,7 +53,7 @@ export default function AppLayout() {
             <Tabs.Screen name='index'
             options={{
               tabBarLabel: "Accueil",
-              tabBarIcon: ({color}) => <CalendarDaysIcon fill={color} size={27}/>,
+              tabBarIcon: ({color}) => <Needle fill={color} width={35}/>,
               
             }}
             
@@ -57,10 +62,11 @@ export default function AppLayout() {
             <Tabs.Screen name='add-dress'
             
             options={{
-              // tabBarLabel: "",
-              tabBarIcon: ({color}) => <View
+              tabBarLabel: "Mesure",
+              tabBarIcon: ({color}) => 
+              <View
               style={{
-                backgroundColor: Colors.app.primary,
+                backgroundColor: "white",
                 position: "absolute",
                 top: -30,
                 width: 50,
@@ -72,8 +78,9 @@ export default function AppLayout() {
                 borderRadius: 25,
               }}
             >
-              <PlusIcon fill={"#ffffff"} size={27}/>
-            </View> ,
+              <Measure fill={color} color={color} width={30}/>
+            </View> 
+            ,
               
               
             }}
@@ -84,7 +91,7 @@ export default function AppLayout() {
             <Tabs.Screen name='orders'
             options={{
               tabBarLabel: "Commandes",
-              tabBarIcon: ({color}) => <OrderIcon fill={color} size={27}/>,
+              tabBarIcon: ({color}) => <BtnFill fill={color} width={40}/>,
               
             }}
             />

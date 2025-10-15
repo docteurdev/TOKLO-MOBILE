@@ -104,7 +104,7 @@ export default function Auth() {
         subtitle="Bon retour ! Veuillez saisir vos informations"
       />
 
-      <Animated.View entering={FadeInDown.delay(600)} style={{ marginTop: Rs(20), marginBottom: Rs(40) }}>
+      {/* <Animated.View entering={FadeInDown.delay(600)} style={{ marginTop: Rs(20), marginBottom: Rs(40) }}>
 
        <SegmentButtons segments={segments}
         activeColor={Colors.app.texteLight}
@@ -112,7 +112,7 @@ export default function Auth() {
           handleChangeSegment={(value: string) => setSelectedSegment(value as "admin" | "user")}
         />
       </Animated.View>
-
+ */}
 
       <Formik
         validationSchema={loginSchema}

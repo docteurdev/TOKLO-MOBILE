@@ -23,6 +23,7 @@ import {
 } from 'react-native-gesture-handler';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { TNotif } from '@/interfaces/type';
+import { Colors } from '@/constants/Colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = -SCREEN_WIDTH * 0.25;
@@ -146,7 +147,7 @@ const NotifItem: React.FC<NotificationItemProps> = ({
             >
               <View style={styles.iconContainer}>
                 <View style={styles.iconBackground}>
-                  <Feather name="bell" size={20} color="#6366f1" />
+                  <Feather name="bell" size={20} color={Colors.app.primary} />
                 </View>
               </View>
               
@@ -247,7 +248,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#ede9fe',
+    backgroundColor: '#edc4788d',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -263,7 +264,7 @@ const styles = StyleSheet.create({
   orderText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366f1',
+    color: Colors.app.primary,
   },
   timeContainer: {
     flexDirection: 'row',
