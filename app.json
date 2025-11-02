@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.devdocdoc.Toklo"
     },
     "android": {
       "adaptiveIcon": {
@@ -34,7 +35,7 @@
           "imageWidth": 300,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
-          "dark":{
+          "dark": {
             "image": "./assets/logos/splash-icon-light.png",
             "backgroundColor": "#000000"
           }

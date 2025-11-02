@@ -50,6 +50,8 @@ import BottomSheetCompo from "@/components/BottomSheetCompo";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useRouter } from "expo-router";
 import ModifMeasure from "@/components/takeOrder/ModifMeasure";
+import FormikModifMeasure from "@/components/takeOrder/FormikModifMeasure";
+import FormikOtherInput from "@/components/form/FormikOtherInput";
 import useCreateOrder from "@/hooks/mutations/useNewOrder";
 import LastAppointment from "@/components/LastAppointment";
 import { Tabs } from "expo-router";
@@ -63,6 +65,8 @@ import BackButton from "@/components/form/BackButton";
 import userActiveToklomant from "@/hooks/mutations/userActiveToklomant";
 import ActiveToklomanCompo from "@/components/ActiveToklomanCompo";
 import useInvoice from "@/hooks/useInvoice";
+import { Formik, FormikProps } from "formik";
+import { createDressMeasureSchema, DressMeasureFormValues } from "@/constants/formSchemas";
 
 const AnimatedTouchableOpacity =
   Animated.createAnimatedComponent(TouchableOpacity);
@@ -75,7 +79,7 @@ interface CinetPayRef {
 
 type PatternImageCompoType = {
   label: string;
-  img: string;
+  img?: string;
   openImagePicker: () => void;
   cleanPhoto: () => void;
 };
@@ -197,15 +201,33 @@ const Page = (props: Props) => {
 
   const [name, setName] = useState('');
 
-  const [inputValues, setInputValues] = useState<{ [key: string]: string }>({});
+  // Suppression des anciens états remplacés par Formik
+  // const [inputValues, setInputValues] = useState<{ [key: string]: string }>({});
+  // const [quantity, setquantity] = useState<string>("1");
+  // const [amount, setamount] = useState<string>("");
+  // const [paiement, setpaiement] = useState<string>("");
 
-  const [quantity, setquantity] = useState<string>("1");
-  const [amount, setamount] = useState<string>("");
-  const [paiement, setpaiement] = useState<string>("");
+  // Valeurs initiales pour Formik
+  const initialValues: DressMeasureFormValues = {
+    quantity: "1",
+    amount: "",
+    paiement: "",
+    measures: {}, // Optionnel mais on initialise avec un objet vide
+    comment: "", // Ajouter le champ commentaire
+  };
 
-  // Memoized invoice calculation to avoid recalculation on every render
-  const invoiceData = useMemo(() => {
-    const total = Number(amount) * Number(quantity);
+  // Schéma de validation dynamique basé sur les mesures du vêtement sélectionné
+  const validationSchema = useMemo(() => {
+    const measureTypes = selectedDress?.categoriemesure?.map(item => item.typemesure?.nom) || [];
+    return createDressMeasureSchema(measureTypes);
+  }, [selectedDress?.categoriemesure]);
+
+  // Référence pour accéder aux valeurs Formik
+  const formikRef = useRef<FormikProps<DressMeasureFormValues>>(null);
+
+  // Memoized invoice calculation to avoid recalculation on ƒevery render
+  const getInvoiceData = useCallback((formValues: DressMeasureFormValues) => {
+    const total = Number(formValues.amount) * Number(formValues.quantity);
     return {
       storeName: user?.store_name ?? "",
       sotreSlogan: user?.store_slogan ?? "",
@@ -217,20 +239,20 @@ const Page = (props: Props) => {
       invoiceDate: new Date().toLocaleDateString('fr-FR'),
       staus: "",
       dressName: selectedDress?.nom?? "",
-      quantite: quantity?? "",
-      price: Number(amount),
+      quantite: formValues.quantity?? "",
+      price: Number(formValues.amount),
       totalPrice: total,
-      paiement: Number(paiement),
-      biTotal: total - Number(paiement)
+      paiement: Number(formValues.paiement),
+      biTotal: total - Number(formValues.paiement)
     };
-  }, [amount, quantity, paiement, selectedDress?.nom, selectedUser?.name, selectedUser?.lastname, selectedUser?.telephone, user?.store_name, user?.store_slogan, user?.phone]);
+  }, [selectedDress?.nom, selectedUser?.name, selectedUser?.lastname, selectedUser?.telephone, user?.store_name, user?.store_slogan, user?.phone]);
 
   const subscribeBottomSheet = useRef<BottomSheetModal>(null);
   const claimeActiveAccountBottomSheet = useRef<BottomSheetModal>(null);
 
   const { mutate, isPending } = useCreateOrder(closeBottomSheet,
       () => subscribeBottomSheet.current?.present(),
-      () => handleInvoice(invoiceData));
+      () => formikRef.current && handleInvoice(getInvoiceData(formikRef.current.values)));
 
   useEffect(() => {
     if(!subscribe) claimeActiveAccountBottomSheet.current?.present();
@@ -238,112 +260,100 @@ const Page = (props: Props) => {
   }, [!subscribe]);
 
   // Debounced input change handler with useCallback to prevent recreation
-  const handleInputChange = useCallback((typemesurename: string, value: string) => {
-    const timeoutId = setTimeout(() => {
-      setInputValues((prevValues) => ({
-        ...prevValues,
-        [typemesurename]: value,
-      }));
-    }, 150); // 150ms debounce delay
-
-    return () => clearTimeout(timeoutId);
-  }, []);
+  // Supprimé car remplacé par Formik
+  // const handleInputChange = useCallback(...)
 
   // Optimized setters with useCallback and debouncing to prevent recreation and excessive re-renders
-  const handleQuantityChange = useCallback((value: string) => {
-    const timeoutId = setTimeout(() => {
-      setquantity(value);
-    }, 150); // 150ms debounce delay
-    return () => clearTimeout(timeoutId);
-  }, []);
+  // Supprimé car remplacé par Formik
+  // const handleQuantityChange = useCallback(...)
+  // const handleAmountChange = useCallback(...)  
+  // const handlePaiementChange = useCallback(...)
 
-  const handleAmountChange = useCallback((value: string) => {
-    const timeoutId = setTimeout(() => {
-      setamount(value);
-    }, 150); // 150ms debounce delay
-    return () => clearTimeout(timeoutId);
-  }, []);
+  const handleSubmit = async (values: DressMeasureFormValues) => {
+    if(!subscribe) return claimeActiveAccountBottomSheet.current?.present();
 
-  const handlePaiementChange = useCallback((value: string) => {
-    const timeoutId = setTimeout(() => {
-      setpaiement(value);
-    }, 150); // 150ms debounce delay
-    return () => clearTimeout(timeoutId);
-  }, []);
+    Keyboard.dismiss();
 
-    const handleSubmit = async () => {
+    const formData = new FormData();
+    console.log("FORM VALUES SUBMIT: ", values.measures);
+    
+    // Transform nested measures structure to flat structure
+    const flatMeasures: Record<string, string> = {};
+    if (values.measures) {
+      Object.entries(values.measures).forEach(([prefix, measurements]) => {
+        if (typeof measurements === 'object' && measurements !== null) {
+          Object.entries(measurements).forEach(([key, value]) => {
+            // Create key in format "prefix.key" (e.g., "L.  dos", "T.  buste")
+            const flatKey = `${prefix}.${key}`;
+            flatMeasures[flatKey] = String(value);
+          });
+        }
+      });
+    }
+    
+    console.log("FLAT MEASURES: ", flatMeasures);
+    
+    // Append text fields
+    formData.append("quantite", values.quantity); // Ensure quantity is a valid string
+    formData.append("measure", JSON.stringify(flatMeasures)); // Convert flattened Measure object to JSON string
+    formData.append("date_depote", new Date().toLocaleDateString('fr-FR')) // Use ISO date format (YYYY-MM-DD)
+    formData.append(
+      "date_remise",
+      date?.toLocaleDateString('fr-FR') || ""
+    ); // Replace with actual value or handle empty case
+    formData.append("deliveryHour", `${selectedHour}: ${selectedMinute}`); 
+    formData.append("amount", values.amount); // Ensure amount is a valid string
+    formData.append("paiement", values.paiement); // Ensure paiement is a valid string
+    formData.append("description", `${selectedDress?.nom}, ${selectedDress?.genre}`); // Replace with actual value
 
-      if(!subscribe) return claimeActiveAccountBottomSheet.current?.present();
-  
-      Keyboard.dismiss();
-  
-      const formData = new FormData();
-  
-      
-      
-  
-      // Append text fields
-      formData.append("quantite", quantity); // Ensure quantity is a valid string
-      formData.append("measure", JSON.stringify(inputValues)); // Convert Measure object to JSON string
-      formData.append("date_depote", new Date().toLocaleDateString('fr-FR')) // Use ISO date format (YYYY-MM-DD)
-      formData.append(
-        "date_remise",
-        date?.toLocaleDateString('fr-FR') || ""
-      ); // Replace with actual value or handle empty case
-      formData.append("deliveryHour", `${selectedHour}: ${selectedMinute}`); 
-      formData.append("amount", amount); // Ensure amount is a valid string
-      formData.append("paiement", paiement); // Ensure paiement is a valid string
-      formData.append("description", `${selectedDress?.nom}, ${selectedDress?.genre}`); // Replace with actual value
-  
-      // Calculate solde
-      const solde = (
-        Number(amount) * Number(quantity) -
-        Number(paiement)
-      ).toString();
-      formData.append("solde_cal", solde); // Append calculated solde
+    // Calculate solde
+    const solde = (
+      Number(values.amount) * Number(values.quantity) -
+      Number(values.paiement)
+    ).toString();
+    formData.append("solde_cal", solde); // Append calculated solde
 
-  
-      // Append required fields
-      if(user?.id){formData.append("toklo_menid", user.id)};
+    // Append required fields
+    if(user?.id){formData.append("toklo_menid", user.id.toString())};
 
-      formData.append("status", "ONGOING");
-       // Ensure this is a valid number (converted to string)
-      formData.append("client_id", selectedUser?.id); // Ensure this is a valid number (converted to string)
-      formData.append("client_name", selectedUser?.name || ""); // Ensure this is a valid number (converted to string)
-      formData.append("client_lastname", selectedUser?.lastname || ""); // Ensure this is a valid number (converted to string)
-      formData.append("client_phone", selectedUser?.telephone || ""); // Ensure this is a valid number (converted to string)
-      formData.append("notifToken", notify_token || " ");
+    formData.append("status", "ONGOING");
+     // Ensure this is a valid number (converted to string)
+    formData.append("client_id", selectedUser?.id?.toString() || ""); // Ensure this is a valid number (converted to string)
+    formData.append("client_name", selectedUser?.name || ""); // Ensure this is a valid number (converted to string)
+    formData.append("client_lastname", selectedUser?.lastname || ""); // Ensure this is a valid number (converted to string)
+    formData.append("client_phone", selectedUser?.telephone || ""); // Ensure this is a valid number (converted to string)
+    formData.append("notifToken", notify_token || " ");
 
-      formData.append("notif_monrning", user?.notif_monrning || defaultRemindTime.notif_monrning);
-      formData.append("notif_midday", user?.notif_midday ? user?.notif_midday : defaultRemindTime.notif_midday );
-      formData.append("notif_evening", user?.notif_evening? user?.notif_evening : defaultRemindTime.notif_evening );
+    formData.append("notif_monrning", user?.notif_monrning || defaultRemindTime.notif_monrning);
+    formData.append("notif_midday", user?.notif_midday ? user?.notif_midday : defaultRemindTime.notif_midday );
+    formData.append("notif_evening", user?.notif_evening? user?.notif_evening : defaultRemindTime.notif_evening );
 
-      // reminde days
-      formData.append("notif_remind_days", user?.notif_remind_days?  user?.notif_remind_days?.toString() : defaultRemindTime.notif_remind_days.toString() );
+    // reminde days
+    formData.append("notif_remind_days", user?.notif_remind_days?  user?.notif_remind_days?.toString() : defaultRemindTime.notif_remind_days.toString() );
 
-      formData.append("notif_remind_seven", user?.notif_remind_seven?  user?.notif_remind_seven?.toString() : '' );
-      formData.append("notif_remind_three", user?.notif_remind_three?  user?.notif_remind_three?.toString() : '' );
-      formData.append("notif_remind_two", user?.notif_remind_two?  user?.notif_remind_two?.toString() : '' );
-      formData.append("notif_remind_one", user?.notif_remind_one?  user?.notif_remind_one?.toString() : '' );
-      // Append photos (files)
-      if (fabricphoto?.uri) {
-        formData.append("photos", {
-          uri: fabricphoto.uri,
-          name: "fabric.png", // Ensure the name is unique
-          type: "image/png", // Ensure the type matches the file
-        });
-      }
-  
-      if (modelPhoto?.uri) {
-        formData.append("photos", {
-          uri: modelPhoto.uri,
-          name: "model.png", // Ensure the name is unique
-          type: "image/png", // Ensure the type matches the file
-        });
-      }
-  
-      mutate(formData);
-    };
+    formData.append("notif_remind_seven", user?.notif_remind_seven?  user?.notif_remind_seven?.toString() : '' );
+    formData.append("notif_remind_three", user?.notif_remind_three?  user?.notif_remind_three?.toString() : '' );
+    formData.append("notif_remind_two", user?.notif_remind_two?  user?.notif_remind_two?.toString() : '' );
+    formData.append("notif_remind_one", user?.notif_remind_one?  user?.notif_remind_one?.toString() : '' );
+    // Append photos (files)
+    if (fabricphoto?.uri) {
+      formData.append("photos", {
+        uri: fabricphoto.uri,
+        name: "fabric.png", // Ensure the name is unique
+        type: "image/png", // Ensure the type matches the file
+      } as any);
+    }
+
+    if (modelPhoto?.uri) {
+      formData.append("photos", {
+        uri: modelPhoto.uri,
+        name: "model.png", // Ensure the name is unique
+        type: "image/png", // Ensure the type matches the file
+      } as any);
+    }
+
+    mutate(formData);
+  };
   
 
   // Function to handle post-payment actions
@@ -586,181 +596,136 @@ const Page = (props: Props) => {
           </View>
 
           <View style={[styles.screen, {  padding: Rs(16) }]}>
-            {/* bottomsheets */}
-            {/* <BottomSheetCompo bottomSheetModalRef={bottomSheetModalRef} snapPoints={['90%']} > */}
-
-            {/* <Measure
-              fabricphoto={fabricphoto}
-              modelPhoto={modelPhoto}
-              selectedClient={selectedUser}
-              deliveryDate={date}
-              deliveryHoure={`${selectedHour}: ${selectedMinute}`}
-              closeBottomSheet={() => closeBottomSheet()}
-              selectedData={selectedDress?.categoriemesure || []}
-              dressName={selectedDress?.nom || ""}
-              genre={selectedDress?.genre || ""}
-             /> */}
-            {/* </BottomSheetCompo> */}
-            {/* <Sheet sheet={sheet}>
-            </Sheet> */}
-
-      <View
-        style={{
-          width: "100%",
-          height: "100%",
-          backgroundColor: "#ffffff",
-        }}
-      >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <ThemedText
-            style={{
-              fontSize: SIZES.sm,
-              fontWeight: "bold",
-              // marginTop: 20,
-              textAlign: "center",
-            }}
-          >
-            {selectedDress?.nom}
-          </ThemedText>
-          <ThemedText
-            style={{
-              fontSize: SIZES.xs,
-              fontWeight: "medium",
-              marginBottom: 20,
-              textAlign: "center",
-              color: Colors.app.primary,
-            }}
-          >
-            {selectedDress?.genre}
-          </ThemedText>
-
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "white",
-              // borderColor: Colors.app.disabled,
-              // borderWidth: StyleSheet.hairlineWidth,
-              borderRadius: 20,
-              boxShadow: Colors.shadow.card,
-            }}
-          >
-            <View
-              style={{ flexDirection: "row", gap: 20, alignItems: "center" }}
+            <Formik
+              innerRef={formikRef}
+              initialValues={initialValues}
+              validationSchema={validationSchema}
+              onSubmit={handleSubmit}
+              enableReinitialize={true}
             >
-              {/* <TouchableOpacity
-              style={{
-                justifyContent: "center",
-                alignItems: "center",
-                borderRadius: 25,
-                margin: 4,
-                width: 40,
-                height: 40,
-                backgroundColor: "white",
-                borderWidth: 2,
-                borderColor: Colors.app.primary,
-                zIndex: 20
-              }}
-              onPress={() => setshowMModal()}
-            >
-              <Ionicons
-                name="close-outline"
-                size={SCREEN_WIDTH * 0.07}
-                color={Colors.app.primary}
-              />
-            </TouchableOpacity> */}
-            </View>
+              {({ handleSubmit: formikHandleSubmit, values, errors, touched, isSubmitting }) => (
+                <View
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    backgroundColor: "#ffffff",
+                  }}
+                >
+                  <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    <ThemedText
+                      style={{
+                        fontSize: SIZES.sm,
+                        fontWeight: "bold",
+                        textAlign: "center",
+                      }}
+                    >
+                      {selectedDress?.nom}
+                    </ThemedText>
+                    <ThemedText
+                      style={{
+                        fontSize: SIZES.xs,
+                        fontWeight: "medium",
+                        marginBottom: 20,
+                        textAlign: "center",
+                        color: Colors.app.primary,
+                      }}
+                    >
+                      {selectedDress?.genre}
+                    </ThemedText>
 
-            {/* show current measure */}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-around",
-                flexWrap: "wrap",
-              }}
-            >
-              {/* {dressMeasures?.map((item, i) => ( */}
-              {selectedDress?.categoriemesure.map((item, i) => {
-                return (
-                  <ModifMeasure
-                    key={i.toString()}
-                    image={""}
-                    title={item?.typemesure?.nom}
-                    value={inputValues[item.typemesure?.nom] || ""}
-                    onChangeValue={handleInputChange}
-                    measurementKey={item.typemesure?.nom}
-                  />
-                );
-              })}
+                    <View
+                      style={{
+                        flex: 1,
+                        backgroundColor: "white",
+                        borderRadius: 20,
+                        boxShadow: Colors.shadow.card,
+                      }}
+                    >
+                      {/* show current measure */}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-around",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        {selectedDress?.categoriemesure.map((item, i) => {
+                          return (
+                            <FormikModifMeasure
+                              key={i.toString()}
+                              name={`measures.${item?.typemesure?.nom}`}
+                              title={item?.typemesure?.nom}
+                            />
+                          );
+                        })}
+                      </View>
 
-              {/* ))} */}
-            </View>
-            {/* compta */}
+                      {/* Section financière */}
+                      <View
+                        style={{
+                          marginHorizontal: 6,
+                          marginVertical: 16,
+                          backgroundColor: "white",
+                          height: 2,
+                        }}
+                      />
+                      <View style={{ marginHorizontal: 20 }}>
+                        <FormikOtherInput
+                          name="quantity"
+                          required
+                          label="Quantité"
+                          placeholder="Ajoutez la quantité"
+                          icon={
+                            <Square3Stack3DIcon fill={Colors.app.primary} size={27} />
+                          }
+                          keyboardType="numeric"
+                        />
+                      </View>
+                      <View style={{ marginHorizontal: 20 }}>
+                        <FormikOtherInput
+                          name="amount"
+                          required
+                          label="Montant"
+                          placeholder="Saisissez le montant"
+                          icon={<BanknotesIcon fill={Colors.app.primary} size={27} />}
+                          keyboardType="numeric"
+                        />
+                      </View>
+                      <View style={{ marginHorizontal: 20 }}>
+                        <FormikOtherInput
+                          name="paiement"
+                          label="Avance"
+                          placeholder="Saisissez l'avance"
+                          icon={<MinusCircleIcon fill={Colors.app.primary} size={27} />}
+                          keyboardType="numeric"
+                        />
+                        {errors.paiement && touched.paiement && (
+                          <Animated.Text 
+                            entering={FadeIn} 
+                            exiting={FadeOut} 
+                            style={{fontSize: SIZES.xs, color: Colors.app.error}}
+                          >
+                            {errors.paiement}
+                          </Animated.Text>
+                        )}
+                      </View>
 
-            <>
-              <View
-                style={{
-                  marginHorizontal: 6,
-                  marginVertical: 16,
-                  backgroundColor: "white",
-                  height: 2,
-                }}
-              />
-              <View style={{ marginHorizontal: 20 }}>
-                <OtherInput
-                  required
-                  label="Quantité"
-                  placeholder="Ajoutez la quantité"
-                  icon={
-                    <Square3Stack3DIcon fill={Colors.app.primary} size={27} />
-                  }
-                  value={quantity}
-                  setValue={handleQuantityChange}
-                  keyboardType="numeric"
-                />
-                
-              </View>
-              <View style={{ marginHorizontal: 20 }}>
-                <OtherInput
-                  required
-                  label="Montant"
-                  placeholder="Saisissez le montant"
-                  icon={<BanknotesIcon fill={Colors.app.primary} size={27} />}
-                  value={amount}
-                  setValue={handleAmountChange}
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={{ marginHorizontal: 20 }}>
-                <OtherInput
-                  label="Avance"
-                  placeholder="Saisissez l'avance"
-                  icon={<MinusCircleIcon fill={Colors.app.primary} size={27} />}
-                  value={paiement}
-                  setValue={handlePaiementChange}
-                  keyboardType="numeric"
-                />
-                { Number(paiement) > Number(amount) * Number(quantity) &&                
-                  <Animated.Text entering={FadeIn} exiting={FadeOut} style={{fontSize: SIZES.xs, color: Colors.app.error}} >Le montant avancé doit être inférieur au montant de la commande</Animated.Text>
-                }             
+                      <View style={{ marginHorizontal: 20, marginVertical: 6 }}>
+                        <CustomButton
+                          label="Continuer"
+                          action={formikHandleSubmit}
+                          loading={isPending}
+                          disabled={!values.quantity || !values.amount || true}
+                        />
+                      </View>
+                    </View>
+                  </ScrollView>
                 </View>
-
-              <View style={{ marginHorizontal: 20, marginVertical: 6 }}>
-                <CustomButton
-                  label="Continuer"
-                  action={() => handleSubmit()}
-                  loading={isPending}
-                  disabled={true}
-                />
-              </View>
-            </>
-          </View>
-        </ScrollView>
-      </View>
-
-
+              )}
+            </Formik>
           </View>
 
           {/* <Sheet sheet={chooseFileSheet}> */}
@@ -786,11 +751,19 @@ const Page = (props: Props) => {
                 action={async () => {
                   bottomSheetModalRef?.current?.dismiss();
                   const selectedImage = await pickImage();
-                  if (selectedImage) {
+                  if (selectedImage && !Array.isArray(selectedImage)) {
                     if (selectePicType === "FABRIC") {
-                      setFabricPhoto(selectedImage);
+                      setFabricPhoto({
+                        uri: selectedImage.uri,
+                        fileName: selectedImage.fileName || 'fabric.png',
+                        mineType: selectedImage.mineType || 'image/png'
+                      });
                     } else {
-                      setModelPhoto(selectedImage);
+                      setModelPhoto({
+                        uri: selectedImage.uri,
+                        fileName: selectedImage.fileName || 'model.png',
+                        mineType: selectedImage.mineType || 'image/png'
+                      });
                     }
                   }
                 }}

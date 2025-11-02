@@ -14,7 +14,7 @@ import { useUserStore } from '@/stores/user';
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
-const LastAppointment = ({ appointment, onPress }) => {
+const LastAppointment = () => {
   // Format date if it's in YYYY-MM-DD format
 
   const { user} = useUserStore()
@@ -24,6 +24,7 @@ const LastAppointment = ({ appointment, onPress }) => {
     queryFn: async (): Promise<IOrder> => {  // Explicit return type
       try {
         const resp = await axios.get(baseURL+"/orders/last-appointment/"+user?.id);
+        console.log("Last appointment data:", resp.data); // Debug log
         return resp.data; // Ensure `resp.data` is returned
       } catch (error) {
         console.error(error);

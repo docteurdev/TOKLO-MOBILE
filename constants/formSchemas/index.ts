@@ -60,6 +60,43 @@ export const measurementSchema = Yup.object().shape({
  // Add more fields as needed
 });
 
+// Schéma dynamique pour les mesures de vêtements
+export const createDressMeasureSchema = (measureTypes: string[]) => {
+  const measureFields = measureTypes.reduce((acc, measureType) => {
+    acc[measureType] = Yup.string()
+      .matches(/^[0-9]*\.?[0-9]*$/, 'Doit être un nombre valide')
+      .nullable(); // Permet les valeurs vides
+    return acc;
+  }, {} as Record<string, any>);
+
+  return Yup.object().shape({
+    quantity: Yup.string()
+      .required('La quantité est requise')
+      .matches(/^[0-9]+$/, 'La quantité doit être un nombre'),
+    amount: Yup.string()
+      .required('Le montant est requis')
+      .matches(/^[0-9]+(\.[0-9]{1,2})?$/, 'Le montant doit être un nombre valide'),
+    paiement: Yup.string()
+      .matches(/^[0-9]*(\.[0-9]{1,2})?$/, 'Le paiement doit être un nombre valide')
+      .test('payment-validation', 'L\'avance ne peut pas être supérieure au montant total', function(value) {
+        const { amount, quantity } = this.parent;
+        if (!value || !amount || !quantity) return true;
+        const total = parseFloat(amount) * parseFloat(quantity);
+        return parseFloat(value) <= total;
+      }),
+    measures: Yup.object().shape(measureFields).optional(), // Rendre les mesures optionnelles
+    comment: Yup.string().optional(), // Ajouter le champ commentaire comme optionnel
+  });
+};
+
+export type DressMeasureFormValues = {
+  quantity: string;
+  amount: string;
+  paiement: string;
+  measures?: Record<string, string>; // Optionnel
+  comment?: string; // Optionnel
+};
+
 export const newClientSchema = Yup.object().shape({
   name: Yup.string().required("Entrez le nom"),
   lastname: Yup.string().required("Entrez le(s) prénom(s)"),

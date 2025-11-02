@@ -1,12 +1,13 @@
 import { Colors } from '@/constants/Colors';
 import { formatXOF, Rs, SCREEN_W } from '@/util/comon';
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import ItemChild from '../dress/ItemChild';
 import { BanknotesIcon, Bars2Icon, CalendarDaysIcon, CalendarIcon, ClockIcon, MinusCircleIcon, PhoneIcon, ShieldCheckIcon, Square3Stack3DIcon, SunIcon, UserIcon } from 'react-native-heroicons/solid';
 import { base } from '@/util/axios';
 import Animated, { FadeInLeft, FadeOutRight } from 'react-native-reanimated';
 import { DisplayMeasure } from '../dress/DisplayMeasure';
+import { Image } from 'expo-image';
 
 
 type TPaymentInterface = {
@@ -46,10 +47,12 @@ const PaymentInterface = ({clientfullname, clientphone, dresstype, tissu, fabric
  const [activeTab, setActiveTab] = useState('Détail');
  const tabs = ["Détail", "Médias", "Mesures"]
 
+ console.log("MESURE TYPE: ",  mesure);
+
  const onTabPress = (tab: string) => {
    setActiveTab(tab)
  }
-
+ 
 
   return (
     <View style={styles.container}>
@@ -92,7 +95,9 @@ const PaymentInterface = ({clientfullname, clientphone, dresstype, tissu, fabric
           <Text>Tissu</Text>
 
              {tissu && 
-                 <Image style={{width: SCREEN_W * 0.8 , aspectRatio: 1, alignSelf: "center", borderRadius: Rs(10)}}
+                 <Image
+                  
+                 style={{width: SCREEN_W * 0.8 , aspectRatio: 1, alignSelf: "center", borderRadius: Rs(10)}}
                   source={{uri:base+"uploads/"+tissu}}  /> 
              }
 
@@ -109,7 +114,37 @@ const PaymentInterface = ({clientfullname, clientphone, dresstype, tissu, fabric
           <CardItem>
 
            {mesure && <View style={{flexDirection: "row", flexWrap: "wrap", gap: 3, justifyContent: "center"}} >
-              {Object?.entries(mesure).map(([key, value]) => <DisplayMeasure value={value} title={key} key={key} />)}
+              {(() => {
+                // Si mesure est une string JSON, on la parse d'abord
+                let measureObject = mesure;
+                if (typeof mesure === 'string') {
+                  try {
+                    measureObject = JSON.parse(mesure);
+                  } catch (e) {
+                    console.warn('Erreur parsing mesure:', e);
+                    measureObject = mesure;
+                  }
+                }
+                
+                // Maintenant on traite l'objet correctement
+                return Object?.entries(measureObject).map(([key, value]) => {
+                  // Traiter les valeurs qui pourraient être des objets imbriqués
+                  let displayValue;
+                  if (typeof value === 'object' && value !== null) {
+                    // Si c'est un objet, on affiche ses valeurs
+                    if (Array.isArray(value)) {
+                      displayValue = value.join(', ');
+                    } else {
+                      // Pour un objet, on affiche les valeurs séparées par des virgules
+                      displayValue = Object.values(value).filter(v => v !== null && v !== undefined && v !== '').join(', ');
+                    }
+                  } else {
+                    displayValue = String(value || '');
+                  }
+                  
+                  return <DisplayMeasure value={displayValue} title={key} key={key} />
+                });
+              })()}
                  
           </View>}
           

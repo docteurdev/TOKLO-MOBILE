@@ -1,8 +1,24 @@
 import { Colors } from "@/constants/Colors";
 import { Rs, SIZES } from "@/util/comon";
+import React from "react";
 import { Image, Text, View } from "react-native";
 
-export const DisplayMeasure = ({ image, title, value }:{image?: string, title: string, value: string}) => {
+export const DisplayMeasure = ({ image, title, value }:{image?: string, title: string, value: string | number | object}) => {
+  // Convertir la valeur en string de façon sécurisée
+  const displayValue = React.useMemo(() => {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number') return value.toString();
+    if (typeof value === 'object' && value !== null) {
+      // Si c'est un objet, essayer de l'afficher de façon lisible
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return '[Objet]';
+      }
+    }
+    return String(value || '');
+  }, [value]);
+
  return (
    <View
      style={{
@@ -41,7 +57,7 @@ export const DisplayMeasure = ({ image, title, value }:{image?: string, title: s
 
          }}
        >
-         {value}
+         {displayValue}
        </Text>
      </View>
    </View>

@@ -113,6 +113,8 @@ function DetailHeader (){
 
 const DressDetail = ({closeSheet}: Props) => {
 
+  
+
 const route = useRouter();
 const {id} = useLocalSearchParams <{id: string}> ();
 

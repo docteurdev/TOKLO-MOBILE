@@ -15,7 +15,8 @@ type Props ={
   paiement: string;
 }
 const PaymentDisplay = ({totalPrice, status, date_remise, solde_cal, paiement}:Props) => {
-
+  
+  
   if(!status) return <ActivityIndicator size="large" color="#5c60f5" />
 
   return (
