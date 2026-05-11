@@ -10,7 +10,6 @@ import {
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  useAnimatedGestureHandler,
   withSpring,
   withTiming,
   runOnJS,
@@ -18,7 +17,8 @@ import Animated, {
   interpolate,
 } from 'react-native-reanimated';
 import {
-  PanGestureHandler,
+  Gesture,
+  GestureDetector,
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
@@ -43,6 +43,7 @@ const NotifItem: React.FC<NotificationItemProps> = ({
   const translateX = useSharedValue(0);
   const itemHeight = useSharedValue(120);
   const opacity = useSharedValue(1);
+  const startX = useSharedValue(0);
 
   const handleDelete = () => {
     Alert.alert(
@@ -71,14 +72,14 @@ const NotifItem: React.FC<NotificationItemProps> = ({
     );
   };
 
-  const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_, context) => {
-      context.startX = translateX.value;
-    },
-    onActive: (event, context) => {
-      translateX.value = Math.min(0, context.startX + event.translationX);
-    },
-    onEnd: (event) => {
+  const panGesture = Gesture.Pan()
+    .onBegin(() => {
+      startX.value = translateX.value;
+    })
+    .onUpdate((event) => {
+      translateX.value = Math.min(0, startX.value + event.translationX);
+    })
+    .onEnd(() => {
       const shouldDelete = translateX.value < SWIPE_THRESHOLD;
       
       if (shouldDelete) {
@@ -87,8 +88,7 @@ const NotifItem: React.FC<NotificationItemProps> = ({
       } else {
         translateX.value = withSpring(0);
       }
-    },
-  });
+    });
 
   const animatedItemStyle = useAnimatedStyle(() => {
     return {
@@ -138,7 +138,7 @@ const NotifItem: React.FC<NotificationItemProps> = ({
           <Text style={styles.deleteText}>Delete</Text>
         </Animated.View>
         
-        <PanGestureHandler onGestureEvent={gestureHandler}>
+        <GestureDetector gesture={panGesture}>
           <Animated.View style={[styles.notification, animatedItemStyle]}>
             <Pressable
               style={styles.notificationContent}
@@ -178,7 +178,7 @@ const NotifItem: React.FC<NotificationItemProps> = ({
               </View>
             </Pressable>
           </Animated.View>
-        </PanGestureHandler>
+        </GestureDetector>
       </View>
     </GestureHandlerRootView>
   );

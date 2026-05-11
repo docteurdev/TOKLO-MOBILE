@@ -1,29 +1,19 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react';
-import { createNotifications } from 'react-native-notificated'
+import { Alert } from 'react-native';
 
-type Props = {}
+type NotificationType = 'success' | 'error';
 
 const useNotif = () => {
-
- const { NotificationsProvider, useNotifications, ...events } = createNotifications();
-
-  const { notify } = useNotifications()
-
- function handleNotification(type: 'success' | 'error', title: string, description: string) {
-  notify(type, {
-   params: {
-     title: title,
-     description: description,
-   },
- })
-}
+  function handleNotification(
+    type: NotificationType,
+    title: string,
+    description: string,
+  ) {
+    Alert.alert(title || type, description);
+  }
 
   return {
-   handleNotification
-  }
- }
+    handleNotification,
+  };
+};
 
-export default useNotif
-
-const styles = StyleSheet.create({})
+export default useNotif;

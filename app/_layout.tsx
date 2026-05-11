@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Redirect, Slot, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { createNotifications } from "react-native-notificated";
 import { StripeProvider } from '@stripe/stripe-react-native';
 
 import * as Notifications from 'expo-notifications';
@@ -35,11 +34,6 @@ Notifications.setNotificationHandler({
 });
 
 export default function Root() {
-  const { NotificationsProvider, useNotifications, ...events } =
-    createNotifications();
-
-  const { notify } = useNotifications();
-
      // useReactQueryDevTools(queryClient);
   const [expoPushToken, setExpoPushToken] = useState('');
   const [channels, setChannels] = useState<Notifications.NotificationChannel[]>([]);
@@ -86,12 +80,8 @@ export default function Root() {
       });
 
     return () => {
-      notificationListener.current &&
-        Notifications.removeNotificationSubscription(
-          notificationListener.current,
-        );
-      responseListener.current &&
-        Notifications.removeNotificationSubscription(responseListener.current);
+      notificationListener.current?.remove();
+      responseListener.current?.remove();
     };
   }, []);
 
@@ -161,10 +151,7 @@ export default function Root() {
          <GestureHandlerRootView style={{ flex: 1 }}>
           <QueryClientProvider client={queryClient}>
         <BottomSheetModalProvider>
-            <NotificationsProvider>
-              <Slot />
-            
-            </NotificationsProvider>
+            <Slot />
         </BottomSheetModalProvider>
           </QueryClientProvider>
       </GestureHandlerRootView>
