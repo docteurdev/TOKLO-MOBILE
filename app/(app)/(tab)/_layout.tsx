@@ -53,7 +53,7 @@ export default function AppLayout() {
             <Tabs.Screen name='index'
             options={{
               tabBarLabel: "Accueil",
-              tabBarIcon: ({color}) => <Needle fill={color} width={35}/>,
+              tabBarIcon: ({color}) => <Needle fill={color} width={35} height={30}/>,
               
             }}
             
@@ -78,7 +78,7 @@ export default function AppLayout() {
                 borderRadius: 25,
               }}
             >
-              <Measure fill={color} color={color} width={30}/>
+              <Measure fill={color} color={color} width={30} height={30}/>
             </View> 
             ,
               
@@ -99,7 +99,7 @@ export default function AppLayout() {
           <Tabs.Screen name='users/[id]'
             options={{
               href: null,
-              tabBarIcon: ({color}) => <UsersIcon fill={color} size={27}/>,
+              tabBarIcon: ({color}) => <UsersIcon fill={color} size={27} height={30}/>,
               
             }}
             />

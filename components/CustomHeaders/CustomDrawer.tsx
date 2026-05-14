@@ -15,15 +15,15 @@ import {
 } from 'react-native-heroicons/solid'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { formatIvoryCoastPhoneNumber, Rs, SIZES } from '@/util/comon'
+import { colors, formatIvoryCoastPhoneNumber, Rs, SIZES } from '@/util/comon'
 import { useUserStore } from '@/stores/user'
+import CustomButton from '../form/CustomButton'
 
 const DRAWER_BG = '#FFF8EC'
 const TEXT_MAIN = '#2B1A0E'
 const TEXT_SECONDARY = '#6F6254'
 const GOLD = '#DFA32C'
 const RICH_GOLD = '#B8860B'
-const DARK_BROWN = '#3A220D'
 const ACTIVE_BG = '#F7E5BC'
 
 type MenuIconProps = {
@@ -123,6 +123,11 @@ const CustomDrawer = (props: any) => {
             </Text>
           )}
         </View>
+        <Image
+          source={require('@/assets/images/measure/double-arrow.png')}
+          resizeMode="cover"
+          style={styles.headerDoubleArrow}
+        />
       </View>
 
       <DrawerContentScrollView
@@ -147,23 +152,19 @@ const CustomDrawer = (props: any) => {
           />
         ))}
       </DrawerContentScrollView>
-
+    
       <View style={styles.logoutWrap}>
-        <Pressable
-          style={({ pressed }) => [styles.logoutButton, pressed && styles.logoutButtonPressed]}
-          onPress={() => {
-            clearToken()
+        <CustomButton
+         label='Se déconnecter'
+         disabled
+         action={()=>{
+          clearToken()
             setSubscribe(false)
             clearTokloUser()
             router.push('/login')
-          }}
-        >
-          <LogoutPattern />
-          <View style={styles.logoutIconCircle}>
-            <Feather name="log-out" size={20} color="#FFFFFF" />
-          </View>
-          <Text style={styles.logoutText}>Se déconnecter</Text>
-        </Pressable>
+         }}
+        />
+        
       </View>
     </SafeAreaView>
   )
@@ -180,7 +181,9 @@ const DrawerMenuItem = ({ focused, icon, label, onPress }: MenuItemProps) => {
       ]}
     >
       {focused && <ActiveItemPattern />}
-      <View style={styles.iconCircle}>{icon({ color: GOLD, focused })}</View>
+      <View style={[styles.iconCircle, {    backgroundColor: focused? 'white': colors.lightOrange,}]}>
+        {icon({ color: GOLD, focused })}
+        </View>
       <Text numberOfLines={1} style={[styles.menuLabel, focused && styles.menuLabelActive]}>
         {label}
       </Text>
@@ -207,13 +210,7 @@ const AfricanMiniPattern = () => (
 
 const ActiveItemPattern = () => (
   <View pointerEvents="none" style={styles.activePattern}>
-    {[0, 1, 2].map((row) => (
-      <View key={row} style={styles.activePatternRow}>
-        {[0, 1, 2, 3].map((item) => (
-          <View key={item} style={styles.activePatternDiamond} />
-        ))}
-      </View>
-    ))}
+    <Image style={styles.activePattern} width={100} height={100} source={require("@/assets/images/measure/top-sheet.png")} />
   </View>
 )
 
@@ -250,8 +247,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Rs(18),
     paddingTop: Rs(18),
     paddingBottom: Rs(22),
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(232, 216, 184, 0.65)',
+    position: "relative",
+  },
+  headerDoubleArrow: {
+    position: 'absolute',
+    bottom: Rs(-1),
+    left: '50%',
+    width: Rs(170),
+    height: Rs(15),
+    marginLeft: Rs(-80),
   },
   avatarOuter: {
     width: Rs(88),
@@ -361,7 +365,6 @@ const styles = StyleSheet.create({
     borderRadius: Rs(21),
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: DARK_BROWN,
   },
   menuLabel: {
     flex: 1,
@@ -370,7 +373,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   menuLabelActive: {
-    color: DARK_BROWN,
+    color: colors.DARK_BROWN,
     fontWeight: '800',
   },
   menuSeparator: {
@@ -384,15 +387,15 @@ const styles = StyleSheet.create({
     tintColor: RICH_GOLD,
   },
   menuSeparatorActive: {
-    tintColor: DARK_BROWN,
+    tintColor: colors.DARK_BROWN,
   },
   activePattern: {
     position: 'absolute',
-    right: Rs(12),
-    top: Rs(8),
-    bottom: Rs(8),
+    right: Rs(-12),
+    top: Rs(0),
+    // bottom: Rs(8),
     justifyContent: 'space-around',
-    opacity: 0.14,
+    
   },
   activePatternRow: {
     flexDirection: 'row',
@@ -442,13 +445,13 @@ const styles = StyleSheet.create({
   logoutWrap: {
     position: 'absolute',
     left: 0,
-    right: Rs(64),
+    right: 0,
     bottom: 0,
     paddingHorizontal: Rs(16),
     paddingTop: Rs(12),
     paddingBottom: Rs(18),
-    backgroundColor: 'rgba(255, 248, 236, 0.94)',
-    borderTopWidth: 1,
+    borderTopWidth: 0.5,
+    marginRight: Rs(20),
     borderTopColor: 'rgba(232, 216, 184, 0.65)',
   },
   logoutButton: {

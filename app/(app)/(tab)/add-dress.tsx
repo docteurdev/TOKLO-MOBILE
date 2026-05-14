@@ -232,16 +232,11 @@ const Page = (props: Props) => {
 
   }, [!subscribe]);
 
-  // Debounced input change handler with useCallback to prevent recreation
   const handleInputChange = useCallback((typemesurename: string, value: string) => {
-    const timeoutId = setTimeout(() => {
-      setInputValues((prevValues) => ({
-        ...prevValues,
-        [typemesurename]: value,
-      }));
-    }, 150); // 150ms debounce delay
-
-    return () => clearTimeout(timeoutId);
+    setInputValues((prevValues) => ({
+      ...prevValues,
+      [typemesurename]: value,
+    }));
   }, []);
 
   // Optimized setters with useCallback and debouncing to prevent recreation and excessive re-renders
@@ -299,7 +294,7 @@ const Page = (props: Props) => {
 
   
       // Append required fields
-      if(user?.id){formData.append("toklo_menid", user.id)};
+      if(user?.id){formData.append("toklo_menid", user?.id)};
 
       formData.append("status", "ONGOING");
        // Ensure this is a valid number (converted to string)
@@ -629,7 +624,11 @@ const Page = (props: Props) => {
           >
             {selectedDress?.genre}
           </ThemedText>
-
+          <Image
+            source={require('@/assets/images/measure/double-arrow.png')}
+            resizeMode="cover"
+            style={styles.doubleArrow}
+          />
           <View
             style={{
               flex: 1,
@@ -892,6 +891,12 @@ const styles = StyleSheet.create({
     right: 5,
     top: Rs(0),
     zIndex: 100,
-    //  backgroundColor: "red",
   },
+  doubleArrow:{
+    width: "88%",
+    height: Rs(26),
+    alignSelf: "center",
+    marginTop: Rs(-8),
+    marginBottom: Rs(8),
+  }
 });

@@ -48,6 +48,7 @@ export const colors = {
   purple: "#ad5389",
   red: '#FF0000',
   blackOpacity: '#24252685',
+  DARK_BROWN: '#3A220D',
   modal: "rgba(0,0,0,.02)",
   price1:  "#eef2f3",
   inputborderColor: "#ECF1F6", 
