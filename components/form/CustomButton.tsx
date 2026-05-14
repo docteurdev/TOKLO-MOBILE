@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import React from 'react'
 import Animated from 'react-native-reanimated'
 import { Colors } from '@/constants/Colors'
@@ -18,9 +18,13 @@ const CustomButton = ({label, action, disabled, loading}:Props) => {
   
   return (
    <AnimatedButton onPress={loading? () => {} : action} disabled={loading? true : false} style={[styles.button, {backgroundColor: !disabled? Colors.app.disabled : Colors.app.primary}]} >
+    <Image style={[styles.africanTouchSheet, {left: -20, top: -100}]} source={require("@/assets/images/measure/down-sheet.png")} />
+    
     {!loading? <Text style={styles.label} > {label} </Text> :
      <ActivityIndicator size="small" color='#ffffff' />
      }
+    <Image style={styles.africanTouchSheet} source={require("@/assets/images/measure/top-sheet.png")} />
+     
    </AnimatedButton>
   )
 }
@@ -34,8 +38,17 @@ const styles = StyleSheet.create({
    height: 50,
    justifyContent: 'center',
    alignItems: 'center',
-   boxShadow: Colors.shadow.card
+   boxShadow: Colors.shadow.card,
+   position: "relative",
+   overflow: "hidden"
  },
+ africanTouchSheet: {
+    height: 150, 
+    width: 150,
+    position: "absolute",
+    right: -30,
+    top: -10
+  },
  label:{
    color: '#ffffff',
    fontSize: SIZES.sm,

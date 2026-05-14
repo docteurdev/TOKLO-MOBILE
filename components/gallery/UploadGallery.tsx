@@ -9,7 +9,6 @@ import {
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
@@ -222,12 +221,7 @@ const UploadGallery = ({closeBottomSheet}: {closeBottomSheet: () => void}) => {
                 Appuyez pour sélectionner depuis votre galerie.
               </Text>
 
-              {/* <View style={styles.uploadTipContainer}>
-                <BlurView intensity={10} tint="light" style={styles.blurContainer}>
-                  <Ionicons name="bulb-outline" size={16} color="#fff" />
-                  <Text style={styles.uploadTip}>High-resolution images recommended</Text>
-                </BlurView>
-              </View> */}
+             
             </>
           )}
         </LinearGradient>
@@ -252,9 +246,9 @@ const UploadGallery = ({closeBottomSheet}: {closeBottomSheet: () => void}) => {
           onPress={removeImage}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <BlurView intensity={80} tint="dark" style={styles.removeButtonBlur}>
+          <View style={styles.removeButtonBlur}>
             <Ionicons name="close" size={16} color="#fff" />
-          </BlurView>
+          </View>
         </TouchableOpacity>
 
         <View style={styles.imageInfo}>

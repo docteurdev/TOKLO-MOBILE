@@ -43,6 +43,7 @@ export const colors = {
   black: "#000",
   green: "#1E9600",
   orange: "#f5af19",
+  lightOrange: "#f2ca8130",
   yellow: '#FACC15',
   purple: "#ad5389",
   red: '#FF0000',

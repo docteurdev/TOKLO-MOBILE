@@ -38,11 +38,10 @@ const Page = (props: Props) => {
     console.log(segment);
   };
 
-  // Memoize the components to prevent unnecessary re-renders
   const renderedComponent = useMemo(() => {
     switch (selectedSegment.label) {
       case 'En cours':
-        return <OngoingList key="ongoing" />; // Use key to force re-render only when necessary
+        return <OngoingList key="ongoing" />; 
       case 'Terminées':
         return <FinishedList key="finished" />;
       case 'Livrées':

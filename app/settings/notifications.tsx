@@ -28,6 +28,7 @@ import useTokloman from '@/hooks/mutations/useTokloman';
 import { ActivityIndicator } from 'react-native';
 import { defaultRemindTime } from '@/utils';
 import BlowingBtn from '@/components/form/BlowingBtn';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -207,121 +208,124 @@ const Page = () => {
   };
 
   return (
-    <View
-      // colors={['#f9f9ff', '#e8f0ff']}
-      style={styles.container}
-    >
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-          <BackButton backAction={() => router.back()} />
-          <View style={styles.header}>
-            <Text style={styles.title}>Mes Notifications</Text>
-            <MaterialIcons name="notifications-active" size={32} color={Colors.app.primary} />
-          </View>
-        </Animated.View>
+    <SafeAreaView style={{flex: 1}} >
 
-        <Animated.View 
-          style={[
-            styles.card, 
-            { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-          ]}
-        >
-          <View style={styles.sectionHeader}>
-            <MaterialIcons name="access-time" size={22} color="#5A67D8" />
-            <Text style={styles.sectionTitle}>Rappels avant l'événement</Text>
-          </View>
+      <View
+        // colors={['#f9f9ff', '#e8f0ff']}
+        style={styles.container}
+      >
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+            <BackButton backAction={() => router.back()} />
+            <View style={styles.header}>
+              <Text style={styles.title}>Mes Notifications</Text>
+              <MaterialIcons name="notifications-active" size={32} color={Colors.app.primary} />
+            </View>
+          </Animated.View>
+
+          <Animated.View 
+            style={[
+              styles.card, 
+              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+            ]}
+          >
+            <View style={styles.sectionHeader}>
+              <MaterialIcons name="access-time" size={22} color="#5A67D8" />
+              <Text style={styles.sectionTitle}>Rappels avant l'événement</Text>
+            </View>
+            
+            {renderOption(
+              "7 jours avant", 
+              <MaterialIcons name="event" size={20} color="#5A67D8" />, 
+              sevenDaysBefore, 
+              setSevenDaysBefore,
+              "#5A67D8"
+            )}
+            
+            {renderOption(
+              "3 jours avant", 
+              <MaterialIcons name="event" size={20} color="#7367F0" />,
+              threeDaysBefore, 
+              setThreeDaysBefore,
+              "#7367F0"
+            )}
+            
+            {renderOption(
+              "2 jours avant", 
+              <MaterialIcons name="event" size={20} color="#9F7AEA" />,
+              twoDaysBefore, 
+              setTwoDaysBefore,
+              "#9F7AEA"
+            )}
+            
+            {renderOption(
+              "1 jour avant", 
+              <MaterialIcons name="event" size={20} color="#B794F4" />,
+              oneDayBefore, 
+              setOneDayBefore,
+              "#B794F4"
+            )}
+          </Animated.View>
           
-          {renderOption(
-            "7 jours avant", 
-            <MaterialIcons name="event" size={20} color="#5A67D8" />, 
-            sevenDaysBefore, 
-            setSevenDaysBefore,
-            "#5A67D8"
-          )}
+          <Animated.View 
+            style={[
+              styles.card, 
+              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+            ]}
+          >
+            <View style={styles.sectionHeader}>
+              <Ionicons name="time-outline" size={22} color={Colors.app.available.av_txt} />
+              <Text style={styles.sectionTitle}>Moment de la journée</Text>
+            </View>
+            
+            {renderOption(
+              `Matin ${ morningTime &&':  ' + morningTime}`,
+              <FontAwesome5 name="cloud-sun" size={18} color="#ED8936" />,
+              morningNotif, 
+              setMorningNotif,
+              "#ED8936",
+              "isTime",
+            )}
+            
+            {renderOption(
+              `Après-midi ${ afternoonTime &&':  ' + afternoonTime}`,
+              <Ionicons name="sunny-outline" size={20} color="#DD6B20" />,
+              afternoonNotif, 
+              setAfternoonNotif,
+              "#DD6B20",
+              "isTime",
+            )}
+            
+            {renderOption(
+              `Dans la soirée ${eveningTme &&':  ' + eveningTme}`,
+              <FontAwesome5 name="moon" size={18} color="#667EEA" />,
+              eveningNotif, 
+              setEveningNotif,
+              "#667EEA",
+              "isTime",
+            )}
+            
+            {/* {renderOption(
+              "Heure personnalisée", 
+              <MaterialIcons name="schedule" size={20} color="#4C51BF" />,
+              customTimeEnabled, 
+              setCustomTimeEnabled,
+              "#4C51BF"
+            )} */}
+            
           
-          {renderOption(
-            "3 jours avant", 
-            <MaterialIcons name="event" size={20} color="#7367F0" />,
-            threeDaysBefore, 
-            setThreeDaysBefore,
-            "#7367F0"
-          )}
+          </Animated.View>
           
-          {renderOption(
-            "2 jours avant", 
-            <MaterialIcons name="event" size={20} color="#9F7AEA" />,
-            twoDaysBefore, 
-            setTwoDaysBefore,
-            "#9F7AEA"
-          )}
-          
-          {renderOption(
-            "1 jour avant", 
-            <MaterialIcons name="event" size={20} color="#B794F4" />,
-            oneDayBefore, 
-            setOneDayBefore,
-            "#B794F4"
-          )}
-        </Animated.View>
-        
-        <Animated.View 
-          style={[
-            styles.card, 
-            { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-          ]}
-        >
-          <View style={styles.sectionHeader}>
-            <Ionicons name="time-outline" size={22} color={Colors.app.available.av_txt} />
-            <Text style={styles.sectionTitle}>Moment de la journée</Text>
-          </View>
-          
-          {renderOption(
-            `Matin ${ morningTime &&':  ' + morningTime}`,
-            <FontAwesome5 name="cloud-sun" size={18} color="#ED8936" />,
-            morningNotif, 
-            setMorningNotif,
-            "#ED8936",
-            "isTime",
-          )}
-          
-          {renderOption(
-            `Après-midi ${ afternoonTime &&':  ' + afternoonTime}`,
-            <Ionicons name="sunny-outline" size={20} color="#DD6B20" />,
-            afternoonNotif, 
-            setAfternoonNotif,
-            "#DD6B20",
-            "isTime",
-          )}
-          
-          {renderOption(
-            `Dans la soirée ${eveningTme &&':  ' + eveningTme}`,
-            <FontAwesome5 name="moon" size={18} color="#667EEA" />,
-            eveningNotif, 
-            setEveningNotif,
-            "#667EEA",
-            "isTime",
-          )}
-          
-          {/* {renderOption(
-            "Heure personnalisée", 
-            <MaterialIcons name="schedule" size={20} color="#4C51BF" />,
-            customTimeEnabled, 
-            setCustomTimeEnabled,
-            "#4C51BF"
-          )} */}
-          
-         
-        </Animated.View>
-        
-        <Animated.View 
-          style={{
-            transform: [{ scale: buttonScale }]
-          }}
-        >
-          <BlowingBtn label='Sauvegarder' isPending={isPending} handlePress={saveSettings} />
-        </Animated.View>
-      </ScrollView>
-    </View>
+          <Animated.View 
+            style={{
+              transform: [{ scale: buttonScale }]
+            }}
+          >
+            <BlowingBtn label='Sauvegarder' isPending={isPending} handlePress={saveSettings} />
+          </Animated.View>
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 };
 

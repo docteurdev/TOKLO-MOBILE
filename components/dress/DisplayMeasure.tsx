@@ -1,5 +1,5 @@
 import { Colors } from "@/constants/Colors";
-import { Rs, SIZES } from "@/util/comon";
+import { colors, Rs, SIZES } from "@/util/comon";
 import { Image, Text, View } from "react-native";
 
 export const DisplayMeasure = ({ image, title, value }:{image?: string, title: string, value: string}) => {
@@ -8,7 +8,7 @@ export const DisplayMeasure = ({ image, title, value }:{image?: string, title: s
      style={{
        justifyContent: "center",
        alignItems: "center",
-       backgroundColor: Colors.app.disabled,
+       backgroundColor: colors.lightOrange,
        margin: Rs(2),
        borderRadius: Rs(6),
        padding: Rs(6),

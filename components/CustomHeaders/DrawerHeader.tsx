@@ -9,6 +9,7 @@ import { Colors } from '@/constants/Colors';
 import { Rs, SIZES } from '@/util/comon';
 import BottomSheetCompo from '../BottomSheetCompo';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = {}
 
@@ -16,12 +17,13 @@ const DrawerHeader = (props: Props) => {
 
   const nav = useNavigation();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const bottomSheetModalRef = React.useRef<BottomSheetModal>(null);
 
   return (
     <>
-    <View style={styles.container} >
+    <View style={[styles.container, { paddingTop: insets.top + Rs(8) }]} >
        <TouchableOpacity onPress={() => nav?.openDrawer()} style={styles.menu} >
          <MenuIcon fill={Colors.app.texteLight} size={27}/>
        </TouchableOpacity>
@@ -49,17 +51,18 @@ const styles = StyleSheet.create({
      alignItems: "center",
      justifyContent: "space-between",
      width: "100%",
-     height: 60,
+     minHeight: 72,
      backgroundColor: "white",
      paddingHorizontal: 20,
+     paddingBottom: Rs(10),
      borderBottomWidth: StyleSheet.hairlineWidth,
      borderColor: Colors.app.disabled
     },
 
     menu:{
       // backgroundColor: "red",
-      width: 30,
-      height: 30,
+      width: 44,
+      height: 44,
       justifyContent: "center",
       alignItems: "center"
     },

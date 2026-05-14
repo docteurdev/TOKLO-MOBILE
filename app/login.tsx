@@ -21,8 +21,6 @@ import useNotif from "@/hooks/useNotification";
 import axios from "axios";
 import { baseURL } from "@/util/axios";
 import { ITokloUser, IUser, Ttoklo_men } from "@/interfaces/user";
-import { SegmentButtons } from "@/components/SegmentButtons";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
 
 type TypeValues = InferType<typeof loginSchema>;

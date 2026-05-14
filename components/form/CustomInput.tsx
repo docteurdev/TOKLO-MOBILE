@@ -45,7 +45,7 @@ const CustomInput = ({ isDescr, label, value, handleOnBlur, handleChange, error,
         onFocus={() => setIsFocused(true)}
       />
       {isPassword && (
-        <TouchableOpacity style={{ position: 'absolute', right: Rs(10), top: Rs(45), zIndex: 50 }} onPress={() => { setIsPw(!isPw) }}>
+        <TouchableOpacity style={{ position: 'absolute', right: Rs(10), top: Rs(40), zIndex: 50 }} onPress={() => { setIsPw(!isPw) }}>
           <Feather name='eye' size={20} color={Colors.app.texteLight} />
         </TouchableOpacity>
       )}

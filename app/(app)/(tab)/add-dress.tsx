@@ -29,9 +29,7 @@ import { Rs, SCREEN_H, SIZES } from "@/util/comon";
 import { Colors } from "@/constants/Colors";
 import ListModal from "@/components/ListModal";
 import CustomButton from "@/components/form/CustomButton";
-import { Sheet } from "@/components/Sheet";
 import Measure from "@/components/takeOrder/Measure";
-// import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import useDateTimePicker from "@/hooks/useDateTimePicker";
 import useUpload from "@/hooks/useUpload";
 import CameraComponent from "@/components/CameraCompo";
@@ -136,6 +134,7 @@ function SelectedCompo({ placeholder, icon, open }: SelectedCompoType) {
     >
       <View style={styles.selectedUserLogo}>{icon}</View>
       <Text style={styles.selectedUserText}> {placeholder} </Text>
+      {/* <Image style={{position: "absolute", bottom: 0}} source={require("@/assets/images/measure/separator.png")} /> */}
     </TouchableOpacity>
   );
 }
@@ -160,10 +159,6 @@ const Page = (props: Props) => {
   const [isOpeningCamera, setIsOpeningCamera] = useState(false);
 
   const router = useRouter();
-
-
-  // const sheet = useRef<TrueSheet>(null);
-  // const chooseFileSheet = useRef<TrueSheet>(null);
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
@@ -601,8 +596,6 @@ const Page = (props: Props) => {
               genre={selectedDress?.genre || ""}
              /> */}
             {/* </BottomSheetCompo> */}
-            {/* <Sheet sheet={sheet}>
-            </Sheet> */}
 
       <View
         style={{
@@ -797,8 +790,6 @@ const Page = (props: Props) => {
               />
             </View>
           </BottomSheetCompo>
-          {/* </Sheet> */}
-
           {/* payement bottomsheet */}
 
           <BottomSheetCompo bottomSheetModalRef={subscribeBottomSheet} snapPoints={["100%"]} >
@@ -832,12 +823,11 @@ export default Page;
 
 const styles = StyleSheet.create({
   selectedUserContainer: {
+    position: "relative",
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     marginVertical: 10,
-    borderBottomWidth: 1,
-    borderColor: Colors.app.disabled,
     paddingBottom: 10,
   },
   screen: {

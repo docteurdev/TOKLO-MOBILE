@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export const base = "https://toklo.allons-y.ci/" //"http://192.168.255.125:3344/";
+export const base =  "http://localhost:3344/"; //"https://toklo.allons-y.ci/"
 export const baseURL = base+"api";
 
 

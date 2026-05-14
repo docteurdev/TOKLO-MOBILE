@@ -13,7 +13,6 @@ import {
   StatusBar,
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome, AntDesign } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 
 const { width, height } = Dimensions.get('window');
 

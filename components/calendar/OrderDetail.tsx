@@ -2,7 +2,7 @@ import { Colors } from '@/constants/Colors';
 import { EDressStatus } from '@/interfaces/type';
 import { formatXOF, Rs, SIZES } from '@/util/comon';
 import React, { Suspense } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { CalendarDaysIcon } from 'react-native-heroicons/solid';
 
 
@@ -39,6 +39,9 @@ const PaymentDisplay = ({totalPrice, status, date_remise, solde_cal, paiement}:P
             <CalendarDaysIcon fill={ status == EDressStatus.ONGOING ? Colors.app.available.unav_txt: status == EDressStatus.FINISHED? Colors.app.dashitem.t_2 : Colors.app.available.av_txt} size={Rs(23)} />
           </View>
         </View>
+        
+        <Image style={styles.africanTouchSheet} source={require("@/assets/images/measure/top-sheet.png")} />
+        
       </View>
    
 
@@ -51,6 +54,7 @@ const styles = StyleSheet.create({
     padding: Rs(16),
     borderRadius: Rs(12),
     width: '100%',
+    overflow: "hidden"
   },
   label: {
     fontSize: 14,
@@ -95,6 +99,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    
+  },
+  africanTouchSheet: {
+    height: 150, 
+    width: 150,
+    position: "absolute",
+    right: -30,
+    top: -10
   },
   benefitsText: {
     fontSize: 14,

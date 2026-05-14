@@ -32,6 +32,8 @@ const DressItem = ({type, showDetail, item, handleChangeStatus, handlePrint}: Pr
   return (
     <View>
      <View style={styles.item} >
+      <Image style={styles.africanTouch} source={require("@/assets/images/drawer/african-touch.png")} />
+      <Image style={styles.africanTouchSheet} source={require("@/assets/images/measure/top-sheet.png")} />
       {/* top */}
       <View style={[styles.topItem, {gap: 10}]} >
 
@@ -119,7 +121,21 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth, 
     borderColor: Colors.app.disabled,
-    marginBottom: Rs(10)
+    marginBottom: Rs(10),
+    position: "relative"
+  },
+  africanTouch: {
+    height: 400, 
+    width: 60,
+    position: "absolute",
+    left: -50
+  },
+  africanTouchSheet: {
+    height: 150, 
+    width: 150,
+    position: "absolute",
+    right: -30,
+    top: -10
   },
   imgBox:{
     width: Rs(80),

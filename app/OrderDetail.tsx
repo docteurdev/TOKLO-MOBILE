@@ -26,6 +26,7 @@ import PaymentDetails from '@/components/calendar/OrderDetail';
 import LoadingScreen from '@/components/Loading'
 import { useUserStore } from '@/stores/user'
 import useInvoice from '@/hooks/useInvoice'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 
 type Props = {
@@ -199,13 +200,13 @@ function closebottomSheet(){
   }
 
   if (error) {
-    return <Text style={styles.errorText}>Erreur: {error.message}</Text>;
+    return <Text >Erreur: {error.message}</Text>;
   }
 
 
   return (
-   <>
-     <View style={{position: "absolute", top: Rs(10), left: Rs(10), width: 40, height: 40, justifyContent: "center", alignItems: "center",}} >
+   <SafeAreaView style={{flex: 1}}>
+     <View style={{position: "absolute", top: Rs(40), left: Rs(10), width: 40, height: 40, justifyContent: "center", alignItems: "center",}} >
       <BackButton backAction={() => route.replace({pathname: "/(app)/(tab)/orders"})  } />
     </View>
 
@@ -276,7 +277,7 @@ function closebottomSheet(){
     </ScrollView>
 
     
-   </>
+   </SafeAreaView>
   )
 }
 

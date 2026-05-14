@@ -26,7 +26,7 @@ type TPaymentInterface = {
 
 }
 
-const TabButton = ({ title, isActive, onTabPress }:{title: string, isActive: string, onPress: () => void}) => (
+const TabButton = ({ title, isActive, onTabPress }:{title: string, isActive: string, onTabPress: () => void}) => (
 
   <TouchableOpacity onPress={onTabPress} style={[styles.tabButton, isActive === title && styles.activeTab]}>
     <Text style={[styles.tabText, isActive && styles.activeTabText]}>{title}</Text>
@@ -108,8 +108,12 @@ const PaymentInterface = ({clientfullname, clientphone, dresstype, tissu, fabric
          {activeTab === 'Mesures' &&
           <CardItem>
 
-           {mesure && <View style={{flexDirection: "row", flexWrap: "wrap", gap: 3, justifyContent: "center"}} >
-              {Object?.entries(mesure).map(([key, value]) => <DisplayMeasure value={value} title={key} key={key} />)}
+           {mesure && <View style={styles.measureGrid} >
+              {Object?.entries(mesure).map(([key, value]) => (
+                <View style={styles.measureGridItem} key={key}>
+                  <DisplayMeasure value={String(value)} title={key} />
+                </View>
+              ))}
                  
           </View>}
           
@@ -187,6 +191,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#EEE',
+  },
+  measureGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginHorizontal: Rs(-4),
+    rowGap: Rs(8),
+  },
+  measureGridItem: {
+    width: "50%",
+    paddingHorizontal: Rs(4),
   },
   cardLeft: {
     flexDirection: 'row',

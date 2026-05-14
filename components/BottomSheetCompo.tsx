@@ -8,7 +8,7 @@ import {
 } from '@gorhom/bottom-sheet';
 
 interface Props extends Partial<BottomSheetModalProps> {
-  bottomSheetModalRef: React.RefObject<BottomSheetModal>;
+  bottomSheetModalRef: React.RefObject<BottomSheetModal | null>;
   children: React.ReactNode;
   snapPoints?: (string | number)[];
   onChange?: (index: number) => void;

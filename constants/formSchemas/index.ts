@@ -6,7 +6,7 @@ export const loginSchema = Yup.object().shape({
     .min(10, "Le numéro de téléphone doit contenir au moins 10 chiffres")
     .required("Entrez votre numéro de téléphone"),
   password: Yup.string()
-    .min(6, "Le mot de passe doit être au moins 6 caractères")
+    .min(5, "Le mot de passe doit être au moins 6 caractères")
     .required("Entrez votre mot de passe"),
 });
 
@@ -20,7 +20,7 @@ export const signUpSchema = Yup.object().shape({
     .required("Entrez votre numéro de téléphone"),
 //  email: Yup.string().email("L'email n'est pas valide").required("Entrez votre email"),
   password: Yup.string()
-    .min(6, "Le mot de passe doit être au moins 6 caractères")
+    .min(5, "Le mot de passe doit être au moins 6 caractères")
     .required("Entrez votre mot de passe"),
 });
 

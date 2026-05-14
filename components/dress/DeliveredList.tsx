@@ -2,9 +2,6 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import React, { useCallback, useMemo, useRef } from "react";
 import { FlashList } from "@shopify/flash-list";
 import DressItem from "./DressItem";
-import FileSheet from "../takeOrder/FileSheet";
-import { Sheet } from "../Sheet";
-import { TrueSheet } from "@lodev09/react-native-true-sheet";
 // import DressDetail from './DressDetail';
 import { generateInvoiceNumber, Rs, SCREEN_H, SIZES } from "@/util/comon";
 import { IOrder, TInvoice } from "@/interfaces/type";
@@ -22,8 +19,6 @@ import useInvoice from "@/hooks/useInvoice";
 type Props = {};
 
 const DeliveredList = (props: Props) => {
-  const sheetRef = useRef<TrueSheet>(null);
-
     const {setDeliveredOrderLength} = useOrderStore();
     const {user} = useUserStore();
   
@@ -53,7 +48,6 @@ const DeliveredList = (props: Props) => {
   });
 
   const presentDetailModal = async () => {
-    await sheetRef.current?.present();
     // console.log('horray! sheet has been presented 💩')
   };
 
@@ -123,12 +117,6 @@ const DeliveredList = (props: Props) => {
         estimatedItemSize={200}
       />
 
-      {/* <Sheet sheet={sheetRef}>
-          <ScrollView  style={{height: SCREEN_H * 2, backgroundColor: "red" }} >
-
-          <DressDetail closeSheet={() => sheetRef.current?.dismiss()} />
-          </ScrollView>
-        </Sheet> */}
     </View>
   );
 };

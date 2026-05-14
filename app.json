@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.devdocdoc.Toklo",
@@ -18,7 +17,6 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/logos/adaptive-icon.png",
-        "monochromeForegroundImage": "./assets/logos/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.devdocdoc.Toklo",
@@ -43,7 +41,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

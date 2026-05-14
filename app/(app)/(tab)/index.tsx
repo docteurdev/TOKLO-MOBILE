@@ -173,7 +173,7 @@ const convertToDisplayFormat = (isoDateString: string) => {
       {/* AgendaList Component */}
       <View style={styles.agendaContainer}>
 
-
+       
        { agendaItems.length > 0 ? <AgendaList
           sections={sections}
           renderItem={({ item }) => (

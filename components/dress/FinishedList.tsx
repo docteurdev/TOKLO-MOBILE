@@ -1,17 +1,13 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useRef, useState } from "react";
 import { FlashList } from "@shopify/flash-list";
 import DressItem from "./DressItem";
-import FileSheet from "../takeOrder/FileSheet";
-import { Sheet } from "../Sheet";
-import { TrueSheet } from "@lodev09/react-native-true-sheet";
-// import DressDetail from './DressDetail';
-import { formatXOF, Rs, SCREEN_H, SIZES } from "@/util/comon";
+import { formatXOF, Rs, SIZES } from "@/util/comon";
 import { EDressStatus, IOrder } from "@/interfaces/type";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 import { QueryKeys } from "@/interfaces/queries-key";
-import { axiosConfigFile, baseURL } from "@/util/axios";
+import { baseURL } from "@/util/axios";
 import { useOrderStore } from "@/stores/order";
 import useChangeOrderStatus from "@/hooks/mutations/useChangeOrderStatus";
 import BottomSheetCompo from "../BottomSheetCompo";
@@ -21,12 +17,11 @@ import RoundedBtn from "../form/RoundedBtn";
 import LoadingScreen from "../Loading";
 import { useUserStore } from "@/stores/user";
 import usePayOrderSold from "@/hooks/mutations/usePayOrderSold";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
 type Props = {};
 
 const FinishedList = (props: Props) => {
-  const sheetRef = useRef<TrueSheet>(null);
-
     const {setFinishedOrderLength} = useOrderStore()
   
    const {user} = useUserStore()
@@ -53,14 +48,15 @@ const FinishedList = (props: Props) => {
     },
   });
 
-  const [selectedItem, setSelectedItem] = useState<IOrder>({});
+  const [selectedItem, setSelectedItem] = useState<IOrder | null>(null);
 
-  const bottomSheetModalRef = useRef<TrueSheet>(null);
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   
   const  {mutate, isPending} = useChangeOrderStatus(() => {}, EDressStatus.FINISHED );
   const  {mutate: payOrderSoldMutate, isPending: isPayOrderSoldPending} = usePayOrderSold(() => {}, EDressStatus.FINISHED );
   
   function handleChangeStatus(isPayDelivered: boolean) {
+        if (!selectedItem) return;
       
         bottomSheetModalRef.current?.dismiss();
         if(isPayDelivered){
@@ -73,7 +69,6 @@ const FinishedList = (props: Props) => {
     }
 
   const presentDetailModal = async () => {
-    await sheetRef.current?.present();
     // console.log('horray! sheet has been presented 💩')
   };
 
@@ -102,17 +97,16 @@ const FinishedList = (props: Props) => {
     []
   );
 
-   {data &&  <LoadingScreen 
-        visible={isPending}
-        backgroundColor="rgba(0, 0, 0, 0.7)"
-        indicatorColor="#FFFFFF"
-        indicatorSize={48}
-        message=""
-        animationType="slide"
-      />}
-
   return (
     <>
+    {data &&  <LoadingScreen 
+      visible={isPending || isPayOrderSoldPending}
+      backgroundColor="rgba(0, 0, 0, 0.7)"
+      indicatorColor="#FFFFFF"
+      indicatorSize={48}
+      message=""
+      animationType="slide"
+    />}
     <View style={styles.container}>
 
 
@@ -130,19 +124,12 @@ const FinishedList = (props: Props) => {
                   </View>
                 )}
         removeClippedSubviews={true} // Optimisation de performance
-        estimatedItemSize={200}
       />
 
-      {/* <Sheet sheet={sheetRef}>
-          <ScrollView  style={{height: SCREEN_H * 2, backgroundColor: "red" }} >
-
-          <DressDetail closeSheet={() => sheetRef.current?.dismiss()} />
-          </ScrollView>
-        </Sheet> */}
     </View>
 
     <BottomSheetCompo bottomSheetModalRef={bottomSheetModalRef} snapPoints={[Rs(190)]} >
-          <View style={{height: Rs(150), justifyContent: "center", alignItems: Number(selectedItem?.solde_cal) > 0? "": "center" ,  gap: Rs(20), paddingHorizontal: Rs(20)}} >
+          <View style={{height: Rs(150), justifyContent: "center", alignItems: "center" ,  gap: Rs(20), paddingHorizontal: Rs(20)}} >
             <Text style={{fontSize: SIZES.sm, color: Colors.app.texteLight, textAlign: "justify"}}> 
               {Number(selectedItem?.solde_cal) > 0 ? <Text>Il reste un solde de <Text style={{color: Colors.app.error}} > {formatXOF(Number(selectedItem?.solde_cal))} </Text> à régler pour ce vêtement. 💰 </Text> :  alertMgs.order.order.statussChanging.deliver.fr }
             </Text>

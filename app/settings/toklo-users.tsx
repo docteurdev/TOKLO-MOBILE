@@ -42,6 +42,7 @@ import useToklomanUser from '@/hooks/mutations/useToklomanUser';
 import { Alert } from 'react-native';
 import useNotif from '@/hooks/useNotification';
 import useUpdateToklomanUser from '@/hooks/mutations/useUpdateToklomanUser';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -105,189 +106,190 @@ const Page = () => {
 
 
   return (
-    <View
-      // colors={['#f9f9ff', '#e8f0ff']}
-      style={styles.container}
-    >
-        <View style={{padding: 16}}>
-          <BackButton backAction={() => router.back()} />
-          <View style={[styles.header, ]}>
-            <Text style={styles.title}>Personel</Text>
-            <UserGroupIcon size={32} color={Colors.app.primary} />
+    <SafeAreaView style={{flex: 1}} >
+        <View
+          style={styles.container}
+        >
+            <View style={{padding: 16}}>
+              <BackButton backAction={() => router.back()} />
+              <View style={[styles.header, ]}>
+                <Text style={styles.title}>Personel</Text>
+                <UserGroupIcon size={32} color={Colors.app.primary} />
+              </View>
+            </View>
+          <ScrollView showsVerticalScrollIndicator={false}>
+
+            
+          {data?.map((item) => <ToklomanUser
+            key={item?.id.toString()} 
+            user={item}
+            onDelete={() => {
+              Alert.alert("Supprimer", "Êtes-vous sûr de vouloir supprimer cet utilisateur ?", [
+                {
+                  text: "Annuler",
+                  style: "cancel",
+                },
+                { text: "Supprimer", onPress: () => handleDeleteUser(item?.id) },
+              ]);
+            }}
+            onPress={() => handleSelectUser(item)}
+            /> )}
+          </ScrollView>
+          <FlatButton
+            title="Nouveau personnel"
+            width={Rs(300)}
+            onPress={() => bottosheetRef?.current?.present()} 
+            icon={<UserPlusIcon size={24} color="#fff" />}
+          />
+
+
+      {/* add new user */}
+        <BottomSheetCompo  bottomSheetModalRef={bottosheetRef} snapPoints={['50%']} >
+          <View style={{padding: Rs(16), }}>
+
+            <Formik
+            initialValues={{
+              fullName: '',
+              phone: '',
+              password: '',
+            }}
+            validationSchema={userSchema}
+            onSubmit={(values) => {
+              Keyboard.dismiss();
+              mutate(values)
+            }}
+          >
+            {({
+              handleChange,
+              handleBlur,
+              handleSubmit,
+              values,
+              errors,
+              touched,
+              isSubmitting,
+              isValid
+            }) => (
+              <View style={styles.container}>
+                <CustomInput
+                  label="Nom et prénom(s)"
+                  placeholder="John Doe"
+                  keyboardType="default"
+                  handleChange={handleChange('fullName')}
+                  handleOnBlur={handleBlur('fullName')}
+                  value={values.fullName}
+                  error={touched.fullName && errors.fullName}
+                />
+                
+                <CustomInput
+                  label="Numéro de téléphone"
+                  placeholder="XX XX XX XX XX"
+                  keyboardType="phone-pad"
+                  handleChange={handleChange('phone')}
+                  handleOnBlur={handleBlur('phone')}
+                  value={values.phone}
+                  error={touched.phone && errors.phone}
+                />
+                
+                <CustomInput
+                  label="Mot de passe"
+                  placeholder="******"
+                  secureTextEntry={true}
+                  keyboardType="default"
+                  handleChange={handleChange('password')}
+                  handleOnBlur={handleBlur('password')}
+                  value={values.password}
+                  isPassword
+                  error={touched.password && errors.password}
+                />
+                
+                <CustomButton
+                  label={isSubmitting ? "Traitement..." : "Enregistrer"}
+                  action={handleSubmit}
+                  disabled={isValid}
+                />
+              </View>
+            )}
+            </Formik>
           </View>
+        </BottomSheetCompo>
+
+    {/* update user */}
+        <BottomSheetCompo  bottomSheetModalRef={updatebottosheetRef} snapPoints={['50%']} >
+          <View style={{padding: Rs(16), }}>
+
+            <Formik
+            initialValues={{
+              fullName: selectedUser?.fullName,
+              phone: selectedUser?.phone,
+              password: selectedUser?.password,
+            }}
+            enableReinitialize
+            validationSchema={userSchema}
+            onSubmit={(values) => {
+              Keyboard.dismiss();
+              const data = {...values, id: selectedUser?.id}
+              updateMutate(data)
+            }}
+          >
+            {({
+              handleChange,
+              handleBlur,
+              handleSubmit,
+              values,
+              errors,
+              touched,
+              isSubmitting,
+              isValid
+            }) => (
+              <View style={styles.container}>
+                <CustomInput
+                  label="Nom et prénom(s)"
+                  placeholder="Koné Etienne"
+                  keyboardType="default"
+                  handleChange={handleChange('fullName')}
+                  handleOnBlur={handleBlur('fullName')}
+                  value={values.fullName}
+                  error={touched.fullName && errors.fullName}
+                />
+                
+                <CustomInput
+                  label="Numéro de téléphone"
+                  placeholder="XX XX XX XX XX"
+                  keyboardType="phone-pad"
+                  handleChange={handleChange('phone')}
+                  handleOnBlur={handleBlur('phone')}
+                  value={values.phone}
+                  error={touched.phone && errors.phone}
+                />
+                
+                <CustomInput
+                  label="Mot de passe"
+                  placeholder="******"
+                  secureTextEntry={true}
+                  keyboardType="default"
+                  handleChange={handleChange('password')}
+                  handleOnBlur={handleBlur('password')}
+                  value={values.password}
+                  isPassword
+                  error={touched.password && errors.password}
+                />
+                
+                <CustomButton
+                  label={"Enregistrer"}
+                  action={handleSubmit}
+                  disabled={isValid}
+                  loading={isPending}
+                />
+              </View>
+            )}
+            </Formik>
+          </View>
+        </BottomSheetCompo>
+
+
+
         </View>
-      <ScrollView showsVerticalScrollIndicator={false}>
-
-        
-       {data?.map((item) => <ToklomanUser
-        key={item?.id.toString()} 
-        user={item}
-        onDelete={() => {
-          Alert.alert("Supprimer", "Êtes-vous sûr de vouloir supprimer cet utilisateur ?", [
-            {
-              text: "Annuler",
-              style: "cancel",
-            },
-            { text: "Supprimer", onPress: () => handleDeleteUser(item?.id) },
-          ]);
-        }}
-        onPress={() => handleSelectUser(item)}
-        /> )}
-      </ScrollView>
-      <FlatButton
-        title="Nouveau personnel"
-        width={Rs(300)}
-        onPress={() => bottosheetRef?.current?.present()} 
-        icon={<UserPlusIcon size={24} color="#fff" />}
-      />
-
-
-  {/* add new user */}
-    <BottomSheetCompo  bottomSheetModalRef={bottosheetRef} snapPoints={['50%']} >
-      <View style={{padding: Rs(16), }}>
-
-        <Formik
-        initialValues={{
-          fullName: '',
-          phone: '',
-          password: '',
-        }}
-        validationSchema={userSchema}
-        onSubmit={(values) => {
-          Keyboard.dismiss();
-          mutate(values)
-        }}
-      >
-        {({
-          handleChange,
-          handleBlur,
-          handleSubmit,
-          values,
-          errors,
-          touched,
-          isSubmitting,
-          isValid
-        }) => (
-          <View style={styles.container}>
-            <CustomInput
-              label="Nom et prénom(s)"
-              placeholder="John Doe"
-              keyboardType="default"
-              handleChange={handleChange('fullName')}
-              handleOnBlur={handleBlur('fullName')}
-              value={values.fullName}
-              error={touched.fullName && errors.fullName}
-            />
-            
-            <CustomInput
-              label="Numéro de téléphone"
-              placeholder="XX XX XX XX XX"
-              keyboardType="phone-pad"
-              handleChange={handleChange('phone')}
-              handleOnBlur={handleBlur('phone')}
-              value={values.phone}
-              error={touched.phone && errors.phone}
-            />
-            
-            <CustomInput
-              label="Mot de passe"
-              placeholder="******"
-              secureTextEntry={true}
-              keyboardType="default"
-              handleChange={handleChange('password')}
-              handleOnBlur={handleBlur('password')}
-              value={values.password}
-              isPassword
-              error={touched.password && errors.password}
-            />
-            
-            <CustomButton
-              label={isSubmitting ? "Traitement..." : "Enregistrer"}
-              action={handleSubmit}
-              disabled={isValid}
-            />
-          </View>
-        )}
-        </Formik>
-      </View>
-    </BottomSheetCompo>
-
-{/* update user */}
-    <BottomSheetCompo  bottomSheetModalRef={updatebottosheetRef} snapPoints={['50%']} >
-      <View style={{padding: Rs(16), }}>
-
-        <Formik
-        initialValues={{
-          fullName: selectedUser?.fullName,
-          phone: selectedUser?.phone,
-          password: selectedUser?.password,
-        }}
-        enableReinitialize
-        validationSchema={userSchema}
-        onSubmit={(values) => {
-          Keyboard.dismiss();
-          const data = {...values, id: selectedUser?.id}
-          updateMutate(data)
-        }}
-      >
-        {({
-          handleChange,
-          handleBlur,
-          handleSubmit,
-          values,
-          errors,
-          touched,
-          isSubmitting,
-          isValid
-        }) => (
-          <View style={styles.container}>
-            <CustomInput
-              label="Nom et prénom(s)"
-              placeholder="Koné Etienne"
-              keyboardType="default"
-              handleChange={handleChange('fullName')}
-              handleOnBlur={handleBlur('fullName')}
-              value={values.fullName}
-              error={touched.fullName && errors.fullName}
-            />
-            
-            <CustomInput
-              label="Numéro de téléphone"
-              placeholder="XX XX XX XX XX"
-              keyboardType="phone-pad"
-              handleChange={handleChange('phone')}
-              handleOnBlur={handleBlur('phone')}
-              value={values.phone}
-              error={touched.phone && errors.phone}
-            />
-            
-            <CustomInput
-              label="Mot de passe"
-              placeholder="******"
-              secureTextEntry={true}
-              keyboardType="default"
-              handleChange={handleChange('password')}
-              handleOnBlur={handleBlur('password')}
-              value={values.password}
-              isPassword
-              error={touched.password && errors.password}
-            />
-            
-            <CustomButton
-              label={"Enregistrer"}
-              action={handleSubmit}
-              disabled={isValid}
-              loading={isPending}
-            />
-          </View>
-        )}
-        </Formik>
-      </View>
-    </BottomSheetCompo>
-
-
-
-    </View>
+    </SafeAreaView>
   );
 };
 

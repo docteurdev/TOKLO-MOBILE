@@ -1,5 +1,4 @@
 import { Text, StyleSheet, View, SafeAreaView } from 'react-native';
-import { BlurView } from 'expo-blur';
 
 export default function BlurCompo() {
   const text = 'Hello, my container is blurring contents underneath!';
@@ -13,15 +12,15 @@ export default function BlurCompo() {
           />
         ))}
       </View>
-      <BlurView intensity={100} style={styles.blurContainer}>
+      <View  style={styles.blurContainer}>
         <Text style={styles.text}>{text}</Text>
-      </BlurView>
-      <BlurView intensity={80} tint="light" style={styles.blurContainer}>
+      </View>
+      <View  style={styles.blurContainer}>
         <Text style={styles.text}>{text}</Text>
-      </BlurView>
-      <BlurView intensity={90} tint="dark" style={styles.blurContainer}>
+      </View>
+      <View style={styles.blurContainer}>
         <Text style={[styles.text, { color: '#fff' }]}>{text}</Text>
-      </BlurView>
+      </View>
     </SafeAreaView>
   );
 }
