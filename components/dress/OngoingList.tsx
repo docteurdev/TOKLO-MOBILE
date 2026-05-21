@@ -1,0 +1,137 @@
+import { StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useRef, useState } from "react";
+import { FlashList } from "@shopify/flash-list";
+import DressItem from "./DressItem";
+import { Rs, SIZES } from "@/util/comon";
+import { EDressStatus, IOrder } from "@/interfaces/type";
+import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
+import { QueryKeys } from "@/interfaces/queries-key";
+import { baseURL } from "@/util/axios";
+import { useOrderStore } from "@/stores/order";
+import useChangeOrderStatus from "@/hooks/mutations/useChangeOrderStatus";
+import BottomSheetCompo from "../BottomSheetCompo";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import RoundedBtn from "../form/RoundedBtn";
+import { alertMgs } from "@/util/appText";
+import { Colors } from "@/constants/Colors";
+import { useUserStore } from "@/stores/user";
+
+type Props = {};
+
+const OngoingList = (props: Props) => {
+  const {setOngoingOrderLength} = useOrderStore()
+  
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+
+  const [selectedItem, setSelectedItem] = useState<{ id: number; status: EDressStatus } | null>(null)
+
+  const {user} = useUserStore()
+  
+  const { data, isLoading, error, refetch } = useQuery<IOrder[], Error>({
+    queryKey: QueryKeys.orders.onGoing,
+    queryFn: async (): Promise<IOrder[]> => {
+      
+      const data = {
+        Toklo_menId: user?.id,
+        status: "ONGOING",
+      };
+      try {
+        const resp = await axios.post(baseURL+"/orders/by-toklo", data);
+        if (resp.data.length > 0) {
+          setOngoingOrderLength(resp.data.length)
+        }
+        return resp.data; 
+      } catch (error) {
+        console.error(error);
+        throw new Error("Failed to fetch clients"); 
+      }
+    },
+  });
+
+  const  {mutate, isPending} = useChangeOrderStatus(() => {}, EDressStatus.ONGOING );
+
+  const presentDetailModal = async () => {
+    // console.log('horray! sheet has been presented 💩')
+  };
+
+  function handleChangeStatus() {
+      if (!selectedItem) return;
+    
+      bottomSheetModalRef.current?.dismiss()
+      mutate(selectedItem);
+  }
+
+  // const dataFiltered = useMemo(() => {
+  //   return data?.filter((item) => {
+  //     const searchTerm = filterVal?.toLowerCase();
+  //     return (
+  //       item.name?.toLowerCase().includes(searchTerm) ||
+  //       item.lastname?.toLowerCase().includes(searchTerm)
+  //     );
+  //   });
+  // }, [data]);
+   // Only recalculate when data or filterVal changes
+
+  // Memoize keyExtractor
+  const keyExtractor = useCallback((item: IOrder) => item.id.toString(), []);
+
+  // Memoize renderItem
+  const renderItem = useCallback(
+    ({ item }: { item: IOrder }) => (
+      <DressItem item={item} type="ORDER" showDetail={presentDetailModal} handleChangeStatus={() => {
+
+        setSelectedItem({id: item.id, status: EDressStatus.FINISHED});
+        bottomSheetModalRef.current?.present()
+      }} />
+    ),
+    []
+  );
+
+  
+
+  return (
+    <>
+
+    <View style={styles.container}>
+     
+    
+
+      <FlashList
+        data={data}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        onRefresh={refetch}
+        refreshing={isLoading}
+        ListEmptyComponent={() => (
+                 <View style={{ flex: 1, marginTop: Rs(100) , justifyContent: "center", alignItems: "center", }} >
+                   <Text style={{ fontSize: SIZES.md, color: Colors.app.texteLight }}>Pas de commande en cours</Text>
+                 </View>
+          )}
+        removeClippedSubviews={true} // Optimisation de performance
+      />
+
+    </View>
+      <BottomSheetCompo bottomSheetModalRef={bottomSheetModalRef} snapPoints={[Rs(190)]} >
+          <View style={{height: Rs(150), justifyContent: "center", alignItems: "center", gap: Rs(20), paddingHorizontal: Rs(20)}} >
+             <Text style={{fontSize: SIZES.sm, color: Colors.app.texteLight}}> 
+              { alertMgs.order.order.statussChanging.finish.fr }
+            </Text>
+            
+            <RoundedBtn label={"Terminer"}  disabled loading={isPending} action={() => handleChangeStatus() }  />
+          </View>
+        </BottomSheetCompo>
+    </>
+  );
+};
+
+export default OngoingList;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingTop: 20,
+  },
+});
