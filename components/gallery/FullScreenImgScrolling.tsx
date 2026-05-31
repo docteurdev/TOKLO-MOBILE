@@ -1,34 +1,36 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Image, 
-  Text,
-  TouchableOpacity, 
-  Modal, 
-  StatusBar, 
-  Dimensions, 
-  FlatList,
-  SafeAreaView,
-  Alert
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  withTiming,
-  interpolate,
-  Extrapolate,
-  runOnJS
-} from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { base } from '@/util/axios';
+import { Rs } from '@/util/comon';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { TrashIcon } from 'react-native-heroicons/solid';
+import Animated, {
+  Extrapolate,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming
+} from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const THUMBNAIL_WIDTH = screenWidth * 0.28;
+const THUMBNAIL_WIDTH = Math.min(90, screenWidth * 0.24);
 const THUMBNAIL_SPACING = 10;
+const THUMBNAIL_CONTAINER_HEIGHT = THUMBNAIL_WIDTH + 24;
 
 export interface ICatalogue {
   id: number;
@@ -237,7 +239,7 @@ export const FullScreenImageView = ({
   // Auto-scroll thumbnails to keep the active image visible
   useEffect(() => {
     if (thumbnailsRef.current) {
-      thumbnailsRef.current.scrollToIndex({
+      thumbnailsRef?.current?.scrollToIndex({
         index: activeIndex,
         animated: true,
         viewPosition: 0.5
@@ -383,12 +385,14 @@ const FullScreenImgScrolling = ({
   }
 
   return (
-    <FullScreenImageView 
-      images={items} 
-      initialIndex={initialIndex}
-      onClose={onClose}
-      onDelete={onDelete}
-    />
+
+      <FullScreenImageView 
+        images={items} 
+        initialIndex={initialIndex}
+        onClose={onClose}
+        onDelete={onDelete}
+      />
+    // </SafeAreaView>
   );
 };
 
@@ -411,6 +415,7 @@ const styles = StyleSheet.create({
   controlsContainer: {
     ...StyleSheet.absoluteFillObject,
     pointerEvents: 'box-none',
+    marginTop: Rs(10)
   },
   controlButton: {
     position: 'absolute',
@@ -444,13 +449,15 @@ const styles = StyleSheet.create({
   },
   thumbnailsContainer: {
     position: 'absolute',
-    bottom: 30,
+    bottom: Rs(42),
     left: 0,
     right: 0,
-    height: 70,
+    height: THUMBNAIL_CONTAINER_HEIGHT,
+    justifyContent: 'center',
   },
   thumbnailsList: {
     paddingHorizontal: 15,
+    alignItems: 'center',
   },
   thumbnail: {
     width: THUMBNAIL_WIDTH,

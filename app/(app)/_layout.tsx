@@ -14,7 +14,6 @@ const AppLayout = () => {
 
   const { token } = useUserStore();
 
-  // console.log("00000000000000", token )
 
   if (!token) {
     return <Redirect href="/login" />;
@@ -23,11 +22,7 @@ const AppLayout = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-      {/* <Image
-        resizeMode="cover"
-        source={require("@/assets/images/measure/tradition-2.png")}
-        style={styles.traditionPattern}
-      /> */}
+     
       <Drawer
           drawerContent={CustomDrawer}
         initialRouteName='(tab)'
@@ -94,13 +89,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  decorationsLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+  },
   traditionPattern: {
     position: 'absolute',
-    top: -5,
-    left: 0,
-    right: 0,
-    width: '100%',
-    height: 20,
-    zIndex: 20,
+    height: 86,
   },
-})
+  leftTraditionPattern: {
+    top: -40,
+    left: -70,
+    width: 150,
+    height: 110,
+    transform: [{ rotate: '40deg' }],
+  },
+  rightTraditionPattern: {
+    top: -35,
+    right: -65,
+    width: 140,
+    height: 105,
+    transform: [{ rotate: '-40deg' }],
+  },
+	})

@@ -19,9 +19,9 @@ export default ScreenWrapper
 
 const styles = StyleSheet.create({
  
-container:{
- height: '100%',
- width: '100%',
- backgroundColor: '#fefefe',
-}
+	container:{
+	 flex: 1,
+	 width: '100%',
+	 backgroundColor: '#fefefe',
+	}
 })

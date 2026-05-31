@@ -14,50 +14,49 @@ export type TInvoice = {
   totalPrice: number;
   paiement: number;
   biTotal: number;
-}
+};
 
 export type UploadImgProps = {
- uri: string;
- fileName: string;
- mineType: string;
+  uri: string;
+  fileName: string;
+  mineType: string;
 };
 
 export interface ICountry {
- name: {
-   common: string;
-   official: string;
- };
- flags: {
-   png: string;
- };
- idd: {
-   root: string;
-   suffixes: string[];
- };
- translations: {
-   fra: {
-     official: string;
-   };
- };
- latlng: [number,number]
+  name: {
+    common: string;
+    official: string;
+  };
+  flags: {
+    png: string;
+  };
+  idd: {
+    root: string;
+    suffixes: string[];
+  };
+  translations: {
+    fra: {
+      official: string;
+    };
+  };
+  latlng: [number, number];
 }
 
 export enum EDressStatus {
   ONGOING = "ONGOING",
   FINISHED = "FINISHED",
-  DELIVERED = "DELIVERED"
+  DELIVERED = "DELIVERED",
 }
 
 export interface IDressType {
   status: EDressStatus;
 }
 
-
 export type TImage = {
   uri: string;
   fileName: string;
   mineType: string;
-}
+};
 
 export interface IOrder {
   id: number;
@@ -82,15 +81,14 @@ export interface IOrder {
   updatedat: Date;
 }
 
-export type TNotif ={
+export type TNotif = {
   id: number;
   orderId: number;
   fullName: string;
   phone: string;
   remind_date: string;
   remind_time: string;
-}
-
+};
 
 export interface clientOrderStat {
   totalOrders: number;
@@ -121,7 +119,7 @@ export enum ProductCategory {
   JACKET = "JACKET",
   COAT = "COAT",
   SUIT = "SUIT",
-  OTHER = "OTHER"
+  OTHER = "OTHER",
 }
 
 export interface CategoryCount {
@@ -138,7 +136,12 @@ export interface ProductOrderItem {
   quantity: number;
 }
 
-export type TOrderStatus = 'PENDING' | 'DELIVERED' | 'AVOIDED' | 'ONGOING' | 'CANCELLED';
+export type TOrderStatus =
+  | "PENDING"
+  | "DELIVERED"
+  | "AVOIDED"
+  | "ONGOING"
+  | "CANCELLED";
 export interface IProductOrder {
   id: number;
   orderNumber: string;
@@ -148,14 +151,12 @@ export interface IProductOrder {
   };
   items: ProductOrderItem[];
   total: number;
-  status: TOrderStatus ;
+  status: TOrderStatus;
   shippingAdress: string;
   storeId: number;
   reduction?: number;
   createdAt: string; // or Date if parsed
 }
-
-
 
 export interface IClient {
   id: number;
@@ -165,14 +166,14 @@ export interface IClient {
   adresse: string;
   Toklo_menId: number;
   _count: {
-			orders: number;
-		}
+    orders: number;
+  };
 }
 
 interface Measure {
   cou: number;
   taille: number;
-  'tour-ventre': number;
+  "tour-ventre": number;
 }
 
 interface TypeMesure {
@@ -180,23 +181,40 @@ interface TypeMesure {
   nom: string;
   description: string;
   unite: string;
+  url?: string;
   updatedat: string;
 }
 
 export interface CategorieMesure {
-  categorieid: number;
-  typemesureid: number;
-  obligatoire: boolean;
-  ordre: number;
-  typemesure: TypeMesure;
+  categorieid?: number;
+  typemesureid?: number;
+  obligatoire?: boolean;
+  ordre?: number;
+  typemesure?: TypeMesure;
+  nom?: string;
+  description?: string;
+  unite?: string;
+  url?: string;
+  updatedat?: string;
 }
+
+export type TDressStructureType = "SIMPLE" | "COMPOSE";
+export type TDressPart = "HAUT" | "BAS" | "COMPLET";
 
 export interface IDress {
   id: number;
   nom: string;
   genre: string;
+  type?: TDressStructureType;
+  partie?: TDressPart;
+  parties?: {
+    haut?: IDress[];
+    bas?: IDress[];
+    complet?: IDress[];
+  };
   updatedat: string;
-  categoriemesure: CategorieMesure[];
+  categoriemesure?: CategorieMesure[];
+  mesures?: CategorieMesure[];
 }
 
 export interface SendOrder {
@@ -207,10 +225,10 @@ export interface SendOrder {
 
 export interface ICatalogue {
   id: number;
-  name: string,
-  image: string,
-  description: string
-  toklo_menid: number
+  name: string;
+  image: string;
+  description: string;
+  toklo_menid: number;
 }
 
 type IStatsDate = {
@@ -234,7 +252,6 @@ type IStatsDate = {
   };
   daysInMonth: number;
 };
-
 
 export interface IPlan {
   id: number;
@@ -261,8 +278,8 @@ export interface ISubscription {
 }
 
 export enum EStatsPeriode {
-  daily = 'daily',
-  weekly = 'weekly',
+  daily = "daily",
+  weekly = "weekly",
 }
 
 type IStatsSummary = {
@@ -277,15 +294,15 @@ type IStatsSummary = {
   totalDeliveredOrders: number;
   totalCancelledOrders: number;
   percentages: {
-				// finishedOrdersPercent: string,
-				// ongoingOrdersPercent: string,
-				// deliveredOrdersPercent: string,
-				// cancelledOrdersPercent: string,
-				finishedAmountPercent: string,
-				ongoingAmountPercent: string,
-				deliveredAmountPercent: string,
-				cancelledAmountPercent: string
-			}
+    // finishedOrdersPercent: string,
+    // ongoingOrdersPercent: string,
+    // deliveredOrdersPercent: string,
+    // cancelledOrdersPercent: string,
+    finishedAmountPercent: string;
+    ongoingAmountPercent: string;
+    deliveredAmountPercent: string;
+    cancelledAmountPercent: string;
+  };
 };
 
 type IStatsMetadata = {
@@ -307,4 +324,3 @@ export interface IStats {
 // measurement references
 
 // https://dribbble.com/shots/8375158-Kulture-Athletics-Measure/attachments/694941?mode=media
-

@@ -258,7 +258,7 @@ const SubscriptionCompo = ({redirectURL, closeBottomSheet}: {redirectURL: string
   };
 
   if(!data){
-    return <LoadingScreen visible={true} backgroundColor="rgba(0, 0, 0, 0.7)" indicatorColor="#FFFFFF" indicatorSize={48} message="" />
+    return <LoadingScreen visible={true} backgroundColor="#ffffff" indicatorColor="#FFFFFF" indicatorSize={48} message="" />
   }
 
   return (

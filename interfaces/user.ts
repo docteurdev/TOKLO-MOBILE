@@ -43,6 +43,9 @@ export interface Toklomen extends IStore{
   notif_monrning?: string  | null
   notif_evening?: string  | null
   notif_midday?: string | null;
+  notif_time_one?: string | null;
+  notif_time_two?: string | null;
+  notif_time_three?: string | null;
   notif_remind_days?: number;
   notif_remind_seven?: number;
   notif_remind_three?: number;
@@ -50,4 +53,3 @@ export interface Toklomen extends IStore{
   notif_remind_one?: number;
   
 }
-

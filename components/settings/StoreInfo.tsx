@@ -28,8 +28,33 @@ import { MapPinIcon, XMarkIcon } from 'react-native-heroicons/solid';
 import * as Yup from 'yup';
 import BackButton from '../form/BackButton';
 import CustomButton from '../form/CustomButton';
+import PhoneInput from '../form/PhoneInput';
 
 type Props = Yup.InferType<typeof StoreSchema>;
+
+type StoreCoordinates = {
+  latitude: number;
+  longitude: number;
+};
+
+const parseStoreLocation = (value?: string | object | null): StoreCoordinates | null => {
+  if (!value) return null;
+
+  try {
+    const locationJSON = typeof value === 'string' ? JSON.parse(value) : value;
+    const latitude = Number(locationJSON?.x);
+    const longitude = Number(locationJSON?.y);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return null;
+    }
+
+    return { latitude, longitude };
+  } catch (error) {
+    console.error('Invalid store location JSON', error);
+    return null;
+  }
+};
 
 const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack?: boolean}) => {
   const [storeLogoUrl, setStoreLogoUrl] = useState(null);
@@ -37,6 +62,7 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
   const [selectedCurrency, setSelectedCurrency] = useState('USD - US Dollar');
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState('');
+  const [selectedCoordinates, setSelectedCoordinates] = useState<StoreCoordinates | null>(null);
   
   const { isPending, mutate } = useToklomanStore();
   const {user} = useUserStore();
@@ -59,17 +85,14 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
 
   const {location, displayindAddress, getAddressFromCoordinates, address} = useLocation();
 
-  const [currentAddress, setCurrentAddress] = useState('');
-
   useEffect(() => {
-    const locationJson = JSON.parse(data?.location || '{}');
-     console.log("========11", location)
-    if(locationJson?.x && locationJson?.y){
-      getAddressFromCoordinates(locationJson?.x, locationJson?.y);
-      
+    const storeCoordinates = parseStoreLocation(data?.location);
+
+    if (storeCoordinates) {
+      setSelectedCoordinates(storeCoordinates);
+      getAddressFromCoordinates(storeCoordinates.latitude, storeCoordinates.longitude);
     }
-    
-  }, [data?.location]);
+  }, [data?.location, getAddressFromCoordinates]);
 
   
   
@@ -118,19 +141,29 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
     // formData.append("store_logo", storeLogoUrl);
     // formData.append("store_coverImg", storeCoverUrl);
     formData.append("phone", values.phone);
-    formData.append("whatsapp", values.whatsapp);
+    formData.append("whatsapp", values.whatsapp ?? '');
 
-    // Convert the object to a JSON string
+    const currentCoordinates = location
+      ? {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        }
+      : null;
+    const coordinatesToSave = selectedCoordinates ?? parseStoreLocation(data?.location) ?? currentCoordinates;
 
-    formData.append("location", JSON.stringify({x: location?.coords.latitude  ,
-      y: location?.coords.longitude}));
+    if (coordinatesToSave) {
+      formData.append("location", JSON.stringify({
+        x: coordinatesToSave.latitude,
+        y: coordinatesToSave.longitude,
+      }));
+    }
     
     if (logo?.uri) {
      formData.append("store", {
        uri: logo.uri,
        name: "logo.png", // Ensure the name is unique
        type: "image/png", // Ensure the type matches the file
-     });
+     } as any);
    }
 
    if (banner?.uri) {
@@ -138,7 +171,7 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
        uri: banner.uri,
        name: "banner.png", // Ensure the name is unique
        type: "image/png", // Ensure the type matches the file
-     });
+     } as any);
    }
     mutate(formData);
   };
@@ -159,7 +192,7 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
           whatsapp: data?.whatsapp || '',
           store_description: data?.store_description || '',
           store_slogan: data?.store_slogan || '',
-          location: selectedLocation
+          location: selectedLocation || address || displayindAddress || ''
         }}
         validationSchema={StoreSchema}
         onSubmit={handleSubmit}
@@ -294,15 +327,22 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
                   errors.location && touched.location ? styles.inputError : null
                 ]}
                 onPress={() => {
-                  // Open location selector
-                  // For now, just setting a value
-                  // setFieldValue('location', displayindAddress);
+                  if (!location) return;
+
+                  const currentCoordinates = {
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                  };
+
+                  setSelectedCoordinates(currentCoordinates);
                   setSelectedLocation(displayindAddress);
+                  setFieldValue('location', displayindAddress);
                 }}
               >
                 <MapPinIcon size={24} color={Colors.app.primary} />
-               {data?.location && <Text>{ displayindAddress }</Text>}
-                {!data?.location && location && <Text>{address}</Text>}
+               <Text numberOfLines={2}>
+                {selectedLocation || (data?.location ? address : displayindAddress) || 'Choisir la localisation'}
+               </Text>
               </TouchableOpacity>
               {errors.location && touched.location && (
                 <Text style={styles.errorText}>{errors.location}</Text>
@@ -310,23 +350,19 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
             </View>
 
             <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <Text style={styles.label}>Numéro de téléphone</Text>
-                <Text style={styles.required}>*</Text>
-              </View>
               <Text style={styles.fieldDescription}>
                 Il apparaîtra sur votre boutique, factures
               </Text>
-              <TextInput
-                style={[styles.input, errors.phone && touched.phone ? styles.inputError : null]}
-                value={values.phone}
-                onChangeText={handleChange('phone')}
-                onBlur={handleBlur('phone')}
+              <PhoneInput
+                label="Numéro de téléphone"
+                placeholder="0712345678"
                 keyboardType="phone-pad"
+                value={values.phone}
+                handleChange={handleChange('phone')}
+                handleOnBlur={handleBlur('phone')}
+                error={errors.phone}
+                touched={touched.phone}
               />
-              {errors.phone && touched.phone && (
-                <Text style={styles.errorText}>{errors.phone}</Text>
-              )}
             </View>
 
             <View style={styles.formGroup}>

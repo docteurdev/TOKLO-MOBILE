@@ -1,9 +1,8 @@
 import { QueryKeys } from "@/interfaces/queries-key";
-import { axiosConfigFile, baseURL } from "@/util/axios";
+import { baseURL } from "@/util/axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import useNotif from "../useNotification";
 import axios from "axios";
-import { newClientValuesType } from "@/constants/formSchemas";
 import { Toklomen } from "@/interfaces/user";
 import { useUserStore } from "@/stores/user";
 
@@ -14,10 +13,8 @@ const useTokloman = () => {
   const {user, setUser} = useUserStore();
 
   return useMutation({
-    mutationFn: async (data: Toklomen) => {
+    mutationFn: async (data: Partial<Toklomen>) => {
       console.log( "ooooooooooooo",data);
-
-      const dd ={...data, adresse: '' , Toklo_menId: 1}
       
       const response = await axios.put(`${baseURL}/tokloMen/${user?.id}`, data);
 

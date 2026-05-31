@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BanknotesIcon, CalendarDaysIcon, CalendarIcon, MinusCircleIcon, PhoneIcon, Square3Stack3DIcon, UserIcon } from "react-native-heroicons/solid";
 
 
@@ -8,23 +8,30 @@ import { EDressStatus, IOrder } from '@/interfaces/type';
 import { base } from '@/util/axios';
 import { formatXOF, Rs, SIZES } from '@/util/comon';
 import { useRouter } from 'expo-router';
-import { Image } from 'react-native';
 import DressStatus from './DressStatus';
 import ItemChild from './ItemChild';
 
 type Props = {
   type?: "USER" | "ORDER";
-  showDetail: () => void;
+  showDetail?: () => void;
   item: IOrder;
   handleChangeStatus?: () => void;
   handlePrint?: () => void;
 }
 
+const normalizeDressStatus = (status: IOrder["status"] | EDressStatus | string) => {
+  if (typeof status === "string") {
+    return status as EDressStatus;
+  }
 
-const DressItem = ({type, showDetail, item, handleChangeStatus, handlePrint}: Props) => {
+  return status.status;
+};
 
-  const { id, description, status, quantite, amount, paiement, date_depote, date_remise, client_Id, client_lastname, client_name, client_phone } = item
+const DressItem = ({type, item, handleChangeStatus, handlePrint}: Props) => {
 
+  const { id, description, status, quantite, amount, paiement, date_depote, date_remise, client_lastname, client_name, client_phone } = item
+
+  const normalizedStatus = normalizeDressStatus(status);
   
   
   const route = useRouter()
@@ -46,7 +53,7 @@ const DressItem = ({type, showDetail, item, handleChangeStatus, handlePrint}: Pr
           <View style={{flexDirection: "row", justifyContent: "space-between", marginTop: 10}} >
              <ItemChild label={quantite} icon={<Square3Stack3DIcon fill={Colors.app.primary} size={Rs(23)} />} />
              {/* <ItemChild label='Pattern 2' icon={<ShieldCheckIcon fill={Colors.app.primary} size={18}/>} /> */}
-            <DressStatus status={status} />
+            <DressStatus status={normalizedStatus} />
           </View>
        </View>
       
@@ -61,7 +68,7 @@ const DressItem = ({type, showDetail, item, handleChangeStatus, handlePrint}: Pr
           
        </View>
       </View>
-     {type == "ORDER" && <View style={styles.topItem} >
+     {type === "ORDER" && <View style={styles.topItem} >
        
        <View style={[styles.dressInfo, {flexDirection: "row", alignItems: "center", justifyContent: "space-between"}]} >
           
@@ -92,13 +99,13 @@ const DressItem = ({type, showDetail, item, handleChangeStatus, handlePrint}: Pr
         <Text style={styles.bottomBtnText} > Voir les détails </Text>
         </TouchableOpacity>
         <View style={{width: 1, height: "100%", backgroundColor: Colors.app.disabled}}  />
-       {status !== EDressStatus.DELIVERED &&
+       {normalizedStatus !== EDressStatus.DELIVERED &&
         <TouchableOpacity onPress={handleChangeStatus} style={styles.bottomBtn} >
-            <Text style={[styles.bottomBtnText, {fontWeight: "bold", color: status == EDressStatus.ONGOING ? Colors.app.available.unav_txt: status == EDressStatus.FINISHED? Colors.app.dashitem.t_2 : Colors.app.available.av_txt}]} > {status == EDressStatus.ONGOING ? "Terminer " : "Livrer"} </Text>
+            <Text style={[styles.bottomBtnText, {fontWeight: "bold", color: normalizedStatus === EDressStatus.ONGOING ? Colors.app.available.unav_txt: normalizedStatus === EDressStatus.FINISHED? Colors.app.dashitem.t_2 : Colors.app.available.av_txt}]} > {normalizedStatus === EDressStatus.ONGOING ? "Terminer " : "Livrer"} </Text>
         </TouchableOpacity>
         }
 
-      {status === EDressStatus.DELIVERED &&
+      {normalizedStatus === EDressStatus.DELIVERED &&
         <TouchableOpacity onPress={handlePrint} style={styles.bottomBtn} >
             <Text style={[styles.bottomBtnText, {fontWeight: "bold", color: Colors.app.texteLight}]} > Géner la facture </Text>
         </TouchableOpacity>

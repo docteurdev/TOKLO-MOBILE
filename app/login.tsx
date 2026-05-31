@@ -5,23 +5,87 @@ import { AppState, Keyboard, StyleSheet, Text, View } from "react-native";
 
 import CustomButton from "@/components/form/CustomButton";
 import FormBanner from "@/components/form/FormBanner";
-import FormWrapper from "@/components/form/FormWrapper";
+import FormWrapper, { useFormScroll } from "@/components/form/FormWrapper";
 import PhoneInput from "@/components/form/PhoneInput";
 import { Colors } from "@/constants/Colors";
 import { loginSchema } from "@/constants/formSchemas";
 import useNotif from "@/hooks/useNotification";
 import { ITokloUser, Ttoklo_men } from "@/interfaces/user";
 import { useUserStore } from "@/stores/user";
-import { baseURL } from "@/util/axios";
+import { apiClient } from "@/util/axios";
 import { Rs, SIZES } from "@/util/comon";
 import { useMutation } from '@tanstack/react-query';
-import axios, { isAxiosError } from "axios";
+import { isAxiosError } from "axios";
 import { Link, useRouter } from "expo-router";
 import { OtpInput } from "react-native-otp-entry";
 import { InferType } from "yup";
 
 
 type TypeValues = InferType<typeof loginSchema>;
+const OTP_LENGTH = 5;
+
+const normalizeLoginValues = (values: TypeValues): TypeValues => ({
+  phone: values.phone.trim(),
+  password: values.password.replace(/\D/g, "").slice(0, OTP_LENGTH),
+});
+
+type LoginOtpInputProps = {
+  error?: string;
+  touched?: boolean;
+  onBlur: () => void;
+  onChange: (text: string) => void;
+  onFilled: (text: string) => void;
+};
+
+const LoginOtpInput = ({ error, touched, onBlur, onChange, onFilled }: LoginOtpInputProps) => {
+  const otpContainerRef = React.useRef<View>(null);
+  const formScroll = useFormScroll();
+
+  return (
+    <View ref={otpContainerRef} collapsable={false} style={styles.otpCard}>
+      <Text style={styles.otpLabel}>
+        Code secret <Text style={{ color: Colors.app.error }}>*</Text>
+      </Text>
+      <Text style={styles.otpHint}>Entrez votre code numérique à 5 chiffres.</Text>
+      <OtpInput
+        numberOfDigits={OTP_LENGTH}
+        onTextChange={(text) => {
+          onChange(text.replace(/\D/g, "").slice(0, OTP_LENGTH));
+        }}
+        focusColor={Colors.app.primary}
+        focusStickBlinkingDuration={500}
+        onFocus={() => {
+          formScroll?.scrollToInput(otpContainerRef);
+        }}
+        onBlur={onBlur}
+        onFilled={(text) => {
+          onFilled(text.replace(/\D/g, "").slice(0, OTP_LENGTH));
+        }}
+        secureTextEntry
+        type="numeric"
+        textInputProps={{
+          keyboardType: "number-pad",
+          textContentType: "oneTimeCode",
+          autoComplete: "sms-otp",
+        }}
+        theme={{
+          pinCodeContainerStyle: {
+            backgroundColor: Colors.light.background,
+            borderColor: error && touched ? Colors.app.error : Colors.app.texteLight,
+            borderWidth: 0.4,
+            borderRadius: 10,
+            height: 54,
+            width: 54,
+          },
+          pinCodeTextStyle: {
+            color: Colors.app.primary,
+          },
+        }}
+      />
+      {touched && error && <Text style={styles.errorText}>{error}</Text>}
+    </View>
+  );
+};
 
 AppState.addEventListener("change", (state) => {
   if (state === "active") {
@@ -32,14 +96,9 @@ AppState.addEventListener("change", (state) => {
 });
 
 export default function Auth() {
-  const [selectedSegment, setSelectedSegment] = useState<"admin" | "user">("admin");
+  const [selectedSegment] = useState<"admin" | "user">("admin");
 
-  const { setUser, setToken, setNotifyToken, setUserId, setSubscribe, setTokloUser, subscribe } = useUserStore();
-
-  const segments = [
-    { label: "Administrateur", value: "admin", key: "admin" },
-    { label: "Utilisateur", value: "user", key: "user" },
-  ];
+  const { setUser, setToken, setSubscribe, setTokloUser } = useUserStore();
   
 
   const { handleNotification } = useNotif()
@@ -49,9 +108,12 @@ export default function Auth() {
 
   async function signInWithPhone(values: TypeValues) {
     Keyboard.dismiss();
-    console.log(values)
+    const loginValues = normalizeLoginValues(values);
     try {
-      const res = await axios.post(baseURL+`/tokloMen/${selectedSegment === "admin" ? "login" : "login-user"}`, values);
+      const res = await apiClient.post(
+        `/tokloMen/${selectedSegment === "admin" ? "login" : "login-user"}`,
+        loginValues,
+      );
       
       const tokloman: Ttoklo_men = res.data;
 
@@ -67,13 +129,17 @@ export default function Auth() {
       }
 
     } catch (error) {
-      const status = error?.response?.status;
-      if(isAxiosError(status)){
-        console.log(error);
-
+      if (!isAxiosError(error)) {
+        console.error(error);
+        handleNotification("error", "Erreur", "Veillez réessayer plus tard");
+        return;
       }
+
+      const status = error.response?.status;
+      console.log(error);
+
       if (status === 400) {
-        handleNotification("error", "Erreur", "Numéro ou mot de passe est incorrect")
+        handleNotification("error", "Erreur", "Numéro ou code secret incorrect")
       }
       if (status === 404) {
         handleNotification("error", "Erreur", "Compte introuvable");
@@ -87,7 +153,7 @@ export default function Auth() {
   }
 
   
-  const {mutate, isError, isPending} = useMutation({
+  const {mutate, isPending} = useMutation({
    mutationFn: signInWithPhone,
 
   })
@@ -101,6 +167,7 @@ export default function Auth() {
       <FormBanner
         title="Connectez-vous "
         subtitle="Bon retour ! Veuillez saisir vos informations"
+        isLogo
       />
 
       {/* <Animated.View entering={FadeInDown.delay(600)} style={{ marginTop: Rs(20), marginBottom: Rs(40) }}>
@@ -120,9 +187,7 @@ export default function Auth() {
           phone: "",
           password: "",
         }}
-        onSubmit={(values: TypeValues, { resetForm }) =>
-          mutate(values)
-        }
+        onSubmit={(values: TypeValues) => mutate(values)}
       >
         {({
           handleBlur,
@@ -134,7 +199,21 @@ export default function Auth() {
           isValid,
           setFieldTouched,
           setFieldValue,
-        }) => (
+          validateField,
+        }) => {
+          const updatePassword = (text: string, shouldTouch = false) => {
+            const password = text.replace(/\D/g, "").slice(0, OTP_LENGTH);
+
+            void setFieldValue("password", password, true).then(() => {
+              if (shouldTouch || touched.password) {
+                void setFieldTouched("password", true, false);
+              }
+
+              void validateField("password");
+            });
+          };
+
+          return (
           <View style={{ gap: 10 }}>
             <PhoneInput
               label="Numéro de téléphone"
@@ -147,45 +226,19 @@ export default function Auth() {
               touched={touched.phone}
             />
 
-            <View>
-              <Text style={styles.otpLabel}>Mot de passe</Text>
-              <OtpInput
-                numberOfDigits={5}
-                onTextChange={(text) => {
-                  void setFieldValue("password", text.replace(/\D/g, ""));
-                }}
-                focusColor={Colors.app.primary}
-                focusStickBlinkingDuration={500}
-                onBlur={() => {
-                  void setFieldTouched("password", true);
-                }}
-                onFilled={(text) => {
-                  void setFieldValue("password", text.replace(/\D/g, ""));
-                  void setFieldTouched("password", true);
-                }}
-                secureTextEntry
-                type="numeric"
-                textInputProps={{
-                  keyboardType: "number-pad",
-                }}
-                theme={{
-                  pinCodeContainerStyle: {
-                    backgroundColor: Colors.light.background,
-                    borderColor: Colors.app.texteLight,
-                    borderWidth: 0.4,
-                    borderRadius: 10,
-                    height: 58,
-                    width: 58,
-                  },
-                  pinCodeTextStyle: {
-                    color: Colors.app.primary,
-                  },
-                }}
-              />
-              {touched.password && errors.password && (
-                <Text style={styles.errorText}>{errors.password}</Text>
-              )}
-            </View>
+            <LoginOtpInput
+              error={errors.password}
+              touched={touched.password}
+              onChange={(text) => {
+                updatePassword(text);
+              }}
+              onBlur={() => {
+                void setFieldTouched("password", true, true);
+              }}
+              onFilled={(text) => {
+                updatePassword(text, true);
+              }}
+            />
             <View
               style={{
                 flexDirection: "row",
@@ -199,12 +252,18 @@ export default function Auth() {
                 <Text
                   style={{ color: Colors.app.error, fontSize: SIZES.sm }}
                 >
-                  Mot de passe oublié ?
+                  Code oublié ?
                 </Text>
               </Link>
             </View>
 
-            <CustomButton action={() => handleSubmit()} disabled={isValid }  label="Connexion" loading={isPending} />
+            <CustomButton
+              action={() => handleSubmit()}
+              disabled={isValid}
+              pressDisabled={!isValid || isPending}
+              label="Connexion"
+              loading={isPending}
+            />
 
             <View
               style={{
@@ -225,35 +284,32 @@ export default function Auth() {
                 </Text>
             </View>
           </View>
-        )}
+        );
+        }}
       </Formik>
     </FormWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginTop: 40,
-    padding: 12,
-  },
-  verticallySpaced: {
-    paddingTop: 4,
-    paddingBottom: 4,
-    alignSelf: "stretch",
-  },
-  mt20: {
-    marginTop: 20,
+  otpCard: {
+    gap: Rs(8),
+    marginBottom: Rs(10),
   },
   otpLabel: {
     fontSize: SIZES.sm,
     color: Colors.app.texteLight,
-    marginBottom: 10,
-    fontWeight: 'bold',
-
+    marginBottom: Rs(2),
+    fontWeight: "bold",
+  },
+  otpHint: {
+    color: Colors.app.texteLight,
+    fontSize: SIZES.xs,
+    marginBottom: Rs(4),
   },
   errorText: {
     color: Colors.app.error,
     fontSize: SIZES.xs,
-    marginTop: 6,
+    marginTop: Rs(6),
   },
 });

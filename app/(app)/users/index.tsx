@@ -1,21 +1,21 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import AddNewClientCompo from '@/components/AddNewClientCompo'
+import FlatBtn from '@/components/FlatBtn'
 import ScreenWrapper from '@/components/ScreenWrapper'
 import { ThemedText } from '@/components/ThemedText'
-import { SIZES } from '@/util/comon'
 import UserItem from '@/components/user/UserItem'
+import { QueryKeys } from '@/interfaces/queries-key'
+import { IClient } from '@/interfaces/type'
+import { useUserStore } from '@/stores/user'
+import { baseURL } from '@/util/axios'
+import { colors, SIZES } from '@/util/comon'
+import { BottomSheetModal } from '@gorhom/bottom-sheet'
 import { FlashList } from '@shopify/flash-list'
 import { useQuery } from '@tanstack/react-query'
-import { IClient } from '@/interfaces/type'
 import axios from 'axios'
-import { baseURL } from '@/util/axios'
-import { QueryKeys } from '@/interfaces/queries-key'
 import { useRouter } from 'expo-router'
-import { useUserStore } from '@/stores/user'
-import FlatBtn from '@/components/FlatBtn'
-import BottomSheetCompo from './../../../components/BottomSheetCompo';
-import { BottomSheetModal } from '@gorhom/bottom-sheet'
-import AddNewClientCompo from '@/components/AddNewClientCompo'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
+import { StyleSheet, View } from 'react-native'
+import BottomSheetCompo from './../../../components/BottomSheetCompo'
 
 type Props = {}
 
@@ -95,8 +95,9 @@ const renderItem = useCallback(({ item }: { item: IClient }) => (
     
     
     </ScreenWrapper>
-    <FlatBtn action={() => bottomSheetRef.current?.present()} />
-    <BottomSheetCompo bottomSheetModalRef={bottomSheetRef} snapPoints={['60%']} >
+
+     <FlatBtn bg={colors.orange} action={() => bottomSheetRef.current?.present()} />
+    <BottomSheetCompo bottomSheetModalRef={bottomSheetRef} snapPoints={['80%']} >
       <AddNewClientCompo handleShowAddClient={() => {
         refetch()
         bottomSheetRef?.current?.close()

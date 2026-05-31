@@ -1,21 +1,21 @@
-import { StyleSheet, Text, View } from "react-native";
-import React, { useCallback, useRef, useState } from "react";
-import { FlashList } from "@shopify/flash-list";
-import DressItem from "./DressItem";
-import { Rs, SIZES } from "@/util/comon";
-import { EDressStatus, IOrder } from "@/interfaces/type";
-import axios from "axios";
-import { useQuery } from "@tanstack/react-query";
-import { QueryKeys } from "@/interfaces/queries-key";
-import { baseURL } from "@/util/axios";
-import { useOrderStore } from "@/stores/order";
-import useChangeOrderStatus from "@/hooks/mutations/useChangeOrderStatus";
-import BottomSheetCompo from "../BottomSheetCompo";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import RoundedBtn from "../form/RoundedBtn";
-import { alertMgs } from "@/util/appText";
 import { Colors } from "@/constants/Colors";
+import useChangeOrderStatus from "@/hooks/mutations/useChangeOrderStatus";
+import { QueryKeys } from "@/interfaces/queries-key";
+import { EDressStatus, IOrder } from "@/interfaces/type";
+import { useOrderStore } from "@/stores/order";
 import { useUserStore } from "@/stores/user";
+import { alertMgs } from "@/util/appText";
+import { baseURL } from "@/util/axios";
+import { Rs, SIZES } from "@/util/comon";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { FlashList } from "@shopify/flash-list";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import React, { useCallback, useRef, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import BottomSheetCompo from "../BottomSheetCompo";
+import RoundedBtn from "../form/RoundedBtn";
+import DressItem from "./DressItem";
 
 type Props = {};
 
@@ -114,13 +114,13 @@ const OngoingList = (props: Props) => {
       />
 
     </View>
-      <BottomSheetCompo bottomSheetModalRef={bottomSheetModalRef} snapPoints={[Rs(190)]} >
+      <BottomSheetCompo bottomSheetModalRef={bottomSheetModalRef} snapPoints={[Rs(220)]} >
           <View style={{height: Rs(150), justifyContent: "center", alignItems: "center", gap: Rs(20), paddingHorizontal: Rs(20)}} >
              <Text style={{fontSize: SIZES.sm, color: Colors.app.texteLight}}> 
               { alertMgs.order.order.statussChanging.finish.fr }
             </Text>
             
-            <RoundedBtn label={"Terminer"}  disabled loading={isPending} action={() => handleChangeStatus() }  />
+            <RoundedBtn  label={"Terminer"}  disabled loading={isPending} action={() => handleChangeStatus() }  />
           </View>
         </BottomSheetCompo>
     </>

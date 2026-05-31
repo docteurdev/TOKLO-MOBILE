@@ -1,5 +1,5 @@
 import { Colors } from "@/constants/Colors";
-import { IClient, IDress } from "@/interfaces/type";
+import { IDress } from "@/interfaces/type";
 import { baseURL } from "@/util/axios";
 import { Rs, SIZES } from "@/util/comon";
 import { FlashList } from "@shopify/flash-list";
@@ -21,18 +21,23 @@ type Props = {
 
 const DressType = ({isShowModal, closeModal, setSelectedDress}: Props) => {
 
- const [filterVal, setFilterVal] = useState('')
+ const [filterVal] = useState('')
  
  const { data, isLoading, error, refetch } = useQuery<IDress[], Error>({
-  queryKey: ['toklo-men_dress_type'],
+  queryKey: ['toklo-men_dress_type_v2'],
   queryFn: async (): Promise<IDress[]> => {  // Explicit return type
     try {
       const resp = await axios.get(baseURL+"/clothing/clothing-categories");
       // console.log(resp.data)
       return resp.data; // Ensure `resp.data` is returned
-    } catch (error) {
-      console.error(error);
-      throw new Error("Failed to fetch clients"); // Rethrow to handle error properly
+    } catch {
+      try {
+        const fallbackResp = await axios.get(baseURL+"/clothing-categories");
+        return fallbackResp.data;
+      } catch (fallbackError) {
+        console.error(fallbackError);
+        throw new Error("Impossible de récupérer les types de vêtements");
+      }
     }
   },
 });
@@ -48,18 +53,20 @@ const DressType = ({isShowModal, closeModal, setSelectedDress}: Props) => {
 }, [data, filterVal]); // Only recalculate when data or filterVal changes
 
 // Memoize keyExtractor
-const keyExtractor = useCallback((item: IClient) => 
+const keyExtractor = useCallback((item: IDress) =>
   item.id.toString(),
 []);
 
 // Memoize renderItem
 const renderItem = useCallback(({ item }: { item: IDress }) => (
   <DressItem dress={item} action={() => setSelectedDress(item)}  />
-), []);
+), [setSelectedDress]);
 
 // Memoize EmptyComponent
-const ListEmptyComponent = useCallback(() => <Text>Pas de client enregistrés</Text>,
-[]);
+const ListEmptyComponent = useCallback(
+  () => <Text>{error ? error.message : "Aucun type de vêtement configuré"}</Text>,
+  [error],
+);
 
   return (
     <Modal style={{flex: 1}}  presentationStyle="pageSheet" transparent visible={isShowModal}>
@@ -87,7 +94,6 @@ const ListEmptyComponent = useCallback(() => <Text>Pas de client enregistrés</T
            refreshing={isLoading}
            ListEmptyComponent={ListEmptyComponent}
            removeClippedSubviews={true} // Optimisation de performance
-           estimatedItemSize={200}
          />
 
         </View>

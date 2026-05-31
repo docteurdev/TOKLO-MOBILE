@@ -6,19 +6,19 @@ import ScreenWrapper from '@/components/ScreenWrapper';
 import EmptyAppoint from '@/components/svgCompo/EmptyAppoint';
 import { Colors } from '@/constants/Colors';
 import { QueryKeys } from '@/interfaces/queries-key';
-import { IOrder } from '@/interfaces/type';
+import { EDressStatus, IOrder } from '@/interfaces/type';
 import { useOrderStore } from '@/stores/order';
 import { baseURL } from '@/util/axios';
-import { Rs, SIZES } from '@/util/comon';
+import { colors, Rs, SIZES } from '@/util/comon';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import React, { useRef, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AgendaList, Calendar, LocaleConfig } from 'react-native-calendars';
+import { ClockIcon, PhoneIcon, SparklesIcon, UserIcon } from 'react-native-heroicons/solid';
 
 import { useUserStore } from '@/stores/user';
-import LottieView from 'lottie-react-native';
 
 // Configure French locale
 LocaleConfig.locales['fr'] = {
@@ -60,10 +60,22 @@ const getOrderStatus = (order: IOrder) => {
   return typeof order.status === 'string' ? order.status : order.status?.status;
 };
 
+const normalizeOrderStatus = (status: IOrder['status'] | EDressStatus | string | null | undefined) => {
+  if (!status) {
+    return EDressStatus.ONGOING;
+  }
+
+  if (typeof status === 'string') {
+    return status as EDressStatus;
+  }
+
+  return status.status;
+};
+
 const AgendaOrderItem = ({ item, onPress }: AgendaOrderItemProps) => {
   const backgroundColor =
     getOrderStatus(item.data) === "ONGOING"
-      ? Colors.app.available.unav_bg
+      ? colors.lightOrange
       : Colors.app.available.av_bg;
 
   return (
@@ -77,10 +89,22 @@ const AgendaOrderItem = ({ item, onPress }: AgendaOrderItemProps) => {
         source={require("@/assets/images/measure/tradition.png")}
       />
       <View style={styles.agendaItemContent}>
-        <Text style={styles.agendaItemTime}>{item.time}</Text>
-        <Text style={styles.agendaItemName}>{item.name}</Text>
-        <Text style={styles.agendaItemDetail}>Client: {item.data.client_name}</Text>
-        <Text style={styles.agendaItemDetail}>Téléphone: {item.data.client_phone}</Text>
+        <View style={styles.agendaItemRow}>
+          <ClockIcon fill={Colors.app.primary} size={Rs(18)} />
+          <Text style={styles.agendaItemTime}>{item.time}</Text>
+        </View>
+        <View style={styles.agendaItemRow}>
+          <SparklesIcon fill={Colors.app.primary} size={Rs(18)} />
+          <Text style={styles.agendaItemName}>{item.name}</Text>
+        </View>
+        <View style={styles.agendaItemRow}>
+          <UserIcon fill={Colors.app.primary} size={Rs(18)} />
+          <Text style={styles.agendaItemDetail}>Client: {item.data.client_name}</Text>
+        </View>
+        <View style={styles.agendaItemRow}>
+          <PhoneIcon fill={Colors.app.primary} size={Rs(18)} />
+          <Text style={styles.agendaItemDetail}>Téléphone: {item.data.client_phone}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -94,7 +118,6 @@ const DeliveredList = () => {
 
   const [selectedOrder, setSelectedOrder] = useState<IOrder | null>(null);
 
-  const animation = useRef<LottieView>(null);
   const {user} = useUserStore()
 
   const { data, isLoading, error } = useQuery<IOrder[], Error>({
@@ -130,13 +153,6 @@ const DeliveredList = () => {
     const [day, month, year] = dateString.split('/');
     return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   };
-
-  //  Fonction inverse pour convertir YYYY-MM-DD vers JJ/MM/AAAA
-const convertToDisplayFormat = (isoDateString: string) => {
-  if (!isoDateString) return "";
-  const [year, month, day] = isoDateString.split('-');
-  return `${day}/${month}/${year}`;
-};
 
   // Transform the data into the required format
   const transformData = (data: IOrder[]) => {
@@ -207,7 +223,7 @@ const convertToDisplayFormat = (isoDateString: string) => {
               }}
               markedDates={{
                 ...markedDates,
-                [selectedDate]: { selected: true, disableTouchEvent: true, selectedDotColor: 'white', selectedColor: "black" }
+                [selectedDate]: { selected: true, disableTouchEvent: true, selectedColor: "black" }
               }}
             />
           }
@@ -232,26 +248,28 @@ const convertToDisplayFormat = (isoDateString: string) => {
 
          <PaymentDetails
           totalPrice={Number(selectedOrder?.solde_cal)}
-          quantity={selectedOrder?.quantite}
-          status={selectedOrder?.status}
-          date_remise={selectedOrder?.date_remise}
+          status={normalizeOrderStatus(selectedOrder?.status)}
+          date_remise={selectedOrder?.date_remise ?? ''}
+          date_depot={selectedOrder?.date_depote ?? ''}
+          solde_cal={selectedOrder?.solde_cal ?? '0'}
+          paiement={selectedOrder?.paiement ?? '0'}
             />
          <PaymentInterface
-          clientfullname={selectedOrder?.client_name}
-          clientphone={selectedOrder?.client_phone}
-          dresstype={selectedOrder?.description}
-          tissu={selectedOrder?.tissus}
-          fabric={selectedOrder?.photos}
-          mesure={selectedOrder?.measure}
+          clientfullname={`${selectedOrder?.client_name ?? ''} ${selectedOrder?.client_lastname ?? ''}`.trim()}
+          clientphone={selectedOrder?.client_phone ?? ''}
+          dresstype={selectedOrder?.description ?? ''}
+          tissu={selectedOrder?.tissus ?? ''}
+          fabric={selectedOrder?.photos ?? ''}
+          mesure={selectedOrder?.measure ?? {}}
 
-          quantity={selectedOrder?.quantite}
-          solde={selectedOrder?.solde_cal}
-          price={selectedOrder?.amount}
-          paid={selectedOrder?.paiement}
+          quantity={selectedOrder?.quantite ?? ''}
+          solde={selectedOrder?.solde_cal ?? '0'}
+          price={selectedOrder?.amount ?? '0'}
+          paid={selectedOrder?.paiement ?? '0'}
 
-          date_remise={selectedOrder?.date_remise}
-          date_depot={selectedOrder?.date_depote}
-          deliveryHour={selectedOrder?.deliveryHour}
+          date_remise={selectedOrder?.date_remise ?? ''}
+          date_depot={selectedOrder?.date_depote ?? ''}
+          deliveryHour={selectedOrder?.deliveryHour ?? ''}
          />
         </View>
       </BottomSheetCompo>
@@ -286,6 +304,12 @@ const styles = StyleSheet.create({
   },
   agendaItemContent: {
     zIndex: 1,
+    gap: Rs(6),
+  },
+  agendaItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Rs(8),
   },
   agendaItemTime: {
     fontSize: SIZES.sm,

@@ -1,26 +1,24 @@
-import { Image, StyleSheet, Text, View } from 'react-native'
-import React from 'react'
-import {Feather} from '@expo/vector-icons'
 import { Colors } from '@/constants/Colors'
 import { SIZES } from '@/util/comon'
+import React from 'react'
+import { Image, StyleSheet, View } from 'react-native'
 
 type Props = {
   title: string;
   subtitle: string;
+  isLogo?: boolean
  
 }
 
-const FormBanner = ({ title, subtitle }: Props) => {
+const FormBanner = ({isLogo }: Props) => {
+  
+  
   return (
     <View>
      <View style={{alignItems: 'center' , marginBottom: 0}}>
-      {/* <Feather name='lock' size={100} color={Colors.app.primary} /> */}
-      <Image source={require('@/assets/logos/toklo.jpg')} style={{width: 200, height: 200}} />
-      {/* <View style={{marginVertical: 20,}} >
-
-       <Text style={styles.title} > {title} </Text>
-       <Text style={styles.subtitle} > {subtitle} </Text>
-      </View> */}
+{	isLogo &&
+<Image source={require('@/assets/logos/toklo.jpg')} style={styles.logo} />
+}     
      </View>
     </View>
   )
@@ -29,6 +27,10 @@ const FormBanner = ({ title, subtitle }: Props) => {
 export default FormBanner
 
 const styles = StyleSheet.create({
+ logo: {
+   width: 160,
+   height: 160,
+ },
  title:{
    fontSize: SIZES.xl,
    color: Colors.app.black,

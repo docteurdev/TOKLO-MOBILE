@@ -1,27 +1,13 @@
 import { Colors } from '@/constants/Colors';
+import { getPhoneCountryByValue, PhoneCountry, setPhoneCountries } from '@/constants/phoneCountries';
+import { baseURL } from '@/util/axios';
 import { Rs, SIZES } from '@/util/comon';
 import { Feather } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 import * as React from 'react';
-import { FlatList, Image, Modal, Pressable, StyleSheet, Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
-
-type Country = {
-  name: string;
-  code: string;
-  dialCode: string;
-  flag: string;
-};
-
-const COUNTRIES: Country[] = [
-  { name: "Côte d'Ivoire", code: "CI", dialCode: "+225", flag: "https://flagcdn.com/w80/ci.png" },
-  { name: "Bénin", code: "BJ", dialCode: "+229", flag: "https://flagcdn.com/w80/bj.png" },
-  { name: "Burkina Faso", code: "BF", dialCode: "+226", flag: "https://flagcdn.com/w80/bf.png" },
-  { name: "Cameroun", code: "CM", dialCode: "+237", flag: "https://flagcdn.com/w80/cm.png" },
-  { name: "Mali", code: "ML", dialCode: "+223", flag: "https://flagcdn.com/w80/ml.png" },
-  { name: "Sénégal", code: "SN", dialCode: "+221", flag: "https://flagcdn.com/w80/sn.png" },
-  { name: "Togo", code: "TG", dialCode: "+228", flag: "https://flagcdn.com/w80/tg.png" },
-  { name: "Guinée", code: "GN", dialCode: "+224", flag: "https://flagcdn.com/w80/gn.png" },
-  { name: "France", code: "FR", dialCode: "+33", flag: "https://flagcdn.com/w80/fr.png" },
-];
+import { ActivityIndicator, FlatList, Image, Modal, Pressable, StyleSheet, Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
+import { useFormScroll } from './FormWrapper';
 
 interface Props extends TextInputProps {
   label?: string;
@@ -37,29 +23,78 @@ interface Props extends TextInputProps {
   placeholder?: string;
 }
 
+const normalizeCountriesResponse = (data: unknown): PhoneCountry[] => {
+  if (Array.isArray(data)) return data as PhoneCountry[];
+
+  if (
+    data &&
+    typeof data === "object" &&
+    "data" in data &&
+    Array.isArray((data as { data?: unknown }).data)
+  ) {
+    return (data as { data: PhoneCountry[] }).data;
+  }
+
+  return [];
+};
+
 const PhoneInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, touched, keyboardType, isPassword, placeholder }: Props) => {
   const [isPw, setIsPw] = React.useState(isPassword);
   const [isFocused, setIsFocused] = React.useState(false);
   const [isCountryModalVisible, setIsCountryModalVisible] = React.useState(false);
-  const [selectedCountry, setSelectedCountry] = React.useState(COUNTRIES[0]);
+  const [selectedCountry, setSelectedCountry] = React.useState<PhoneCountry | null>(null);
+  const inputRef = React.useRef<TextInput>(null);
+  const formScroll = useFormScroll();
+  const {
+    data: countries = [],
+    isLoading: isCountriesLoading,
+    isError: isCountriesError,
+  } = useQuery({
+    queryKey: ["countries"],
+    queryFn: async () => {
+      const response = await axios.get(baseURL + "/countries");
+      return normalizeCountriesResponse(response.data);
+    },
+  });
+
+  React.useEffect(() => {
+    setPhoneCountries(countries);
+  }, [countries]);
+
+  React.useEffect(() => {
+    if (countries.length === 0) return;
+
+    const valueCountry = getPhoneCountryByValue(value, countries);
+
+    if (valueCountry && valueCountry.code !== selectedCountry?.code) {
+      setSelectedCountry(valueCountry);
+      return;
+    }
+
+    if (!selectedCountry) {
+      setSelectedCountry(countries.find((country) => country.id === 1) ?? countries[0]);
+    }
+  }, [countries, selectedCountry, value]);
 
   const phoneWithoutDialCode = React.useMemo(() => {
-    if (!value) return "";
+    if (!value || !selectedCountry) return "";
 
     return value.startsWith(selectedCountry.dialCode)
       ? value.slice(selectedCountry.dialCode.length)
       : value;
-  }, [selectedCountry.dialCode, value]);
+  }, [selectedCountry, value]);
 
   const handlePhoneChange = (text: string) => {
-    const phone = text.replace(/\D/g, "");
+    if (!selectedCountry) return;
+
+    const phone = text.replace(/\D/g, "").slice(0, selectedCountry.phoneLength);
     handleChange(`${selectedCountry.dialCode}${phone}`);
   };
 
-  const handleSelectCountry = (country: Country) => {
+  const handleSelectCountry = (country: PhoneCountry) => {
     setSelectedCountry(country);
     setIsCountryModalVisible(false);
-    handleChange(`${country.dialCode}${phoneWithoutDialCode.replace(/\D/g, "")}`);
+    handleChange(`${country.dialCode}${phoneWithoutDialCode.replace(/\D/g, "").slice(0, country.phoneLength)}`);
   };
 
   return (
@@ -73,33 +108,48 @@ const PhoneInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, 
         ]}
       >
         <Pressable
+          disabled={countries.length === 0}
           onPress={() => setIsCountryModalVisible(true)}
           style={styles.countrySelector}
         >
-          <Image source={{ uri: selectedCountry.flag }} style={styles.flag} />
-          {/* <Text style={styles.dialCode}>{selectedCountry.dialCode}</Text> */}
+          {selectedCountry ? (
+            <Image source={{ uri: selectedCountry.flag }} style={styles.flag} />
+          ) : (
+            <ActivityIndicator size="small" color={Colors.app.primary} />
+          )}
           <Feather name="chevron-down" size={16} color={Colors.app.texteLight} />
         </Pressable>
         <TextInput
+          ref={inputRef}
           keyboardType={keyboardType ?? "phone-pad"}
           secureTextEntry={isPw}
           multiline={isDescr ? true : false}
           placeholder={placeholder ?? "Entrez ..."}
           placeholderTextColor={Colors.app.texteLight}
           value={phoneWithoutDialCode}
+          editable={Boolean(selectedCountry) && !isCountriesLoading}
+          maxLength={selectedCountry?.phoneLength}
           style={styles.input}
           onChangeText={handlePhoneChange}
           onBlur={(e) => {
             setIsFocused(false);
             handleOnBlur(e);
           }}
-          onFocus={() => setIsFocused(true)}
+          onFocus={() => {
+            setIsFocused(true);
+            formScroll?.scrollToInput(inputRef);
+          }}
         />
       </View>
       {isPassword && (
         <TouchableOpacity style={{ position: 'absolute', right: Rs(10), top: Rs(40), zIndex: 50 }} onPress={() => { setIsPw(!isPw) }}>
           <Feather name='eye' size={20} color={Colors.app.texteLight} />
         </TouchableOpacity>
+      )}
+      {isCountriesError && (
+        <Text style={{ color: Colors.app.error, fontSize: SIZES.xs }}>
+          Impossible de charger les pays
+        </Text>
       )}
       {error && touched && <Text style={{ color: Colors.app.error, fontSize: SIZES.xs }}>{error}</Text>}
       <Modal
@@ -112,7 +162,7 @@ const PhoneInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, 
           <View style={styles.countryModal}>
             <Text style={styles.modalTitle}>Choisissez un pays</Text>
             <FlatList
-              data={COUNTRIES}
+              data={countries}
               keyExtractor={(item) => item.code}
               renderItem={({ item }) => (
                 <Pressable
@@ -121,7 +171,9 @@ const PhoneInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, 
                 >
                   <Image source={{ uri: item.flag }} style={styles.countryFlag} />
                   <Text style={styles.countryName}>{item.name}</Text>
-                  <Text style={styles.countryDialCode}>{item.dialCode}</Text>
+                  <Text style={styles.countryDialCode}>
+                    {item.dialCode} · {item.phoneLength}
+                  </Text>
                 </Pressable>
               )}
             />
@@ -143,7 +195,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.app.texteLight,
+    borderColor: Colors.app.disabled,
     borderRadius: SIZES.xs,
     height: 50,
     overflow: 'hidden',
@@ -177,11 +229,11 @@ const styles = StyleSheet.create({
   },
   inputFocused: {
     borderColor: Colors.app.primary,
-    borderWidth: 2,
+    borderWidth: 1,
   },
   inputError: {
     borderColor: Colors.app.error,
-    borderWidth: 2,
+    borderWidth: 1,
   },
   modalBackdrop: {
     flex: 1,

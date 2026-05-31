@@ -1,45 +1,57 @@
-import React, { useState, useRef, useEffect } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  Dimensions,
-  Platform,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
-import * as Haptics from "expo-haptics";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withRepeat,
-  withSequence,
-  withDelay,
-  Easing,
-  interpolate,
-  Extrapolate,
-} from "react-native-reanimated";
-import useUpload from "@/hooks/useUpload";
-import { SIZES } from "@/util/comon";
-import BlowingBtn from "../form/BlowingBtn";
 import useGalery from "@/hooks/mutations/useGalery";
+import useUpload from "@/hooks/useUpload";
 import { useUserStore } from "@/stores/user";
+import { colors, Rs, SIZES } from "@/util/comon";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useState } from "react";
+import {
+  Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
+import Animated, {
+  Easing,
+  Extrapolate,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withTiming
+} from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+import CustomButton from "../form/CustomButton";
 
 const { width } = Dimensions.get("window");
 const ITEM_WIDTH = (width - 48) / 2;
 const ANIMATION_DURATION = 300;
 
-const UploadGallery = ({closeBottomSheet}: {closeBottomSheet: () => void}) => {
+type UploadGalleryProps = {
+  closeBottomSheet: () => void;
+  subscribeBottomSheet?: () => void;
+  claimActiveFreeTime?: () => void;
+};
+
+const UploadGallery = ({
+  closeBottomSheet,
+  subscribeBottomSheet,
+  claimActiveFreeTime,
+}: UploadGalleryProps) => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const { singleImage, pickImage, resetsingleImage } = useUpload(true);
 
-  const {mutate, isPending, isSuccess} = useGalery(() => closeBottomSheet());
+  const {mutate, isPending, isSuccess} = useGalery({
+    closeBottomSheet,
+    subscribeBottomSheet,
+    claimActiveFreeTime,
+  });
 
   const {user} = useUserStore()
 
@@ -186,7 +198,7 @@ const UploadGallery = ({closeBottomSheet}: {closeBottomSheet: () => void}) => {
         activeOpacity={0.8}
       >
         <LinearGradient
-          colors={["#4776E6", "#8E54E9"]}
+          colors={[colors.orange, colors.lightOrange]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientBackground}
@@ -194,7 +206,7 @@ const UploadGallery = ({closeBottomSheet}: {closeBottomSheet: () => void}) => {
           {uploading ? (
             <View style={styles.uploadingContainer}>
               <View style={styles.uploadingIconContainer}>
-                <Ionicons name="cloud-upload-outline" size={32} color="#fff" />
+                <Ionicons name="cloud-upload-outline" size={32} color={colors.DARK_BROWN} />
                 <Text style={styles.uploadingPercentage}>
                   {uploadProgress}%
                 </Text>
@@ -213,7 +225,7 @@ const UploadGallery = ({closeBottomSheet}: {closeBottomSheet: () => void}) => {
                 <MaterialCommunityIcons
                   name="cloud-upload-outline"
                   size={40}
-                  color="#ffffff"
+                  color={colors.DARK_BROWN}
                 />
               </View>
               <Text style={styles.uploadText}>Télécharger le modèle</Text>
@@ -269,7 +281,7 @@ const UploadGallery = ({closeBottomSheet}: {closeBottomSheet: () => void}) => {
   const renderEmptyState = () => (
     <View style={styles.emptyStateContainer}>
       <Ionicons name="image-outline" size={70} color="#d1d1d1" />
-      <Text style={styles.emptyStateText}>Pas d'image sélectionnée</Text>
+      <Text style={styles.emptyStateText}>{"Pas d'image sélectionnée"}</Text>
       <Text style={styles.emptyStateSubtext}>
         Votre image téléchargée apparaîtra ici.
       </Text>
@@ -285,19 +297,23 @@ const UploadGallery = ({closeBottomSheet}: {closeBottomSheet: () => void}) => {
       {singleImage ? renderImage() : renderEmptyState()}
 
     {singleImage &&
-      <BlowingBtn
-        isPending={isPending}
-        label="Uploader une nouvelle image"
-        handlePress={() => handleUploadGalery()}
-      />}
+     <View style={{marginTop: Rs(50)}}>
+
+       <CustomButton
+         disabled={!isPending}
+         label="Uploader une nouvelle image"
+         action={() => handleUploadGalery()}
+       />
+     </View>
+      }
     </View>
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {renderUploadArea()}
       {renderImageArea()}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -336,13 +352,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   uploadText: {
-    color: "#ffffff",
+    color: colors.DARK_BROWN,
     fontSize: 22,
     fontWeight: "bold",
     marginBottom: 8,
   },
   uploadSubtext: {
-    color: "rgba(255, 255, 255, 0.9)",
+    color: colors.DARK_BROWN,
     fontSize: 15,
   },
   uploadTipContainer: {

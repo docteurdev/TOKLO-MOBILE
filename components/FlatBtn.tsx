@@ -1,8 +1,9 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React from 'react'
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
-import { useRouter } from 'expo-router'
+import { Rs } from '@/util/comon'
 import { Ionicons } from '@expo/vector-icons'
+import { useRouter } from 'expo-router'
+import React from 'react'
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 
 type Props = {
   action?: () => void
@@ -49,7 +50,7 @@ export default FlatBtn
 const styles = StyleSheet.create({
    addButtonContainer: {
     position: "absolute",
-    bottom: 24,
+    bottom: Rs(65),
     right: 24,
   },
   addButton: {

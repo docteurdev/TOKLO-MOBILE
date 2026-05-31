@@ -1,23 +1,22 @@
-import { StyleSheet, Text, View } from "react-native";
-import React, { useCallback, useRef, useState } from "react";
-import { FlashList } from "@shopify/flash-list";
-import DressItem from "./DressItem";
-import { formatXOF, Rs, SIZES } from "@/util/comon";
-import { EDressStatus, IOrder } from "@/interfaces/type";
-import axios from "axios";
-import { useQuery } from "@tanstack/react-query";
-import { QueryKeys } from "@/interfaces/queries-key";
-import { baseURL } from "@/util/axios";
-import { useOrderStore } from "@/stores/order";
-import useChangeOrderStatus from "@/hooks/mutations/useChangeOrderStatus";
-import BottomSheetCompo from "../BottomSheetCompo";
-import { alertMgs } from "@/util/appText";
 import { Colors } from "@/constants/Colors";
-import RoundedBtn from "../form/RoundedBtn";
-import LoadingScreen from "../Loading";
-import { useUserStore } from "@/stores/user";
+import useChangeOrderStatus from "@/hooks/mutations/useChangeOrderStatus";
 import usePayOrderSold from "@/hooks/mutations/usePayOrderSold";
+import { QueryKeys } from "@/interfaces/queries-key";
+import { EDressStatus, IOrder } from "@/interfaces/type";
+import { useOrderStore } from "@/stores/order";
+import { useUserStore } from "@/stores/user";
+import { alertMgs } from "@/util/appText";
+import { baseURL } from "@/util/axios";
+import { formatXOF, Rs, SIZES } from "@/util/comon";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { FlashList } from "@shopify/flash-list";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import React, { useCallback, useRef, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import BottomSheetCompo from "../BottomSheetCompo";
+import RoundedBtn from "../form/RoundedBtn";
+import DressItem from "./DressItem";
 
 type Props = {};
 
@@ -28,15 +27,12 @@ const FinishedList = (props: Props) => {
   const { data, isLoading, error, refetch } = useQuery<IOrder[], Error>({
     queryKey: QueryKeys.orders.finished,
     queryFn: async (): Promise<IOrder[]> => {
-      // Explicit return type
-    //  console.log("============ QueryKeys.orders.finished", QueryKeys.orders.finished)
       const data = {
         Toklo_menId: user?.id,
         status: "FINISHED",
       };
       try {
         const resp = await axios.post(baseURL+"/orders/by-toklo", data);
-        // console.log("ààààààààààààààà", resp.data);
         if (resp.data.length > 0) {
           setFinishedOrderLength(resp.data.length)
         }
@@ -72,16 +68,6 @@ const FinishedList = (props: Props) => {
     // console.log('horray! sheet has been presented 💩')
   };
 
-  // const dataFiltered = useMemo(() => {
-  //   return data?.filter((item) => {
-  //     const searchTerm = filterVal?.toLowerCase();
-  //     return (
-  //       item.name?.toLowerCase().includes(searchTerm) ||
-  //       item.lastname?.toLowerCase().includes(searchTerm)
-  //     );
-  //   });
-  // }, [data]);
-   // Only recalculate when data or filterVal changes
 
   // Memoize keyExtractor
   const keyExtractor = useCallback((item: IOrder) => item.id.toString(), []);
@@ -99,14 +85,14 @@ const FinishedList = (props: Props) => {
 
   return (
     <>
-    {data &&  <LoadingScreen 
+    {/* {data &&  <LoadingScreen 
       visible={isPending || isPayOrderSoldPending}
       backgroundColor="rgba(0, 0, 0, 0.7)"
       indicatorColor="#FFFFFF"
       indicatorSize={48}
       message=""
       animationType="slide"
-    />}
+    />} */}
     <View style={styles.container}>
 
 
