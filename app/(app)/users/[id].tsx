@@ -1,133 +1,74 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Image,
-  SafeAreaView,
-  StatusBar,
-  ActivityIndicator,
-  ScrollView,
-  Platform
-} from 'react-native';
-import { 
-  FontAwesome, 
-  MaterialIcons, 
-  Ionicons, 
-  MaterialCommunityIcons 
-} from '@expo/vector-icons';
-import { clientOrderStat, IClient, IOrder, TInvoice } from '@/interfaces/type';
-import { QueryKeys } from '@/interfaces/queries-key';
-import { base, baseURL } from '@/util/axios';
-import axios from 'axios';
-import { useQuery } from '@tanstack/react-query';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { formatXOF, generateInvoiceNumber, Rs, SIZES } from '@/util/comon';
-import { Colors } from '@/constants/Colors';
-import DressStatus from '@/components/dress/DressStatus';
-import BackButton from '@/components/form/BackButton';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import BottomSheetCompo from '@/components/BottomSheetCompo';
-import { XMarkIcon } from 'react-native-heroicons/solid';
 import PaymentInterface from '@/components/calendar/CardDetails';
 import PaymentDetails from '@/components/calendar/OrderDetail';
+import DressStatus from '@/components/dress/DressStatus';
+import BackButton from '@/components/form/BackButton';
 import RoundedBtn from '@/components/form/RoundedBtn';
-import usePrint from '@/hooks/usePrint';
-import { useUserStore } from '@/stores/user';
-import useLocation from '@/hooks/useLocation';
+import { Colors } from '@/constants/Colors';
 import useInvoice from '@/hooks/useInvoice';
+import { QueryKeys } from '@/interfaces/queries-key';
+import { clientOrderStat, EDressStatus, IClient, IOrder, TInvoice } from '@/interfaces/type';
+import { useUserStore } from '@/stores/user';
+import { base, baseURL } from '@/util/axios';
+import { colors, formatXOF, generateInvoiceNumber, Rs, SCREEN_H, SIZES } from '@/util/comon';
+import {
+  FontAwesome,
+  Ionicons,
+  MaterialCommunityIcons,
+  MaterialIcons
+} from '@expo/vector-icons';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { XMarkIcon } from 'react-native-heroicons/solid';
 
 
-// Sample data - replace with your actual API call
-const SAMPLE_ORDERS = [
-  {
-    id: '1',
-    dress_name: 'Floral Summer Dress',
-    price: 129.99,
-    date: '2023-03-15',
-    status: 'completed',
-    image: 'https://via.placeholder.com/100',
-    customer: {
-      name: 'Emma Wilson',
-      address: '123 Main St, New York, NY',
-      phone: '+1 (555) 123-4567'
-    }
-  },
-  {
-    id: '2',
-    dress_name: 'Evening Gown',
-    price: 249.99,
-    date: '2023-03-18',
-    status: 'processing',
-    image: 'https://via.placeholder.com/100',
-    customer: {
-      name: 'Sophia Martinez',
-      address: '456 Oak Ave, San Francisco, CA',
-      phone: '+1 (555) 987-6543'
-    }
-  },
-  {
-    id: '3',
-    dress_name: 'Wedding Dress',
-    price: 899.99,
-    date: '2023-03-20',
-    status: 'completed',
-    image: 'https://via.placeholder.com/100',
-    customer: {
-      name: 'Olivia Johnson',
-      address: '789 Pine Blvd, Chicago, IL',
-      phone: '+1 (555) 789-0123'
-    }
-  },
-  {
-    id: '4',
-    dress_name: 'Cocktail Dress',
-    price: 179.99,
-    date: '2023-03-22',
-    status: 'pending',
-    image: 'https://via.placeholder.com/100',
-    customer: {
-      name: 'Ava Brown',
-      address: '321 Elm St, Los Angeles, CA',
-      phone: '+1 (555) 456-7890'
-    }
-  },
-  {
-    id: '5',
-    dress_name: 'Casual Sundress',
-    price: 79.99,
-    date: '2023-03-25',
-    status: 'completed',
-    image: 'https://via.placeholder.com/100',
-    customer: {
-      name: 'Isabella Davis',
-      address: '654 Maple Rd, Miami, FL',
-      phone: '+1 (555) 321-0987'
+type OrderStatusValue = IOrder["status"] | EDressStatus | string | undefined | null;
+
+const getOrderStatus = (status: OrderStatusValue): EDressStatus | undefined => {
+  const statuses = Object.values(EDressStatus);
+
+  if (typeof status === "string" && statuses.includes(status as EDressStatus)) {
+    return status as EDressStatus;
+  }
+
+  if (status && typeof status === "object" && "status" in status) {
+    const nestedStatus = status.status;
+    if (statuses.includes(nestedStatus)) {
+      return nestedStatus;
     }
   }
-];
+
+  return undefined;
+};
 
 const UserOrderList = () => {
   const [activeTab, setActiveTab] = useState('orders');
-  const [orders, setOrders] = useState([]);
-  const [summary, setSummary] = useState({
-    totalOrders: 0,
-    totalAmount: 0,
-    completedOrders: 0
-  });
 
   const [selectOrder, setSelectOrder] = useState<IOrder | undefined>(undefined);
-
-  const {print, selectPrinter} = usePrint()
+  const [isTabsPinned, setIsTabsPinned] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const headerHeightRef = useRef(0);
+  const summaryHeightRef = useRef(0);
 
     const userId = useLocalSearchParams<{id: string}>().id;
 
    const {user} = useUserStore();
 
-   const {getAddressFromCoordinates} = useLocation()
-  
    const router = useRouter();
 
    const bottomSheetModal = useRef<BottomSheetModal>(null);
@@ -140,11 +81,16 @@ const UserOrderList = () => {
     setInvoice( {
       storeName: user?.store_name ?? "",
       sotreSlogan: user?.store_slogan ?? "",
-      storeAddress: "123 Avenue de la Mode, 75008 Paris",
-      storePhone: user?.phone ?? "",
-      clientFullName: selectOrder?.client_name +" " + selectOrder?.client_lastname,
-      clientPhone: selectOrder?.client_phone,
-      invoiceNumber: generateInvoiceNumber(user?.id || 0, selectOrder?.updatedat || new Date().toLocaleDateString('fr-FR')),
+	      storeAddress: "123 Avenue de la Mode, 75008 Paris",
+	      storePhone: user?.phone ?? "",
+	      clientFullName: selectOrder?.client_name +" " + selectOrder?.client_lastname,
+	      clientPhone: selectOrder?.client_phone ?? "",
+	      invoiceNumber: generateInvoiceNumber(
+          user?.id || 0,
+          selectOrder?.updatedat
+            ? new Date(selectOrder.updatedat).toISOString()
+            : new Date().toISOString(),
+        ),
       invoiceDate: new Date().toLocaleDateString('fr-FR'),
       staus: "Payée",
       dressName: selectOrder?.description?? "",
@@ -155,11 +101,11 @@ const UserOrderList = () => {
       biTotal: Number(selectOrder?.amount) * Number(selectOrder?.quantite) -  Number(selectOrder?.paiement)
  
     });
-  }, [selectOrder]);
+	  }, [selectOrder, user?.id, user?.phone, user?.store_name, user?.store_slogan]);
    
   
    
-    const { data: client, isLoading: clientIsLoading, error: clientError, refetch: refetchClient } = useQuery<IClient, Error>({
+    const { data: client } = useQuery<IClient, Error>({
       queryKey: QueryKeys.clients.byUser(Number(userId)),
       queryFn: async (): Promise<IClient> => {  // Explicit return type
         try {
@@ -173,11 +119,12 @@ const UserOrderList = () => {
       },
     });
   
-    const { data: clientorders, isLoading: ordersIsLoading, error: ordersError, refetch: refetchorders } = useQuery<IOrder[], Error>({
+    const { data: clientorders } = useQuery<IOrder[], Error>({
       queryKey: QueryKeys.clients.clientOrdersbyId((Number(userId))),
       queryFn: async (): Promise<IOrder[]> => {  // Explicit return type
         try {
           const resp = await axios.post(`${baseURL}/orders/by-client`, {client_id: Number(userId)});
+          console.log(resp.data)
           return resp.data; // Ensure `resp.data` is returned
         } catch (error) {
           console.error(error);
@@ -186,7 +133,7 @@ const UserOrderList = () => {
       },
     });
   
-    const { data: clientordersStat, isLoading: ordersStatIsLoading, error: ordersStatError, refetch: refetchordersStat } = useQuery<clientOrderStat, Error>({
+    const { data: clientordersStat } = useQuery<clientOrderStat, Error>({
       queryKey: QueryKeys.clients.statByid(Number(userId)),
       queryFn: async (): Promise<clientOrderStat> => {  // Explicit return type
        
@@ -201,23 +148,6 @@ const UserOrderList = () => {
       },
     });
   
-
-  // Fetch orders - replace with your actual API call
-  useEffect(() => {
-    // Simulating API fetch
-    setOrders(SAMPLE_ORDERS);
-    
-    // Calculate summary data
-    const total = SAMPLE_ORDERS.length;
-    const amount = SAMPLE_ORDERS.reduce((sum, order) => sum + order.price, 0);
-    const completed = SAMPLE_ORDERS.filter(order => order.status === 'completed').length;
-    
-    setSummary({
-      totalOrders: total,
-      totalAmount: amount,
-      completedOrders: completed
-    });
-  }, []);
 
   const renderOrderItem = ({ item }: { item: IOrder }) => (
     <TouchableOpacity onPress={() => {
@@ -234,38 +164,34 @@ const UserOrderList = () => {
       
       <View style={styles.orderDetails}>
         <Text style={styles.dressName}>{item.description}</Text>
-        <Text style={styles.date}>Date de dépôt: {formatDate(item.date_depote)}</Text>
+        <Text style={styles.date}>Date de dépôt: {formatDate(item.date_depote)} </Text>
         <View style={styles.priceStatusContainer}>
           <Text style={styles.price}>{formatXOF(Number(item.amount))}</Text>
 
-           <DressStatus status={item.status} />
+           <DressStatus status={getOrderStatus(item.status) ?? EDressStatus.ONGOING} />
         </View>
       </View>
     </TouchableOpacity>
   );
 
   const renderInformation = () => (
-    <View style={styles.informationContainer}>
-      {/* <Text style={styles.infoTitle}>Information du client</Text> */}
+      <View style={styles.informationContainer}>
       
       <View style={styles.infoSection}>
-        <MaterialIcons name="person" size={24} color="#333" />
+        <View style={styles.infoIconContainer}>
+          <MaterialIcons name="person" size={24} color={colors.orange} />
+        </View>
         <View style={styles.infoDetails}>
           <Text style={styles.infoLabel}> Nom complet  </Text>
           <Text style={styles.infoValue}> {client?.lastname} {client?.name}</Text>
         </View>
       </View>
       
-      <View style={styles.infoSection}>
-        <MaterialIcons name="email" size={24} color="#333" />
-        <View style={styles.infoDetails}>
-          <Text style={styles.infoLabel}>Email</Text>
-          <Text style={styles.infoValue}>jane.smith@example.com</Text>
-        </View>
-      </View>
       
       <View style={styles.infoSection}>
-        <MaterialIcons name="phone" size={24} color="#333" />
+        <View style={styles.infoIconContainer}>
+          <MaterialIcons name="phone" size={24} color={colors.orange} />
+        </View>
         <View style={styles.infoDetails}>
           <Text style={styles.infoLabel}>Téléphone</Text>
           <Text style={styles.infoValue}> {client?.telephone} </Text>
@@ -273,7 +199,9 @@ const UserOrderList = () => {
       </View>
       
       <View style={styles.infoSection}>
-        <MaterialIcons name="location-on" size={24} color="#333" />
+        <View style={styles.infoIconContainer}>
+          <MaterialIcons name="location-on" size={24} color={colors.orange} />
+        </View>
         <View style={styles.infoDetails}>
           <Text style={styles.infoLabel}>Address</Text>
           <Text style={styles.infoValue}> {client?.adresse} </Text>
@@ -281,7 +209,9 @@ const UserOrderList = () => {
       </View>
       
       <View style={styles.infoSection}>
-        <MaterialCommunityIcons name="account-check" size={24} color="#333" />
+        <View style={styles.infoIconContainer}>
+          <MaterialCommunityIcons name="account-check" size={24} color={colors.orange} />
+        </View>
         <View style={styles.infoDetails}>
           <Text style={styles.infoLabel}> Membre depuis </Text>
           {/* <Text style={styles.infoValue}> {client?.} </Text> */}
@@ -292,128 +222,175 @@ const UserOrderList = () => {
   );
 
   // Helper functions
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
+  const formatDate = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+    const [day, month, year] = dateString.split("/").map(Number);
 
-  const capitalizeFirstLetter = (string) => {
-    return string.charAt(0).toUpperCase() + string.slice(1);
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return '#4CAF50';
-      case 'processing':
-        return Colors.app.primary;
-      case 'pending':
-        return '#FFC107';
-      default:
-        return '#9E9E9E';
+    if (day && month && year) {
+      return new Date(year, month - 1, day).toLocaleDateString("fr-FR", options);
     }
+
+    return new Date(dateString).toLocaleDateString("fr-FR", options);
   };
+
+  const scrollToTabs = (animated = true) => {
+    scrollViewRef.current?.scrollTo({
+      y: Math.max(headerHeightRef.current + summaryHeightRef.current - 1, 0),
+      animated,
+    });
+  };
+
+  const handleTabChange = (tab: "info" | "orders") => {
+    setActiveTab(tab);
+    requestAnimationFrame(() => {
+      scrollToTabs();
+    });
+    setTimeout(() => {
+      scrollToTabs();
+    }, 80);
+  };
+
+  const renderTabs = (isPinned = false) => (
+    <View style={[styles.tabContainer, isPinned && styles.pinnedTabContainer]}>
+      <TouchableOpacity
+        style={[styles.tab, activeTab === 'info' && styles.activeTab]}
+        onPress={() => handleTabChange('info')}
+      >
+        <MaterialIcons
+          name="info-outline"
+          size={20}
+          color={activeTab === 'info' ? Colors.app.primary : '#757575'}
+        />
+        <Text style={[
+          styles.tabText,
+          activeTab === 'info' && styles.activeTabText
+        ]}>Information</Text>
+      </TouchableOpacity>
+
+      <View style={styles.tabSeparator} />
+
+      <TouchableOpacity
+        style={[styles.tab, activeTab === 'orders' && styles.activeTab]}
+        onPress={() => handleTabChange('orders')}
+      >
+        <MaterialIcons
+          name="shopping-bag"
+          size={20}
+          color={activeTab === 'orders' ? Colors.app.primary : '#757575'}
+        />
+        <Text style={[
+          styles.tabText,
+          activeTab === 'orders' && styles.activeTabText
+        ]}>Commandes</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      
-      {/* Header */}
-      <View style={styles.header}>
 
-        <BackButton backAction={() => {
+      <ScrollView
+        ref={scrollViewRef}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.screenScrollContent}
+        scrollEventThrottle={16}
+        onScroll={(event) => {
+          const scrollY = event.nativeEvent.contentOffset.y;
+          const tabsStartY = headerHeightRef.current + summaryHeightRef.current;
+          const nextIsTabsPinned = tabsStartY > 0 && scrollY >= tabsStartY;
+          setIsTabsPinned((current) =>
+            current === nextIsTabsPinned ? current : nextIsTabsPinned,
+          );
+        }}
+      >
+        {/* Header */}
+        <View
+          style={styles.header}
+          onLayout={(event) => {
+            headerHeightRef.current = event.nativeEvent.layout.height;
+          }}
+        >
 
-        //  Platform.OS === 'android' ? print(invoice) : selectPrinter(invoice)
+          <BackButton backAction={() => {
+             router.replace({pathname: "/(app)/users"}) 
+          }
+              } />
 
-           router.replace({pathname: "/(app)/users"}) 
-        }
-            } />
+          <Text style={styles.headerTitle}> {client?.name} {client?.lastname} </Text>
+        </View>
+        
+        {/* Summary Section */}
+        <View
+          style={styles.summaryContainer}
+          onLayout={(event) => {
+            summaryHeightRef.current = event.nativeEvent.layout.height;
+          }}
+        >
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryItem}>
+              <View style={[styles.iconCircle, { backgroundColor: "#FFF3E0" }]}>
+                <Ionicons name="shirt" size={22} color={colors.orange} />
+              </View>
+              <View>
+                {clientordersStat ? <Text style={styles.summaryValue}>{clientordersStat?.totalOrders}</Text> : <ActivityIndicator size="small" color={Colors.app.primary} />}
+                <Text style={styles.summaryLabel}>Vêtement</Text>
+              </View>
+            </View>
+            
+            <View style={styles.summarySeparator} />
 
-        <Text style={styles.headerTitle}> {client?.name} {client?.lastname} </Text>
-      </View>
-      
-      {/* Summary Section */}
-      <View style={styles.summaryContainer}>
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryItem}>
-            <View style={[styles.iconCircle, { backgroundColor: '#E3F2FD' }]}>
-              <Ionicons name="shirt" size={22} color="#2196F3" />
+            <View style={styles.summaryItem}>
+              <View style={[styles.iconCircle, { backgroundColor: '#E8F5E9' }]}>
+                <FontAwesome name="dollar" size={22} color="#4CAF50" />
+              </View>
+              <View>
+               {clientordersStat ? <Text style={styles.summaryValue}>{formatXOF(Number(clientordersStat?.totalAmount))}</Text> : <ActivityIndicator size="small" color={Colors.app.primary} />}
+                <Text style={styles.summaryLabel}>Montant</Text>
+              </View>
             </View>
-            <View>
-              {clientordersStat ? <Text style={styles.summaryValue}>{clientordersStat?.totalOrders}</Text> : <ActivityIndicator size="small" color={Colors.app.primary} />}
-              <Text style={styles.summaryLabel}>Vêtement</Text>
-            </View>
-          </View>
-          
-          <View style={styles.summaryItem}>
-            <View style={[styles.iconCircle, { backgroundColor: '#E8F5E9' }]}>
-              <FontAwesome name="dollar" size={22} color="#4CAF50" />
-            </View>
-            <View>
-             {clientordersStat ? <Text style={styles.summaryValue}>{formatXOF(Number(clientordersStat?.totalAmount))}</Text> : <ActivityIndicator size="small" color={Colors.app.primary} />}
-              <Text style={styles.summaryLabel}>Montant</Text>
-            </View>
-          </View>
-          
-          <View style={styles.summaryItem}>
-            <View style={[styles.iconCircle, { backgroundColor: '#FFF3E0' }]}>
-              <MaterialIcons name="done-all" size={22} color="#FF9800" />
-            </View>
-            <View>
-              {clientordersStat ? <Text style={styles.summaryValue}>{clientordersStat?.ordersCompleted}</Text> : <ActivityIndicator size="small" color={Colors.app.primary} />}
-              <Text style={styles.summaryLabel}>Livrés</Text>
+            
+            <View style={styles.summarySeparator} />
+
+            <View style={styles.summaryItem}>
+              <View style={[styles.iconCircle, { backgroundColor: '#FFF3E0' }]}>
+                <MaterialIcons name="done-all" size={22} color={colors.orange} />
+              </View>
+              <View>
+                {clientordersStat ? <Text style={styles.summaryValue}>{clientordersStat?.ordersCompleted}</Text> : <ActivityIndicator size="small" color={Colors.app.primary} />}
+                <Text style={styles.summaryLabel}>Livrés</Text>
+              </View>
             </View>
           </View>
         </View>
-      </View>
-      
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'info' && styles.activeTab]} 
-          onPress={() => setActiveTab('info')}
-        >
-          <MaterialIcons 
-            name="info-outline"
-            size={20}
-            color={activeTab === 'info' ? Colors.app.primary : '#757575'}
-          />
-          <Text style={[
-            styles.tabText, 
-            activeTab === 'info' && styles.activeTabText
-          ]}>Information</Text>
-        </TouchableOpacity>
         
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'orders' && styles.activeTab]} 
-          onPress={() => setActiveTab('orders')}
-        >
-          <MaterialIcons 
-            name="shopping-bag"
-            size={20}
-            color={activeTab === 'orders' ? Colors.app.primary : '#757575'}
-          />
-          <Text style={[
-            styles.tabText, 
-            activeTab === 'orders' && styles.activeTabText
-          ]}>Commandes</Text>
-        </TouchableOpacity>
-      </View>
-      
-      {/* Tab Content */}
-      <View style={styles.content}>
-        {activeTab === 'info' ? (
-          renderInformation()
-        ) : (
-          <FlatList
-            data={clientorders}
-            renderItem={renderOrderItem}
-            keyExtractor={item => item.id.toString()}
-            contentContainerStyle={styles.ordersList}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
+        {/* Tabs */}
+        <View style={styles.tabWrapper}>
+          {renderTabs()}
+        </View>
+        
+        {/* Tab Content */}
+        <View style={styles.content}>
+          {activeTab === 'info' ? (
+            renderInformation()
+          ) : (
+            <FlatList
+              data={clientorders}
+              renderItem={renderOrderItem}
+              keyExtractor={item => item.id.toString()}
+              contentContainerStyle={styles.ordersList}
+              scrollEnabled={false}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </View>
+      </ScrollView>
+
+      {isTabsPinned && (
+        <View style={styles.pinnedTabWrapper}>
+          {renderTabs(true)}
+        </View>
+      )}
 
       <BottomSheetCompo bottomSheetModalRef={bottomSheetModal} snapPoints={['90%']} >
         <View style={styles.header}>
@@ -427,32 +404,34 @@ const UserOrderList = () => {
                 
                 {selectOrder &&
                  <PaymentDetails
-                  totalPrice={Number(selectOrder?.solde_cal)}
-                  quantity={selectOrder?.quantite}
-                  status={selectOrder?.status}
-                  date_remise={selectOrder?.date_remise}
+                  totalPrice={Number(selectOrder.solde_cal)}
+                  status={getOrderStatus(selectOrder.status) ?? EDressStatus.ONGOING}
+                  date_remise={selectOrder.date_remise}
+                  date_depot={selectOrder.date_depote}
+                  solde_cal={selectOrder.solde_cal}
+                  paiement={selectOrder.paiement}
                     />}
         
                { selectOrder &&
                 <PaymentInterface
-                  clientfullname={selectOrder?.client_name}
-                  clientphone={selectOrder?.client_phone}
-                  dresstype={selectOrder?.description}
-                  tissu={selectOrder?.tissus}
-                  fabric={selectOrder?.photos}
-                  mesure={selectOrder?.measure}
+                  clientfullname={selectOrder.client_name ?? ""}
+                  clientphone={selectOrder.client_phone ?? ""}
+                  dresstype={selectOrder.description}
+                  tissu={selectOrder.tissus}
+                  fabric={selectOrder.photos}
+                  mesure={selectOrder.measure}
         
-                  quantity={selectOrder?.quantite}
-                  solde={selectOrder?.solde_cal}
-                  price={selectOrder?.amount}
-                  paid={selectOrder?.paiement}
+                  quantity={selectOrder.quantite}
+                  solde={selectOrder.solde_cal}
+                  price={selectOrder.amount}
+                  paid={selectOrder.paiement}
         
-                  date_remise={selectOrder?.date_remise}
-                  date_depot={selectOrder?.date_depote}
-                  deliveryHour={selectOrder?.deliveryHour}
+                  date_remise={new Date(selectOrder.date_remise)}
+                  date_depot={new Date(selectOrder.date_depote)}
+                  deliveryHour={selectOrder.deliveryHour}
                  />}
                 </View>
-              {selectOrder?.status === "DELIVERED" && <View style={{paddingHorizontal: 20, marginBottom: Rs(50), flexDirection: "row", alignItems: "center", gap: 20}} >
+              {getOrderStatus(selectOrder?.status) === EDressStatus.DELIVERED && <View style={{paddingHorizontal: 20, marginBottom: Rs(50), flexDirection: "row", alignItems: "center", gap: 20}} >
                
                 <View style={{flex: 1}} >
        
@@ -474,6 +453,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
+  },
+  screenScrollContent: {
+    paddingBottom: Rs(24),
   },
   header: {
     backgroundColor: '#fff',
@@ -498,7 +480,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: "stretch",
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -506,10 +488,16 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   summaryItem: {
+    flex: 1,
     alignItems: 'center',
     // flexDirection: 'row',
     justifyContent: "center",
     gap: 10
+  },
+  summarySeparator: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: "stretch",
+    backgroundColor: "#E5E7EB",
   },
   iconCircle: {
     width: 44,
@@ -531,6 +519,22 @@ const styles = StyleSheet.create({
     marginTop: 3,
     textAlign: "center"
   },
+  tabWrapper: {
+    backgroundColor: "white",
+    paddingTop: Rs(8),
+    paddingBottom: Rs(8),
+  },
+  pinnedTabWrapper: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "white",
+    paddingTop: Rs(8),
+    paddingBottom: Rs(8),
+    zIndex: 50,
+    elevation: 12,
+  },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
@@ -539,12 +543,20 @@ const styles = StyleSheet.create({
     boxShadow: Colors.shadow.card,
     overflow: "hidden",
   },
+  pinnedTabContainer: {
+    marginTop: 0,
+  },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
+  },
+  tabSeparator: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: "stretch",
+    backgroundColor: "#E5E7EB",
   },
   activeTab: {
     borderBottomWidth: 2,
@@ -560,8 +572,8 @@ const styles = StyleSheet.create({
     color: Colors.app.primary,
   },
   content: {
-    flex: 1,
     marginTop: 15,
+    minHeight: SCREEN_H,
   },
   ordersList: {
     paddingHorizontal: 15,
@@ -583,6 +595,8 @@ const styles = StyleSheet.create({
     width: Rs(80),
     height: Rs(80),
     borderRadius: 8,
+    backgroundColor: colors.inputborderColor,
+    
     
   },
   orderDetails: {
@@ -640,7 +654,16 @@ const styles = StyleSheet.create({
   },
   infoSection: {
     flexDirection: 'row',
+    alignItems: "center",
     marginBottom: 20,
+  },
+  infoIconContainer: {
+    width: Rs(42),
+    height: Rs(42),
+    borderRadius: Rs(21),
+    backgroundColor: colors.lightOrange,
+    alignItems: "center",
+    justifyContent: "center",
   },
   infoDetails: {
     marginLeft: 15,

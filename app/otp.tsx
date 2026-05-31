@@ -1,31 +1,29 @@
-import React, { useEffect, useState } from "react";
-import { Alert, StyleSheet, View, AppState, Text, Keyboard } from "react-native";
-import { Formik } from "formik";
-import { supabase } from "@/lib/supabase";
-import Checkbox from 'expo-checkbox';
-
-import ModalCompo from "@/components/ModalCompo";
-import { Link, useRouter } from "expo-router";
-import { useUserStore } from "@/stores/user";
-
-import { OtpInput } from "react-native-otp-entry";
-
-
-import { pwForgotSchema } from "@/constants/formSchemas";
-import { InferType } from "yup";
-import FormWrapper from "@/components/form/FormWrapper";
-import ScreenWrapper from "@/components/ScreenWrapper";
-import { Colors } from "@/constants/Colors";
+import BackButton from "@/components/form/BackButton";
 import CustomButton from "@/components/form/CustomButton";
 import FormBanner from "@/components/form/FormBanner";
-import { SIZES } from "@/util/comon";
-import BackButton from "@/components/form/BackButton";
-import { useMutation } from "@tanstack/react-query";
-import axios from "axios";
-import { baseURL } from "@/util/axios";
+import FormWrapper, { useFormScroll } from "@/components/form/FormWrapper";
+import { Colors } from "@/constants/Colors";
 import useNotif from "@/hooks/useNotification";
+import { supabase } from "@/lib/supabase";
+import { apiClient } from "@/util/axios";
+import { Rs, SIZES } from "@/util/comon";
+import { useMutation } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  AppState,
+  Keyboard,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { OtpInput, type OtpInputRef } from "react-native-otp-entry";
 
-type TypeValues = InferType<typeof pwForgotSchema>;
+const OTP_LENGTH = 5;
+const RESEND_SECONDS = 55;
 
 AppState.addEventListener("change", (state) => {
   if (state === "active") {
@@ -35,148 +33,308 @@ AppState.addEventListener("change", (state) => {
   }
 });
 
-export default function Page () {
-  const [otp, setOtp] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [isValid, setValid] = useState(false);
+const getOtpErrorMessage = (error: unknown) => {
+  if (!isAxiosError(error)) {
+    return "Veuillez réessayer plus tard";
+  }
 
-  const { setUser, setToken, setNotifyToken, setUserId } = useUserStore();
+  const message = error.response?.data?.message ?? error.response?.data?.error;
 
+  if (typeof message === "string" && message.trim()) {
+    return message;
+  }
+
+  if (error.response?.status === 400) {
+    return "Le code saisi est invalide";
+  }
+
+  if (error.response?.status === 404) {
+    return "Aucune demande de réinitialisation trouvée";
+  }
+
+  return "Veuillez vérifier le code saisi";
+};
+
+const ResetOtpInput = ({
+  error,
+  inputRef,
+  touched,
+  onBlur,
+  onChange,
+  onFilled,
+}: {
+  error?: string;
+  inputRef: React.RefObject<OtpInputRef | null>;
+  touched: boolean;
+  onBlur: () => void;
+  onChange: (text: string) => void;
+  onFilled: (text: string) => void;
+}) => {
+  const otpContainerRef = useRef<View>(null);
+  const formScroll = useFormScroll();
+
+  return (
+    <View ref={otpContainerRef} collapsable={false} style={styles.otpCard}>
+      <Text style={styles.otpLabel}>Code de confirmation</Text>
+      <Text style={styles.otpHint}>Entrez le code à {OTP_LENGTH} chiffres reçu par SMS.</Text>
+      <OtpInput
+        ref={inputRef}
+        numberOfDigits={OTP_LENGTH}
+        onTextChange={(text) => {
+          onChange(text.replace(/\D/g, "").slice(0, OTP_LENGTH));
+        }}
+        onFilled={(text) => {
+          onFilled(text.replace(/\D/g, "").slice(0, OTP_LENGTH));
+        }}
+        onFocus={() => {
+          formScroll?.scrollToInput(otpContainerRef);
+        }}
+        onBlur={onBlur}
+        focusColor={Colors.app.primary}
+        focusStickBlinkingDuration={500}
+        secureTextEntry
+        type="numeric"
+        textInputProps={{
+          keyboardType: "number-pad",
+        }}
+        theme={{
+          pinCodeContainerStyle: {
+            backgroundColor: Colors.light.background,
+            borderColor: Colors.app.texteLight,
+            borderRadius: 10,
+            borderWidth: 0.4,
+            height: 58,
+            width: 58,
+          },
+          pinCodeTextStyle: {
+            color: Colors.app.primary,
+          },
+        }}
+      />
+      {touched && error && <Text style={styles.errorText}>{error}</Text>}
+    </View>
+  );
+};
+
+export default function Page() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ phone?: string | string[] }>();
+  const { handleNotification } = useNotif();
+  const otpInputRef = useRef<OtpInputRef>(null);
+  const [otp, setOtp] = useState("");
+  const [isOtpTouched, setIsOtpTouched] = useState(false);
+  const [time, setTime] = useState(RESEND_SECONDS);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-      const { handleNotification } = useNotif()
-  
+  const phone = useMemo(() => {
+    if (Array.isArray(params.phone)) return params.phone[0] ?? "";
+    return params.phone ?? "";
+  }, [params.phone]);
 
-  const [time, setTime] = useState(55);
-useEffect(() => {
+  const otpError = useMemo(() => {
+    if (!otp) return "Entrez le code de confirmation";
+    if (!new RegExp(`^\\d{${OTP_LENGTH}}$`).test(otp)) {
+      return `Le code doit contenir ${OTP_LENGTH} chiffres`;
+    }
+    return "";
+  }, [otp]);
+  const isOtpValid = !otpError;
+
+  useEffect(() => {
+    if (time <= 0) return;
+
     const intervalId = setInterval(() => {
-      setTime((prevTime) => (prevTime > 0 ? prevTime - 1 : 0));
+      setTime((prevTime) => Math.max(0, prevTime - 1));
     }, 1000);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, []);
+  }, [time]);
 
-  const {mutate, isError, isPending} = useMutation({
-    mutationFn: handleSubmit,
- 
-   })
+  const verifyOtpMutation = useMutation({
+    mutationFn: async () => {
+      Keyboard.dismiss();
+      const response = await apiClient.post<{ message: string }>("/tokloMen/verify-reset-code", {
+        phone,
+        code: otp,
+      });
+      return response.data;
+    },
+    onMutate: () => {
+      setErrorMessage("");
+      setSuccessMessage("");
+    },
+    onSuccess: () => {
+      handleNotification("success", "Réinitialisation", "Code confirmé");
+      router.push({
+        pathname: "/reset-password",
+        params: { phone, code: otp },
+      });
+    },
+    onError: (error) => {
+      const message = getOtpErrorMessage(error);
+      setErrorMessage(message);
+      handleNotification("error", "Erreur", message);
+    },
+  });
 
+  const resendOtpMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.post<{ message: string }>("/tokloMen/forgot-password", { phone });
+      return response.data;
+    },
+    onMutate: () => {
+      setErrorMessage("");
+      setSuccessMessage("");
+    },
+    onSuccess: () => {
+      setOtp("");
+      setIsOtpTouched(false);
+      setTime(RESEND_SECONDS);
+      otpInputRef.current?.clear();
+      const message = "Un nouveau code a été envoyé";
+      setSuccessMessage(message);
+      handleNotification("success", "Réinitialisation", message);
+    },
+    onError: (error) => {
+      const message = getOtpErrorMessage(error);
+      setErrorMessage(message);
+      handleNotification("error", "Erreur", message);
+    },
+  });
 
-async function handleSubmit (){
-  Keyboard.dismiss();
-     
-     try {
-       const res = await axios.post(baseURL+'/tokloMen/forgot-password', otp);
-       
-      
- 
-       if (res?.data) {
-         handleNotification("success", "Réinitialisation ", "Le code de réinitialisation est envoyé ")
-         
-         router.push("/otp");
-         
-       }
- 
-     } catch (error) {
-      const status = error?.response?.status;
-      if (status === 404) {
-        handleNotification("error", "Erreur", "Ce utilisateur n'existe pas")
-      }else{
-        handleNotification("error", "Erreur", "Veuillez vérifier vos informations")
-      }
-       
-
-     }
- 
- }
-
- 
+  const canSubmit =
+    Boolean(phone) &&
+    isOtpValid &&
+    !verifyOtpMutation.isPending &&
+    !resendOtpMutation.isPending;
+  const canResend = Boolean(phone) && time === 0 && !resendOtpMutation.isPending;
 
   return (
-      <FormWrapper>
-        <BackButton backAction={() => router.back()} />
-        <FormBanner
-          title="Rénitialiser le mot de passe"
-          subtitle="Entrez le code de confirmation envoyé au ....90"
+    <FormWrapper>
+      <BackButton backAction={() => router.back()} />
+      <FormBanner
+        title="Réinitialiser le mot de passe"
+        subtitle={phone ? `Entrez le code reçu au ${phone}` : "Entrez le code de confirmation reçu par SMS"}
+      />
+
+      <View style={styles.content}>
+        {!phone && (
+          <Text style={styles.errorText}>
+            Numéro introuvable. Retournez à l&apos;écran précédent.
+          </Text>
+        )}
+        {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+        {successMessage && <Text style={styles.successText}>{successMessage}</Text>}
+
+        <ResetOtpInput
+          error={otpError}
+          inputRef={otpInputRef}
+          touched={isOtpTouched}
+          onChange={(text) => {
+            setOtp(text);
+          }}
+          onBlur={() => {
+            setIsOtpTouched(true);
+          }}
+          onFilled={(text) => {
+            setOtp(text);
+            setIsOtpTouched(true);
+          }}
         />
 
-       
-            <View style={{ gap: 10 }}>
-              
-              <OtpInput 
-              numberOfDigits={4}
-              onTextChange={(text) => console.log(text)} 
-              focusColor={Colors.app.primary}
-              focusStickBlinkingDuration={500}
-              onFilled={(text) => {
-                setOtp(text)
-                setValid(true)
-              }}
-              theme={{
-                pinCodeContainerStyle: {
-                  backgroundColor:  Colors.light.background,
-                  borderColor:  Colors.app.texteLight,
-                  borderWidth: .4,
-                  borderRadius: 10,
-                  height: 58,
-                  width: 58,
-                },
-                pinCodeTextStyle: {
-                  color:  Colors.app.primary,
-                }
-              }}
-              />
-          <View style={styles.codeContainer}>
-            <Text style={[styles.code]}>Renvoyer le code dans</Text>
-            <Text style={styles.time}>{`  ${time}  `}</Text>
-            <Text style={[styles.code]}>s</Text>
-          </View>
-              
+        <View style={styles.codeContainer}>
+          {time > 0 ? (
+            <>
+              <Text style={styles.code}>Renvoyer le code dans</Text>
+              <Text style={styles.time}>{` ${time} `}</Text>
+              <Text style={styles.code}>s</Text>
+            </>
+          ) : (
+            <TouchableOpacity
+              disabled={!canResend}
+              onPress={() => resendOtpMutation.mutate()}
+            >
+              {resendOtpMutation.isPending ? (
+                <ActivityIndicator size="small" color={Colors.app.primary} />
+              ) : (
+                <Text style={[styles.resendText, !canResend && styles.resendTextDisabled]}>
+                  Renvoyer le code
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
 
-              <CustomButton
-               label="Soumettre"
-               disabled={isValid}
-               loading={isPending}
-               action={() => handleSubmit()}
-              />
-            </View>
-        
-      </FormWrapper>
-    
+        <CustomButton
+          label="Soumettre"
+          disabled={canSubmit}
+          pressDisabled={!canSubmit}
+          loading={verifyOtpMutation.isPending}
+          action={() => {
+            setIsOtpTouched(true);
+            setErrorMessage("");
+            setSuccessMessage("");
+            if (!canSubmit) return;
+            verifyOtpMutation.mutate();
+          }}
+        />
+      </View>
+    </FormWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginTop: 40,
-    padding: 12,
+  content: {
+    gap: Rs(14),
   },
-  verticallySpaced: {
-    paddingTop: 4,
-    paddingBottom: 4,
-    alignSelf: "stretch",
+  otpCard: {
+    gap: Rs(8),
   },
-  mt20: {
-    marginTop: 20,
+  otpLabel: {
+    color: Colors.app.texteLight,
+    fontSize: SIZES.sm,
+    fontWeight: "bold",
+  },
+  otpHint: {
+    color: Colors.app.texteLight,
+    fontSize: SIZES.xs,
+    marginBottom: Rs(4),
+  },
+  errorText: {
+    color: Colors.app.error,
+    fontSize: SIZES.xs,
+    marginTop: 6,
+  },
+  successText: {
+    color: Colors.app.success,
+    fontSize: SIZES.xs,
+    lineHeight: Rs(18),
   },
   codeContainer: {
-    flexDirection: "row",
     alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
     marginVertical: 24,
-    justifyContent: "center"
   },
   code: {
-    fontSize: 18,
-    fontFamily: "medium",
     color: Colors.app.texteLight,
-    textAlign: "center"
+    fontSize: 18,
+    textAlign: "center",
   },
   time: {
-    fontFamily: "medium",
-    fontSize: 18,
     color: Colors.app.primary,
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  resendText: {
+    color: Colors.app.primary,
+    fontSize: SIZES.sm,
+    fontWeight: "700",
+  },
+  resendTextDisabled: {
+    color: Colors.app.texteLight,
   },
 });

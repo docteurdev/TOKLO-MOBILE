@@ -1,9 +1,8 @@
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
-import React from 'react'
-import Animated from 'react-native-reanimated'
 import { Colors } from '@/constants/Colors'
 import { Rs, SIZES } from '@/util/comon'
-import { ActivityIndicator } from 'react-native'
+import React from 'react'
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text } from 'react-native'
+import Animated from 'react-native-reanimated'
 
 type Props = {
  label: string
@@ -40,8 +39,8 @@ const styles = StyleSheet.create({
    boxShadow: Colors.shadow.card,
    paddingHorizontal: Rs(20),
    position: "relative",
-   overflow: "hidden"
-  //  width: "100%"
+   overflow: "hidden",
+   width: "100%"
  },
  label:{
    color: '#ffffff',

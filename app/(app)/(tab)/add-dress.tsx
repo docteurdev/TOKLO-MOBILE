@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Image,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -30,7 +32,7 @@ import FileSheet from "@/components/takeOrder/FileSheet";
 import { Colors } from "@/constants/Colors";
 import useDateTimePicker from "@/hooks/useDateTimePicker";
 import useUpload from "@/hooks/useUpload";
-import { IClient, IDress, TImage } from "@/interfaces/type";
+import { IClient, IDress, TDressPart, TImage } from "@/interfaces/type";
 import { Rs, SCREEN_H, SIZES } from "@/util/comon";
 
 import ActiveToklomanCompo from "@/components/ActiveToklomanCompo";
@@ -48,18 +50,32 @@ import useToklomantSubscribeStatus from "@/hooks/mutations/useToklomantSubscribe
 import useInvoice from "@/hooks/useInvoice";
 import { useUserStore } from "@/stores/user";
 import { defaultRemindTime } from "@/utils";
+import {
+  createMeasurementInputKey,
+  getDressMeasurementGroups,
+  getDressStructureLabel,
+  getMeasurementName,
+  getMeasurementUrl,
+  hasConfiguredMeasurements,
+} from "@/utils/dressMeasurements";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { useRouter } from "expo-router";
 import Animated, { BounceIn, BounceOut, FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
 
 const AnimatedTouchableOpacity =
   Animated.createAnimatedComponent(TouchableOpacity);
 
-type Props = {};
+type Props = object;
 
-interface CinetPayRef {
-  checkout: (callback: () => void) => void;
-}
+type MeasureSubmitValue = {
+  value: string;
+  url: string;
+};
+
+const measurePartSubmitKeys = {
+  HAUT: "haut",
+  BAS: "bas",
+  COMPLET: "complet",
+} as const;
 
 type PatternImageCompoType = {
   label: string;
@@ -158,7 +174,7 @@ function DatePickerCompo({
         <Text numberOfLines={1} style={styles.datePickerText}>
           {dateLabel}
         </Text>
-        <ChevronDownIcon fill={Colors.app.texteLight} size={18} />
+        <ChevronDownIcon fill={Colors.app.primary} size={18} />
       </TouchableOpacity>
 
       <TouchableOpacity onPress={onTimePress} style={styles.datePickerButton}>
@@ -166,7 +182,7 @@ function DatePickerCompo({
         <Text numberOfLines={1} style={styles.datePickerText}>
           {timeLabel}
         </Text>
-        <ChevronDownIcon fill={Colors.app.texteLight} size={18} />
+        <ChevronDownIcon fill={Colors.app.primary} size={18} />
       </TouchableOpacity>
     </View>
   );
@@ -177,8 +193,6 @@ const Page = (props: Props) => {
   const [isDressTypeShowModal, setisDressTypeShowModal] = useState(false);
   const [isOpeningCamera, setIsOpeningCamera] = useState(false);
 
-  const router = useRouter();
-
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
   const {user, notify_token} = useUserStore()
@@ -187,16 +201,13 @@ const Page = (props: Props) => {
     date,
     showDatepicker,
     showTimepicker,
-    formattedDateTime,
     selectedHour,
     selectedMinute,
     DatePicker,
   } = useDateTimePicker();
 
-  const { pickImage, handleRemoveImg, singleImage } = useUpload(true);
+  const { pickImage } = useUpload(true);
   const {handleInvoice} = useInvoice()
-
-  const cinetpayRef = useRef<CinetPayRef>(null);
 
   const [fabricphoto, setFabricPhoto] = useState<TImage | null>(null);
   const [modelPhoto, setModelPhoto] = useState<TImage | null>(null);
@@ -209,10 +220,13 @@ const Page = (props: Props) => {
   const [selectedDress, setSelectedDress] = useState<IDress | null>(null);
 
   const scrollViewRef = useRef<ScrollView>(null);
-
-  const [name, setName] = useState('');
+  const measureScrollViewRef = useRef<ScrollView>(null);
+  const activeMeasurementKeyRef = useRef<string | null>(null);
 
   const [inputValues, setInputValues] = useState<{ [key: string]: string }>({});
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [activeMeasurementPart, setActiveMeasurementPart] =
+    useState<TDressPart | null>(null);
 
   const [quantity, setquantity] = useState<string>("1");
   const [amount, setamount] = useState<string>("");
@@ -239,6 +253,137 @@ const Page = (props: Props) => {
     };
   }, [amount, quantity, paiement, selectedDress?.nom, selectedUser?.name, selectedUser?.lastname, selectedUser?.telephone, user?.store_name, user?.store_slogan, user?.phone]);
 
+  const selectedDressStructureLabel = useMemo(() => {
+    return selectedDress ? getDressStructureLabel(selectedDress) : "";
+  }, [selectedDress]);
+
+  const measurementGroups = useMemo(() => {
+    return getDressMeasurementGroups(selectedDress);
+  }, [selectedDress]);
+
+  const hasMeasurements = useMemo(() => {
+    return hasConfiguredMeasurements(measurementGroups);
+  }, [measurementGroups]);
+
+  const visibleMeasurementGroups = useMemo(() => {
+    return measurementGroups.filter((group) =>
+      group.categories.some((categoryBlock) => categoryBlock.measurements.length > 0),
+    );
+  }, [measurementGroups]);
+
+  const activeMeasurementGroup = useMemo(() => {
+    return (
+      visibleMeasurementGroups.find((group) => group.part === activeMeasurementPart) ??
+      visibleMeasurementGroups[0] ??
+      measurementGroups[0]
+    );
+  }, [activeMeasurementPart, measurementGroups, visibleMeasurementGroups]);
+
+  const activeMeasurementCount = useMemo(() => {
+    return (
+      activeMeasurementGroup?.categories.reduce(
+        (total, categoryBlock) => total + categoryBlock.measurements.length,
+        0,
+      ) ?? 0
+    );
+  }, [activeMeasurementGroup]);
+
+  const measurementInputOffsets = useMemo(() => {
+    const offsets: { [key: string]: number } = {};
+    let currentOffset = Rs(70);
+
+    if (visibleMeasurementGroups.length > 1) {
+      currentOffset += Rs(52);
+    }
+
+    if (!activeMeasurementGroup) {
+      return offsets;
+    }
+
+    [activeMeasurementGroup].forEach((group) => {
+      currentOffset += Rs(40);
+
+      group.categories.forEach((categoryBlock) => {
+        if (categoryBlock.measurements.length === 0) {
+          return;
+        }
+
+        const showCategoryTitle =
+          selectedDress?.type === "COMPOSE" || group.categories.length > 1;
+
+        if (showCategoryTitle) {
+          currentOffset += Rs(28);
+        }
+
+        categoryBlock.measurements.forEach((measurement, index) => {
+          const inputKey = createMeasurementInputKey(
+            group.part,
+            categoryBlock.category,
+            measurement,
+            index,
+          );
+          offsets[inputKey] = currentOffset + Math.floor(index / 2) * Rs(58);
+        });
+
+        currentOffset += Math.ceil(categoryBlock.measurements.length / 2) * Rs(58);
+      });
+    });
+
+    return offsets;
+  }, [activeMeasurementGroup, selectedDress?.type, visibleMeasurementGroups.length]);
+
+  const measureScrollContentStyle = useMemo(
+    () => [
+      styles.measureStepScrollContent,
+      { paddingBottom: keyboardHeight + Rs(260) },
+    ],
+    [keyboardHeight],
+  );
+
+  const scrollToMeasurement = useCallback(
+    (measurementKey: string, animated = true) => {
+      const y = Math.max(0, (measurementInputOffsets[measurementKey] ?? 0) - Rs(24));
+
+      measureScrollViewRef.current?.scrollTo({ y, animated });
+    },
+    [measurementInputOffsets],
+  );
+
+  const measureValuesForSubmit = useMemo(() => {
+    const values: Record<string, Record<string, MeasureSubmitValue>> = {};
+
+    measurementGroups.forEach((group) => {
+      const partKey = measurePartSubmitKeys[group.part];
+
+      group.categories.forEach((categoryBlock) => {
+        categoryBlock.measurements.forEach((measurement, index) => {
+          const inputKey = createMeasurementInputKey(
+            group.part,
+            categoryBlock.category,
+            measurement,
+            index,
+          );
+          const value = inputValues[inputKey];
+
+          if (value) {
+            const measurementName = getMeasurementName(measurement);
+
+            if (!values[partKey]) {
+              values[partKey] = {};
+            }
+
+            values[partKey][measurementName] = {
+              value,
+              url: getMeasurementUrl(measurement),
+            };
+          }
+        });
+      });
+    });
+
+    return values;
+  }, [inputValues, measurementGroups]);
+
   const subscribeBottomSheet = useRef<BottomSheetModal>(null);
   const claimeActiveAccountBottomSheet = useRef<BottomSheetModal>(null);
 
@@ -258,6 +403,65 @@ const Page = (props: Props) => {
       checkSubscribeStatus();
     }
   }, [checkSubscribeStatus, user?.id]);
+
+  useEffect(() => {
+    const nextActivePart =
+      visibleMeasurementGroups[0]?.part ?? measurementGroups[0]?.part ?? null;
+
+    setActiveMeasurementPart((currentPart) => {
+      if (
+        currentPart &&
+        measurementGroups.some((group) => group.part === currentPart)
+      ) {
+        return currentPart;
+      }
+
+      return nextActivePart;
+    });
+  }, [measurementGroups, visibleMeasurementGroups]);
+
+  useEffect(() => {
+    const keyboardShowEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const keyboardHideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSubscription = Keyboard.addListener(keyboardShowEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+
+      if (activeMeasurementKeyRef.current) {
+        setTimeout(() => {
+          if (activeMeasurementKeyRef.current) {
+            scrollToMeasurement(activeMeasurementKeyRef.current);
+          }
+        }, 180);
+      }
+    });
+    const hideSubscription = Keyboard.addListener(keyboardHideEvent, () => {
+      activeMeasurementKeyRef.current = null;
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [scrollToMeasurement]);
+
+  const handleMeasurementFocus = useCallback(
+    (measurementKey: string) => {
+      activeMeasurementKeyRef.current = measurementKey;
+
+      setTimeout(() => {
+        scrollToMeasurement(measurementKey);
+      }, 120);
+
+      setTimeout(() => {
+        scrollToMeasurement(measurementKey);
+      }, 360);
+    },
+    [scrollToMeasurement],
+  );
 
   const handleInputChange = useCallback((typemesurename: string, value: string) => {
     setInputValues((prevValues) => ({
@@ -282,33 +486,30 @@ const Page = (props: Props) => {
       Keyboard.dismiss();
   
       const formData = new FormData();
-      // Append text fields
-      formData.append("quantite", quantity); // Ensure quantity is a valid string
-      formData.append("measure", JSON.stringify(inputValues)); // Convert Measure object to JSON string
-      formData.append("date_depote", new Date().toLocaleDateString('fr-FR')) // Use ISO date format (YYYY-MM-DD)
-      formData.append(
-        "date_remise",
-        date?.toLocaleDateString('fr-FR') || ""
-      ); // Replace with actual value or handle empty case
-      formData.append("deliveryHour", `${selectedHour}: ${selectedMinute}`); 
-      formData.append("amount", amount); // Ensure amount is a valid string
-      formData.append("paiement", paiement); // Ensure paiement is a valid string
-      formData.append("description", `${selectedDress?.nom}, ${selectedDress?.genre}`); // Replace with actual value
+
+      formData.append("quantite", quantity); 
+      formData.append("measure", JSON.stringify(measureValuesForSubmit)); 
+      formData.append("date_depote", new Date().toLocaleDateString('fr-FR')) 
+      formData.append("date_remise", date?.toLocaleDateString('fr-FR') || "" );
+      formData.append("deliveryHour", `${selectedHour}:${selectedMinute}`);
+      formData.append("amount", amount); 
+      formData.append("paiement", paiement); 
+      formData.append("description", `${selectedDress?.nom}, ${selectedDress?.genre}`); 
   
       // Calculate solde
       const solde = (
         Number(amount) * Number(quantity) -
         Number(paiement)
       ).toString();
-      formData.append("solde_cal", solde); // Append calculated solde
+      formData.append("solde_cal", solde); 
 
   
       // Append required fields
-      if(user?.id){formData.append("toklo_menid", user?.id)};
+      if(user?.id){formData.append("toklo_menid", user.id.toString())};
 
       formData.append("status", "ONGOING");
        // Ensure this is a valid number (converted to string)
-      formData.append("client_id", selectedUser?.id); // Ensure this is a valid number (converted to string)
+      formData.append("client_id", selectedUser?.id?.toString() ?? ""); // Ensure this is a valid number (converted to string)
       formData.append("client_name", selectedUser?.name || ""); // Ensure this is a valid number (converted to string)
       formData.append("client_lastname", selectedUser?.lastname || ""); // Ensure this is a valid number (converted to string)
       formData.append("client_phone", selectedUser?.telephone || ""); // Ensure this is a valid number (converted to string)
@@ -331,7 +532,7 @@ const Page = (props: Props) => {
           uri: fabricphoto.uri,
           name: "fabric.png", // Ensure the name is unique
           type: "image/png", // Ensure the type matches the file
-        });
+        } as unknown as Blob);
       }
   
       if (modelPhoto?.uri) {
@@ -339,7 +540,7 @@ const Page = (props: Props) => {
           uri: modelPhoto.uri,
           name: "model.png", // Ensure the name is unique
           type: "image/png", // Ensure the type matches the file
-        });
+        } as unknown as Blob);
       }
   
       mutate(formData);
@@ -383,6 +584,7 @@ const Page = (props: Props) => {
   function handleChosenDress(dress: IDress) {
     console.log(dress);
     setSelectedDress(dress);
+    setInputValues({});
     setisDressTypeShowModal(false);
   }
 
@@ -428,10 +630,12 @@ const Page = (props: Props) => {
 
         <ScrollView
         ref={scrollViewRef}
-          scrollEnabled={selectedUser && date && selectedDress ? true : false}
+          nestedScrollEnabled
+          automaticallyAdjustKeyboardInsets
+          scrollEnabled={Boolean(selectedUser && date && selectedDress && keyboardHeight === 0)}
           showsVerticalScrollIndicator={false}
-          snapToInterval={SCREEN_H} // Optional: for snapping to each screen
-          decelerationRate="fast" // Optional: for smoother snapping
+          snapToInterval={keyboardHeight > 0 ? undefined : SCREEN_H}
+          decelerationRate="fast" 
           keyboardShouldPersistTaps="handled"
 
           style={{ flex: 1 }}
@@ -439,35 +643,7 @@ const Page = (props: Props) => {
           <View style={[styles.screen, ]}>
             {/* First screen content */}
 
-            <LastAppointment 
-              appointment={{
-                id: 123,
-                quantite: "2 costumes",
-                tissus: "Super 120 Bleu Marine",
-                status: "IN_PROGRESS",
-                measure: {
-                  taille: "42",
-                  epaules: "48cm",
-                  manches: "64cm",
-                  poitrine: "102cm"
-                },
-                date_depote: "15/03/2025",
-                date_remise: "25/03/2025",
-                deliveryHour: "14:30",
-                amount: "125000",
-                paiement: "AVANCE",
-                description: "Costume de mariage avec doublure personnalisée et boutons dorés",
-                photos: "costume_photo1.jpg",
-                solde_cal: "75000",
-                client_name: "Konan",
-                client_phone: "+22507893456",
-                client_lastname: "Kouamé",
-                toklo_menid: 5,
-                client_id: 42,
-                updatedat: "2025-03-10T10:15:30.123Z"
-                }} 
-              onPress={() => {}}
-            />
+            <LastAppointment />
 
             <View style={{paddingHorizontal: Rs(20)}}>
             
@@ -485,7 +661,7 @@ const Page = (props: Props) => {
               open={handleSelectDressType}
               placeholder={
                 selectedDress
-                  ? `${selectedDress.nom} (${selectedDress.genre})`
+                  ? `${selectedDress.nom} (${selectedDressStructureLabel})`
                   : "Sélectionnez le modèle "
               }
               icon={<InboxIcon fill={Colors.app.primary} size={27} />}
@@ -519,9 +695,9 @@ const Page = (props: Props) => {
                 }}
               />
             </View>
-            {/* <ThemedText style={{ fontSize: SIZES.sm, fontWeight: "bold" }}>
-              Date de livraision
-            </ThemedText> */}
+            <ThemedText style={{ fontSize: SIZES.sm, fontWeight: "bold" }}>
+              Date et heure de livraision
+            </ThemedText>
             {/* Date picker */}
             <DatePickerCompo
               dateLabel={
@@ -551,7 +727,9 @@ const Page = (props: Props) => {
               <CustomButton
                 label="Continuez"
                 action={() => {
-                  selectedUser && date && selectedDress ? present() : {};
+                  if (selectedUser && date && selectedDress) {
+                    present();
+                  }
                   // router.push('/DressMeasure')
                 }}
                 disabled={selectedUser && date && selectedHour && selectedMinute && selectedDress ? true : false}
@@ -564,16 +742,20 @@ const Page = (props: Props) => {
 
           <View style={[styles.screen, {  padding: Rs(16) }]}>
 
-      <View
-        style={{
-          width: "100%",
-          height: "100%",
-          backgroundColor: "#ffffff",
-        }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? Rs(24) : 0}
+        style={styles.measureKeyboardAvoider}
       >
         <ScrollView
+          ref={measureScrollViewRef}
+          nestedScrollEnabled
+          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          contentContainerStyle={measureScrollContentStyle}
+          scrollIndicatorInsets={{ bottom: Rs(140) }}
         >
           <ThemedText
             style={{
@@ -595,12 +777,9 @@ const Page = (props: Props) => {
             }}
           >
             {selectedDress?.genre}
+            {selectedDressStructureLabel ? ` - ${selectedDressStructureLabel}` : ""}
           </ThemedText>
-          <Image
-            source={require('@/assets/images/measure/double-arrow.png')}
-            resizeMode="cover"
-            style={styles.doubleArrow}
-          />
+          
           <View
             style={{
               flex: 1,
@@ -638,28 +817,110 @@ const Page = (props: Props) => {
             </View>
 
             {/* show current measure */}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-around",
-                flexWrap: "wrap",
-              }}
-            >
-              {/* {dressMeasures?.map((item, i) => ( */}
-              {selectedDress?.categoriemesure.map((item, i) => {
-                return (
-                  <ModifMeasure
-                    key={i.toString()}
-                    image={""}
-                    title={item?.typemesure?.nom}
-                    value={inputValues[item.typemesure?.nom] || ""}
-                    onChangeValue={handleInputChange}
-                    measurementKey={item.typemesure?.nom}
-                  />
-                );
-              })}
+            <View style={styles.measureSectionsContainer}>
+              {!hasMeasurements && (
+                <Text style={styles.measureEmptyText}>
+                  Aucune mesure configurée
+                </Text>
+              )}
 
-              {/* ))} */}
+              {hasMeasurements && visibleMeasurementGroups.length > 1 && (
+                <View style={styles.measureTabs}>
+                  {visibleMeasurementGroups.map((group) => {
+                    const isActive = group.part === activeMeasurementGroup?.part;
+
+                    return (
+                      <TouchableOpacity
+                        key={group.part}
+                        activeOpacity={0.85}
+                        onPress={() => {
+                          Keyboard.dismiss();
+                          measureScrollViewRef.current?.scrollTo({ y: 0, animated: true });
+                          setActiveMeasurementPart(group.part);
+                        }}
+                        style={[
+                          styles.measureTab,
+                          isActive && styles.measureTabActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.measureTabText,
+                            isActive && styles.measureTabTextActive,
+                          ]}
+                        >
+                          {group.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+
+              {hasMeasurements && activeMeasurementGroup && (
+                <View key={activeMeasurementGroup.part} style={styles.measureSection}>
+                  {visibleMeasurementGroups.length <= 1 && (
+                    <Text style={styles.measureSectionTitle}>
+                      {activeMeasurementGroup.label}
+                    </Text>
+                  )}
+
+                  {activeMeasurementCount === 0 ? (
+                    <Text style={styles.measureEmptyText}>
+                      Aucune mesure pour{" "}
+                      {activeMeasurementGroup.part === "COMPLET"
+                        ? "le vêtement complet"
+                        : `le ${activeMeasurementGroup.label.toLowerCase()}`}
+                    </Text>
+                  ) : (
+                    activeMeasurementGroup.categories.map((categoryBlock) => {
+                      if (categoryBlock.measurements.length === 0) {
+                        return null;
+                      }
+
+                      const showCategoryTitle =
+                        selectedDress?.type === "COMPOSE" ||
+                        activeMeasurementGroup.categories.length > 1;
+
+                      return (
+                        <View
+                          key={`${activeMeasurementGroup.part}-${categoryBlock.category.id}`}
+                          style={styles.measureCategory}
+                        >
+                          {showCategoryTitle && (
+                            <Text style={styles.measureCategoryTitle}>
+                              {categoryBlock.category.nom}
+                            </Text>
+                          )}
+
+                          <View style={styles.measureGrid}>
+                            {categoryBlock.measurements.map((item, i) => {
+                              const measurementKey = createMeasurementInputKey(
+                                activeMeasurementGroup.part,
+                                categoryBlock.category,
+                                item,
+                                i,
+                              );
+
+                              return (
+                                <ModifMeasure
+                                  key={measurementKey}
+                                  image={getMeasurementUrl(item)}
+                                  title={getMeasurementName(item)}
+                                  value={inputValues[measurementKey] || ""}
+                                  onChangeValue={handleInputChange}
+                                  measurementKey={measurementKey}
+                                  onFocus={() => handleMeasurementFocus(measurementKey)}
+                                />
+                              );
+                            })}
+                          </View>
+                        </View>
+                      );
+                    })
+                  )}
+                </View>
+              )}
             </View>
             {/* compta */}
 
@@ -672,7 +933,7 @@ const Page = (props: Props) => {
             </View>
           </View>
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
 
 
           </View>
@@ -762,7 +1023,7 @@ const Page = (props: Props) => {
 
                   <View style={{ marginHorizontal: 20, marginVertical: 6 }}>
                     <CustomButton
-                      label="Continuer"
+                      label="Enregister"
                       action={() => quantity && amount ? handleSubmit() : null}
                       loading={isPending}
                       disabled={quantity || amount? true : false}
@@ -796,11 +1057,17 @@ const Page = (props: Props) => {
                 action={async () => {
                   bottomSheetModalRef?.current?.dismiss();
                   const selectedImage = await pickImage();
-                  if (selectedImage) {
+                  if (selectedImage && !Array.isArray(selectedImage)) {
+                    const nextImage: TImage = {
+                      uri: selectedImage.uri,
+                      fileName: selectedImage.fileName ?? "image.png",
+                      mineType: selectedImage.mineType ?? "image/png",
+                    };
+
                     if (selectePicType === "FABRIC") {
-                      setFabricPhoto(selectedImage);
+                      setFabricPhoto(nextImage);
                     } else {
-                      setModelPhoto(selectedImage);
+                      setModelPhoto(nextImage);
                     }
                   }
                 }}
@@ -877,7 +1144,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.app.texteLight,
+    borderColor: Colors.app.disabled,
     backgroundColor: "white",
     borderRadius: 6,
     paddingHorizontal: 10,
@@ -943,5 +1210,78 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginTop: Rs(-8),
     marginBottom: Rs(8),
-  }
+  },
+  measureStepScrollContent: {
+    flexGrow: 1,
+    paddingBottom: Rs(220),
+  },
+  measureKeyboardAvoider: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#ffffff",
+  },
+  measureSectionsContainer: {
+    paddingHorizontal: Rs(12),
+    paddingVertical: Rs(8),
+    gap: Rs(14),
+  },
+  measureTabs: {
+    flexDirection: "row",
+    gap: Rs(8),
+    backgroundColor: Colors.app.secondary,
+    borderRadius: 8,
+    padding: Rs(4),
+  },
+  measureTab: {
+    flex: 1,
+    height: Rs(38),
+    borderRadius: 6,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  measureTabActive: {
+    backgroundColor: Colors.app.primary,
+  },
+  measureTabText: {
+    fontSize: SIZES.sm - 1,
+    fontWeight: "600",
+    color: Colors.app.texteLight,
+  },
+  measureTabTextActive: {
+    color: "white",
+  },
+  measureSection: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.app.disabled,
+    paddingBottom: Rs(12),
+  },
+  measureSectionTitle: {
+    fontSize: SIZES.sm,
+    fontWeight: "700",
+    color: Colors.app.texte,
+    marginBottom: Rs(8),
+  },
+  measureCategory: {
+    marginTop: Rs(4),
+  },
+  measureCategoryTitle: {
+    fontSize: SIZES.xs,
+    fontWeight: "600",
+    color: Colors.app.primary,
+    marginLeft: Rs(4),
+    marginBottom: Rs(4),
+  },
+  measureGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    rowGap: Rs(8),
+  },
+  measureEmptyText: {
+    fontSize: SIZES.xs,
+    color: Colors.app.texteLight,
+    paddingVertical: Rs(8),
+    textAlign: "center",
+  },
 });

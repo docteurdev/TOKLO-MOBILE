@@ -1,43 +1,92 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  ScrollView, 
-  Switch, 
-  TouchableOpacity, 
-  Animated, 
-  Dimensions,
-  Platform
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import BackButton from '@/components/form/BackButton';
-import { useRouter } from 'expo-router';
-import { Rs, SIZES } from '@/util/comon';
-import { Colors } from '@/constants/Colors';
+import CustomButton from '@/components/form/CustomButton';
 import { SwitchCompo } from '@/components/SwitchCompo';
-import { QueryKeys } from '@/interfaces/queries-key';
-import { useQuery } from '@tanstack/react-query';
-import { IUser, Toklomen } from '@/interfaces/user';
-import { useUserStore } from '@/stores/user';
-import axios from 'axios';
-import { baseURL } from '@/util/axios';
+import { Colors } from '@/constants/Colors';
 import useTokloman from '@/hooks/mutations/useTokloman';
-import { ActivityIndicator } from 'react-native';
-import { defaultRemindTime } from '@/utils';
-import BlowingBtn from '@/components/form/BlowingBtn';
+import { QueryKeys } from '@/interfaces/queries-key';
+import { Toklomen } from '@/interfaces/user';
+import { useUserStore } from '@/stores/user';
+import { baseURL } from '@/util/axios';
+import { Rs, SIZES } from '@/util/comon';
+import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+type TimeSlot = 'morning' | 'afternoon' | 'evening';
+
+const DEFAULT_NOTIFICATION_TIMES: Record<TimeSlot, string> = {
+  morning: "08:00",
+  afternoon: "14:00",
+  evening: "19:00",
+};
+
+const normalizeTime = (value?: string | null) => {
+  if (!value) return "";
+
+  const parts = value.replace(/[^\d]/g, " ").trim().split(/\s+/).map(Number);
+
+  if (parts.length < 2) return "";
+
+  const [hours, minutes] = parts;
+
+  if (
+    Number.isNaN(hours) ||
+    Number.isNaN(minutes) ||
+    hours < 0 ||
+    hours > 23 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return "";
+  }
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+};
+
+const timeStringToDate = (value?: string | null) => {
+  const date = new Date();
+  const normalized = normalizeTime(value) || "08:00";
+  const [hours, minutes] = normalized.split(":").map(Number);
+
+  date.setHours(hours);
+  date.setMinutes(minutes);
+  date.setSeconds(0);
+  date.setMilliseconds(0);
+
+  return date;
+};
+
+const dateToTimeString = (date: Date) => {
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+};
+
+const resolveNotificationTime = (
+  preferred?: string | null,
+  fallback?: string | null,
+) => normalizeTime(preferred) || normalizeTime(fallback);
 
 const Page = () => {
   // Animation References
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
-  const { data, isLoading, error, refetch } = useQuery<Toklomen, Error>({
+  const { data } = useQuery<Toklomen, Error>({
     queryKey: QueryKeys.tokloman.byTokloman,
     queryFn: async (): Promise<Toklomen> => {  // Explicit return type
       try {
@@ -68,10 +117,7 @@ const Page = () => {
   const [afternoonTime, setAfternoonTime] = useState("");
   const [eveningTme, setEveningTme] = useState("");
 
-  // États pour l'heure personnalisée
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedTime, setSelectedTime] = useState(new Date());
-  const [customTimeEnabled, setCustomTimeEnabled] = useState(false);
+  const [activeTimePicker, setActiveTimePicker] = useState<TimeSlot | null>(null);
 
   const router = useRouter();
 
@@ -85,14 +131,18 @@ const Page = () => {
     setTwoDaysBefore(data?.notif_remind_two ? true : false);
     setOneDayBefore(data?.notif_remind_one ? true : false);
   
-    setMorningNotif(data?.notif_monrning ? true : false);
-    setAfternoonNotif(data?.notif_midday ? true : false);
-    setEveningNotif(data?.notif_evening ? true : false);
+    const resolvedMorningTime = resolveNotificationTime(data?.notif_time_one, data?.notif_monrning);
+    const resolvedAfternoonTime = resolveNotificationTime(data?.notif_time_two, data?.notif_midday);
+    const resolvedEveningTime = resolveNotificationTime(data?.notif_time_three, data?.notif_evening);
+
+    setMorningNotif(Boolean(resolvedMorningTime));
+    setAfternoonNotif(Boolean(resolvedAfternoonTime));
+    setEveningNotif(Boolean(resolvedEveningTime));
     
     // coming time
-    setMorningTime(data?.notif_monrning ? data?.notif_monrning : "");
-    setAfternoonTime(data?.notif_midday ? data?.notif_midday : "");
-    setEveningTme(data?.notif_evening ? data?.notif_evening : "");
+    setMorningTime(resolvedMorningTime);
+    setAfternoonTime(resolvedAfternoonTime);
+    setEveningTme(resolvedEveningTime);
   }, [data]);
 
   // Effect pour l'animation d'entrée
@@ -109,14 +159,57 @@ const Page = () => {
         useNativeDriver: true
       })
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
+
+  const getTimeValue = (slot: TimeSlot) => {
+    if (slot === "morning") return morningTime;
+    if (slot === "afternoon") return afternoonTime;
+    return eveningTme;
+  };
+
+  const getPickerTimeValue = (slot: TimeSlot) =>
+    normalizeTime(getTimeValue(slot)) || DEFAULT_NOTIFICATION_TIMES[slot];
+
+  const setTimeValue = (slot: TimeSlot, value: string) => {
+    if (slot === "morning") {
+      setMorningTime(value);
+      return;
+    }
+
+    if (slot === "afternoon") {
+      setAfternoonTime(value);
+      return;
+    }
+
+    setEveningTme(value);
+  };
+
+  const handleTimeSwitchChange = (
+    slot: TimeSlot,
+    setValue: (value: boolean) => void,
+    nextValue: boolean,
+  ) => {
+    setValue(nextValue);
+
+    if (nextValue && !normalizeTime(getTimeValue(slot))) {
+      setTimeValue(slot, DEFAULT_NOTIFICATION_TIMES[slot]);
+    }
+  };
 
   // Gestion du changement d'heure
-  const onTimeChange = (event, selectedDate) => {
-    setShowTimePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setSelectedTime(selectedDate);
+  const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    const currentPicker = activeTimePicker;
+
+    if (event.type === "dismissed") {
+      setActiveTimePicker(null);
+      return;
     }
+
+    if (selectedDate && currentPicker) {
+      setTimeValue(currentPicker, dateToTimeString(selectedDate));
+    }
+
+    setActiveTimePicker(Platform.OS === "ios" ? currentPicker : null);
   };
 
   // Animation pour le bouton de sauvegarde
@@ -125,15 +218,29 @@ const Page = () => {
 
   // Sauvegarde des paramètres
   const saveSettings = () => {
-    const settings: Toklomen = {
+    const morningValue = morningNotif
+      ? normalizeTime(morningTime) || DEFAULT_NOTIFICATION_TIMES.morning
+      : null;
+    const afternoonValue = afternoonNotif
+      ? normalizeTime(afternoonTime) || DEFAULT_NOTIFICATION_TIMES.afternoon
+      : null;
+    const eveningValue = eveningNotif
+      ? normalizeTime(eveningTme) || DEFAULT_NOTIFICATION_TIMES.evening
+      : null;
+
+    const settings: Partial<Toklomen> = {
       notif_remind_seven: sevenDaysBefore? 7 : 0,
       notif_remind_three: threeDaysBefore ? 3 : 0,
       notif_remind_two: twoDaysBefore ? 2 : 0,
       notif_remind_one: oneDayBefore ? 1 : 0,
 
-      notif_monrning: morningNotif? defaultRemindTime.notif_monrning : null,
-      notif_midday: afternoonNotif? defaultRemindTime.notif_midday : null,
-      notif_evening: eveningNotif? defaultRemindTime.notif_evening : null,
+      notif_time_one: morningValue,
+      notif_time_two: afternoonValue,
+      notif_time_three: eveningValue,
+
+      notif_monrning: morningValue,
+      notif_midday: afternoonValue,
+      notif_evening: eveningValue,
       
       
     };
@@ -143,7 +250,17 @@ const Page = () => {
   };
 
   // Rendu d'une option avec animation
-  const renderOption = (title, icon, value, setValue, iconColor, isTime) => {
+  const renderOption = (
+    title: string,
+    icon: React.ReactNode,
+    value: boolean,
+    setValue: (value: boolean) => void,
+    iconColor: string,
+    timeSlot?: TimeSlot
+  ) => {
+    const normalizedTime = timeSlot ? normalizeTime(getTimeValue(timeSlot)) : "";
+    const displayTitle = timeSlot && normalizedTime ? `${title} : ${normalizedTime}` : title;
+
     return (
       <>
       <Animated.View 
@@ -152,12 +269,16 @@ const Page = () => {
           { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
         ]}
       >
-        <View style={styles.optionLeft}>
+        <TouchableOpacity
+          activeOpacity={timeSlot ? 0.7 : 1}
+          onPress={() => timeSlot && setActiveTimePicker(timeSlot)}
+          style={styles.optionLeft}
+        >
           <View style={[styles.iconContainer, { backgroundColor: iconColor + '20' }]}>
             {icon}
           </View>
-          <Text style={styles.optionText}>{title}</Text>
-        </View>
+          <Text style={styles.optionText}>{displayTitle}</Text>
+        </TouchableOpacity>
         {/* <Switch
           value={value}
           onValueChange={setValue}
@@ -165,44 +286,35 @@ const Page = () => {
           thumbColor={value ? iconColor : '#f4f3f4'}
           ios_backgroundColor="#e0e0e0"
         /> */}
-        <SwitchCompo label='' value={value} onValueChange={setValue} activeColor={"#f4f3f4"} thumbColor={value ? iconColor : '#f4f3f4'} />
+        <SwitchCompo
+          label=''
+          value={value}
+          onValueChange={(nextValue) =>
+            timeSlot
+              ? handleTimeSwitchChange(timeSlot, setValue, nextValue)
+              : setValue(nextValue)
+          }
+          activeColor={"#f4f3f4"}
+          thumbColor={value ? iconColor : '#f4f3f4'}
+        />
       </Animated.View>
 
-      {/* {value && isTime && (
+      {timeSlot && activeTimePicker === timeSlot && (
             <Animated.View 
               style={[
                 styles.timePickerContainer,
                 { opacity: fadeAnim }
               ]}
             >
-              <TouchableOpacity 
-                style={styles.timeButton}
-                onPress={() => setShowTimePicker(true)}
-              >
-                <LinearGradient
-                  colors={[Colors.app.primary, '#5A67D8']}
-                  start={[0, 0]}
-                  end={[1, 0]}
-                  style={styles.timeGradient}
-                >
-                  <MaterialIcons name="access-time" size={20} color="white" />
-                  <Text style={styles.timeText}>
-                    {`${selectedTime.getHours()}:${selectedTime.getMinutes().toString().padStart(2, '0')}`}
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-              
-              {showTimePicker && (
-                <DateTimePicker
-                  value={selectedTime}
-                  mode="time"
-                  is24Hour={true}
-                  display="default"
-                  onChange={onTimeChange}
-                />
-              )}
+              <DateTimePicker
+                value={timeStringToDate(getPickerTimeValue(timeSlot))}
+                mode="time"
+                is24Hour={true}
+                display="spinner"
+                onChange={onTimeChange}
+              />
             </Animated.View>
-          )} */}
+          )}
       </>
     );
   };
@@ -231,7 +343,7 @@ const Page = () => {
           >
             <View style={styles.sectionHeader}>
               <MaterialIcons name="access-time" size={22} color="#5A67D8" />
-              <Text style={styles.sectionTitle}>Rappels avant l'événement</Text>
+              <Text style={styles.sectionTitle}>{"Rappels avant l'événement"}</Text>
             </View>
             
             {renderOption(
@@ -275,34 +387,34 @@ const Page = () => {
           >
             <View style={styles.sectionHeader}>
               <Ionicons name="time-outline" size={22} color={Colors.app.available.av_txt} />
-              <Text style={styles.sectionTitle}>Moment de la journée</Text>
+              <Text style={styles.sectionTitle}>Moment</Text>
             </View>
             
             {renderOption(
-              `Matin ${ morningTime &&':  ' + morningTime}`,
+              "Matin",
               <FontAwesome5 name="cloud-sun" size={18} color="#ED8936" />,
               morningNotif, 
               setMorningNotif,
               "#ED8936",
-              "isTime",
+              "morning",
             )}
             
             {renderOption(
-              `Après-midi ${ afternoonTime &&':  ' + afternoonTime}`,
+              "Après-midi",
               <Ionicons name="sunny-outline" size={20} color="#DD6B20" />,
               afternoonNotif, 
               setAfternoonNotif,
               "#DD6B20",
-              "isTime",
+              "afternoon",
             )}
             
             {renderOption(
-              `Dans la soirée ${eveningTme &&':  ' + eveningTme}`,
+              "Soirée",
               <FontAwesome5 name="moon" size={18} color="#667EEA" />,
               eveningNotif, 
               setEveningNotif,
               "#667EEA",
-              "isTime",
+              "evening",
             )}
             
             {/* {renderOption(
@@ -321,7 +433,12 @@ const Page = () => {
               transform: [{ scale: buttonScale }]
             }}
           >
-            <BlowingBtn label='Sauvegarder' isPending={isPending} handlePress={saveSettings} />
+            <CustomButton
+              label='Sauvegarder'
+              disabled={isPending}
+              loading={isPending}
+              action={saveSettings}
+            />
           </Animated.View>
         </ScrollView>
       </View>

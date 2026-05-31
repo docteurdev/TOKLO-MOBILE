@@ -1,19 +1,17 @@
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native'
-import React from 'react'
+import LoadingScreen from '@/components/Loading'
+import NotifItem from '@/components/notif/NotifList'
 import NotifEmptyCompo from '@/components/NotifEmptyCompo'
-import { colors, SIZES } from '@/util/comon'
-import NotifList from '@/components/notif/NotifList'
+import useDeleteNotifs from '@/hooks/mutations/notifications/useDeleteNotif'
+import useDeleteNotif from '@/hooks/mutations/notifications/useDeleteNotification'
 import { QueryKeys } from '@/interfaces/queries-key'
-import { useQuery } from '@tanstack/react-query'
+import { TNotif } from '@/interfaces/type'
 import { useUserStore } from '@/stores/user'
 import { baseURL } from '@/util/axios'
+import { colors, SIZES } from '@/util/comon'
+import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import { IOrder, TNotif } from '@/interfaces/type'
-import NotifItem from '@/components/notif/NotifList'
-import useDeleteNotifs from '@/hooks/mutations/notifications/useDeleteNotif'
-import LoadingScreen from '@/components/Loading'
-import useDeleteNotif from '@/hooks/mutations/notifications/useDeleteNotification'
-import { RefreshControl } from 'react-native'
+import React from 'react'
+import { Alert, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 
 type Props = {}
 
@@ -77,7 +75,6 @@ const Page = (props: Props) => {
     if (isLoading) {
         return  <LoadingScreen 
                 visible={isLoading}
-                // backgroundColor="rgba(0, 0, 0, 0.7)"
                 indicatorColor="#FFFFFF"
                 indicatorSize={48}
                 message=""
@@ -92,7 +89,7 @@ const Page = (props: Props) => {
        title="Pas de notifications"
        message="Votre boîte de réception est vide. Les nouveaux messages apparaîtront ici."
        iconColor={colors.available.unav_txt}
-       // primaryColor="#4F46E5"
+       primaryColor={colors.orange}
        />)
        }
 

@@ -1,79 +1,73 @@
 import { Colors } from "@/constants/Colors";
-import { Rs, SCREEN_WIDTH, SIZES } from "@/util/comon";
-import React, { memo } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { base } from "@/util/axios";
+import { Rs, SIZES } from "@/util/comon";
+import React, { memo, useState } from "react";
+import { Image, StyleSheet, Text, TextInput, View } from "react-native";
+import { PhotoIcon } from "react-native-heroicons/solid";
 
 type TmodifMeasure = {
+  image?: string;
+  title?: string;
+  value: string;
   onChangeValue: (name: string, value: string) => void;
   measurementKey?: string;
+  onFocus?: () => void;
 }
 
-const ModifMeasure = ({ image, title, value, onChangeValue, measurementKey }) => {
+const resolveImageUrl = (url?: string) => {
+  if (!url) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  const cleanUrl = url.replace(/^\/+/, "");
+  const uploadPath =
+    cleanUrl.startsWith("uploads/") || cleanUrl.includes("/")
+      ? cleanUrl
+      : `uploads/${cleanUrl}`;
+
+  return `${base}${uploadPath}`;
+};
+
+const ModifMeasure = ({ image, title, value, onChangeValue, measurementKey, onFocus }: TmodifMeasure) => {
+  const imageUrl = resolveImageUrl(image);
+  const [hasImageError, setHasImageError] = useState(false);
+  const showImage = Boolean(imageUrl) && !hasImageError;
 
   return (
     <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: Colors.app.secondary,
-        // borderWidth: StyleSheet.hairlineWidth,
-        margin: SCREEN_WIDTH * 0.01,
-        borderRadius: 8,
-        padding: 4,
-        width: SCREEN_WIDTH * 0.4,
-        height: Rs(50),
-        boxShadow: Colors.shadow.card,
-
-      }}
+      style={styles.container}
     >
-     {/* {image? <Image
-        source={image}
-        resizeMode="cover"
-        style={{
-          width: 35,
-          height: 35,
-          borderRadius: 50,
-        }}
-      /> : <View style={{width: 35, height: 35, backgroundColor: 'white', borderRadius: 18, justifyContent: "center", alignItems: "center"}}>
-              <Feather name="image" size={18} color={Colors.app.primary} />
-           </View>
-         } */}
+      <View style={styles.imageContainer}>
+        {showImage ? (
+          <Image
+            source={{ uri: imageUrl }}
+            resizeMode="cover"
+            style={styles.image}
+            onError={() => setHasImageError(true)}
+          />
+        ) : (
+          <PhotoIcon fill={Colors.app.primary} size={Rs(26)} />
+        )}
+      </View>
 
       <View
-       style={{
-        width: "70%"
-
-       }}
+       style={styles.content}
       >
         <Text
-          style={{
-            marginLeft: 6,
-            marginTop: -3,
-            fontFamily: "fontMedium",
-            fontSize: 12,
-            color: Colors.app.texteLight
-            //textAlign: "center"
-          }}
+          style={styles.title}
           numberOfLines={1}
         >
           {title}
         </Text>
         <TextInput
-          style={{
-            marginLeft: 6,
-            fontFamily: "fontRegular",
-            backgroundColor: "white",
-            textAlign: "center",
-            borderRadius: 8,
-            color: Colors.app.texteLight,
-            fontSize: SIZES.sm - 2,
-            paddingHorizontal: 6,
-            borderWidth: 1,
-            borderColor: Colors.app.disabled,
-            height: '80%',
-          }}
+          style={styles.input}
           value={value}
           onChangeText={(text) => onChangeValue(measurementKey || '', text)}
+          onFocus={onFocus}
           keyboardType="numeric"
         />
       </View>
@@ -81,5 +75,61 @@ const ModifMeasure = ({ image, title, value, onChangeValue, measurementKey }) =>
   );
 };
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.app.secondary,
+    borderRadius: 8,
+    padding: Rs(6),
+    width: "48%",
+    height: Rs(66),
+    boxShadow: Colors.shadow.card,
+    position: "relative",
+  },
+  imageContainer: {
+    position: "absolute",
+    left: Rs(6),
+    top: Rs(10),
+    width: Rs(45),
+    height: Rs(45),
+    borderRadius: Rs(24),
+    backgroundColor: "none",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  image: {
+    width: "150%",
+    height: "150%",
+  },
+  content: {
+    position: "absolute",
+    left: Rs(50),
+    right: Rs(6),
+    top: Rs(7),
+    bottom: Rs(6),
+  },
+  title: {
+    marginLeft: 6,
+    marginTop: -3,
+    fontFamily: "fontMedium",
+    fontSize: 12,
+    color: Colors.app.texteLight,
+  },
+  input: {
+    marginLeft: 6,
+    fontFamily: "fontRegular",
+    backgroundColor: "white",
+    textAlign: "center",
+    borderRadius: 8,
+    color: Colors.app.texteLight,
+    fontSize: SIZES.sm - 2,
+    paddingHorizontal: 6,
+    borderWidth: 1,
+    borderColor: Colors.app.disabled,
+    height: Rs(35),
+  },
+});
+
 export default memo(ModifMeasure);

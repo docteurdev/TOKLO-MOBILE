@@ -1,4 +1,3 @@
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { DrawerContentScrollView } from '@react-navigation/drawer'
 import { usePathname, useRouter } from 'expo-router'
 import React from 'react'
@@ -16,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useUserStore } from '@/stores/user'
 import { colors, formatIvoryCoastPhoneNumber, Rs, SIZES } from '@/util/comon'
 import CustomButton from '../form/CustomButton'
+import ProfileShower from './drawer/ProfileShower'
 
 const DRAWER_BG = '#FFF8EC'
 const TEXT_MAIN = '#2B1A0E'
@@ -93,34 +93,12 @@ const CustomDrawer = (props: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <RightPatternBand />
+      {/* <RightPatternBand /> */}
 
       <View style={styles.header}>
-        <View style={styles.avatarOuter}>
-          <Image
-            source={require('@/assets/images/drawer/profile-circle.png')}
-            resizeMode="contain"
-            style={styles.avatarOuterImage}
-          />
-          <View style={styles.avatarInner}>
-            <MaterialCommunityIcons name="hanger" size={34} color={GOLD} />
-            <Feather name="scissors" size={15} color={RICH_GOLD} style={styles.avatarNeedle} />
-          </View>
-        </View>
+        
+        <ProfileShower />
 
-        <View style={styles.userTextWrap}>
-          <Text numberOfLines={1} style={styles.userName}>
-            {userName}
-          </Text>
-          <Text numberOfLines={2} style={styles.userDescription}>
-            {userDescription}
-          </Text>
-          {!!phoneNumber && (
-            <Text numberOfLines={1} style={styles.userPhone}>
-              {phoneNumber}
-            </Text>
-          )}
-        </View>
         <Image
           source={require('@/assets/images/measure/double-arrow.png')}
           resizeMode="cover"
@@ -199,8 +177,8 @@ const ActiveItemPattern = () => (
 const RightPatternBand = () => (
   <View pointerEvents="none" style={styles.rightBand}>
     <Image
-      source={require('@/assets/images/drawer/african-touch.png')}
-      resizeMode="cover"
+      source={require('@/assets/images/measure/cauri.png')}
+      resizeMode="repeat"
       style={styles.rightBandImage}
     />
   </View>
@@ -386,7 +364,7 @@ const styles = StyleSheet.create({
   rightBand: {
     position: 'absolute',
     top: 0,
-    right: 0,
+    right: -12,
     bottom: 0,
     width: Rs(40),
     backgroundColor: 'none',
@@ -397,7 +375,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   rightBandImage: {
-    width: '100%',
+    width: 50,
     height: '100%',
   },
   bandBlock: {

@@ -1,32 +1,71 @@
 import * as Yup from "yup";
+import { getPhoneCountryByValue, getPhoneLocalDigits } from "../phoneCountries";
+
+const phoneByCountrySchema = Yup.string()
+  .required("Entrez votre numéro de téléphone")
+  .test("valid-country-phone", function (value) {
+    if (!value) return true;
+
+    const country = getPhoneCountryByValue(value);
+
+    if (!country) {
+      return this.createError({
+        message: "Sélectionnez un indicatif pays valide",
+      });
+    }
+
+    const localDigits = getPhoneLocalDigits(value, country);
+
+    if (!/^\+[1-9][0-9]+$/.test(value)) {
+      return this.createError({
+        message:
+          "Le numéro doit contenir l'indicatif du pays et uniquement des chiffres",
+      });
+    }
+
+    if (localDigits.length !== country.phoneLength) {
+      return this.createError({
+        message: `Le numéro ${country.name} doit contenir ${country.phoneLength} chiffres`,
+      });
+    }
+
+    return true;
+  });
+
+const personNameSchema = (fieldName: string) =>
+  Yup.string()
+    .transform((value) => (typeof value === "string" ? value.trim() : value))
+    .min(2, `${fieldName} doit contenir au moins 2 caractères`)
+    .max(50, `${fieldName} ne doit pas dépasser 50 caractères`)
+    .matches(
+      /^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/,
+      `${fieldName} ne doit contenir que des lettres`,
+    )
+    .required(`Entrez votre ${fieldName.toLowerCase()}`);
 
 export const loginSchema = Yup.object().shape({
-  phone: Yup.string()
-    .matches(
-      /^\+[1-9][0-9]{7,14}$/,
-      "Le numéro de téléphone doit contenir l'indicatif du pays et uniquement des chiffres",
-    )
-    .required("Entrez votre numéro de téléphone"),
+  phone: phoneByCountrySchema,
   password: Yup.string()
-    .matches(/^[0-9]+$/, "Le code ne doit contenir que des chiffres")
-    .length(5, "Le code doit contenir 5 chiffres")
-    .required("Entrez votre mot de passe"),
+    .required("Entrez votre code secret")
+    .matches(/^[0-9]+$/, {
+      message: "Le code ne doit contenir que des chiffres",
+      excludeEmptyString: true,
+    })
+    .length(5, "Le code secret doit contenir 5 chiffres"),
 });
 
 export const signUpSchema = Yup.object().shape({
-  name: Yup.string().required("Entrez votre nom "),
-  lastname: Yup.string().required("Entrez votre prénom "),
-  phone: Yup.string()
-    .matches(
-      /^\+[1-9][0-9]{7,14}$/,
-      "Le numéro de téléphone doit contenir l'indicatif du pays et uniquement des chiffres",
-    )
-    .required("Entrez votre numéro de téléphone"),
+  name: personNameSchema("Nom"),
+  lastname: personNameSchema("Prénom"),
+  phone: phoneByCountrySchema,
   //  email: Yup.string().email("L'email n'est pas valide").required("Entrez votre email"),
   password: Yup.string()
-    .matches(/^[0-9]+$/, "Le code ne doit contenir que des chiffres")
-    .length(5, "Le code doit contenir 5 chiffres")
-    .required("Entrez votre mot de passe"),
+    .required("Entrez votre code secret")
+    .matches(/^[0-9]+$/, {
+      message: "Le code ne doit contenir que des chiffres",
+      excludeEmptyString: true,
+    })
+    .length(5, "Le code secret doit contenir 5 chiffres"),
 });
 
 export const userSchema = Yup.object().shape({
@@ -45,9 +84,16 @@ export const userSchema = Yup.object().shape({
 });
 
 export const pwForgotSchema = Yup.object().shape({
-  phone: Yup.string()
-    .min(10, "Le numéro de téléphone doit contenir au moins 10 chiffres")
-    .required("Entrez votre numéro de téléphone"),
+  phone: phoneByCountrySchema,
+});
+
+export const resetPasswordSchema = Yup.object().shape({
+  newPassword: Yup.string()
+    .required("Entrez votre nouveau mot de passe")
+    .min(5, "Le mot de passe doit contenir au moins 5 caractères"),
+  confirmPassword: Yup.string()
+    .required("Confirmez votre nouveau mot de passe")
+    .oneOf([Yup.ref("newPassword")], "Les mots de passe ne correspondent pas"),
 });
 
 export const orderSchema = Yup.object().shape({
@@ -88,11 +134,7 @@ export const StoreSchema = Yup.object().shape({
   //  .required('Le nom de la boutique est requis'),
   store_slogan: Yup.string().min(2, "Trop court!").max(100, "Trop long!"),
   //  .required('Le nom de la boutique est requis'),
-  phone: Yup.string()
-    .matches(/^[0-9]+$/, "Doit être uniquement des chiffres")
-    .min(8, "Trop court!")
-    .max(15, "Trop long!")
-    .required("Le numéro de téléphone est requis"),
+  phone: phoneByCountrySchema,
   whatsapp: Yup.string()
     .matches(/^[0-9]+$/, "Doit être uniquement des chiffres")
     .min(8, "Trop court!")

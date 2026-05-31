@@ -8,33 +8,25 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { CalendarDaysIcon } from 'react-native-heroicons/solid';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
-
 type LastAppointmentStatus = IOrder['status'] | string | null | undefined;
 
-type LastAppointmentData = Partial<Omit<IOrder, 'status' | 'measure' | 'updatedat'>> & {
+type LastAppointmentData = {
+  date_remise?: string | null;
+  deliveryHour?: string | null;
   status?: LastAppointmentStatus;
-  measure?: unknown;
-  updatedat?: Date | string;
-  [key: string]: unknown;
 };
 
-type LastAppointmentProps = {
-  appointment?: LastAppointmentData;
-  onPress?: () => void;
-};
-
-const LastAppointment = ({ appointment, onPress }: LastAppointmentProps) => {
+const LastAppointment = () => {
   const { user } = useUserStore();
   const userId = user?.id;
 
   const { data } = useQuery<LastAppointmentData, Error>({
     queryKey: [...QueryKeys.orders.lastOrder, userId],
-    enabled: Boolean(userId) && !appointment,
+    enabled: Boolean(userId),
     queryFn: async (): Promise<LastAppointmentData> => {
       try {
         const resp = await axios.get(`${baseURL}/orders/last-appointment/${userId}`);
@@ -46,18 +38,16 @@ const LastAppointment = ({ appointment, onPress }: LastAppointmentProps) => {
     },
   });
 
-  const order = appointment ?? data;
+  const order = data;
 
   if (!order) {
     return null;
   }
 
   return (
-    <AnimatedTouchableOpacity
+    <Animated.View
       entering={FadeInUp.delay(300)}
       style={styles.container}
-      activeOpacity={0.7}
-      onPress={onPress}
     >
       <View style={styles.card}>
         <View style={styles.header}>
@@ -71,17 +61,17 @@ const LastAppointment = ({ appointment, onPress }: LastAppointmentProps) => {
         <View style={styles.infoRow}>
           <View style={styles.infoItem}>
             <CalendarDaysIcon size={27} color={Colors.app.dashitem.t_1} />
-            <Text style={styles.infoText}>{order.date_remise}</Text>
+            <Text style={styles.infoText}>{order.date_remise ?? ""}</Text>
           </View>
           <View style={styles.infoItem}>
             <MaterialIcons name="access-time" size={27} color={Colors.app.dashitem.t_1} />
-            <Text style={styles.infoText}>{order.deliveryHour}</Text>
+            <Text style={styles.infoText}>{order.deliveryHour ?? ""}</Text>
           </View>
         </View>
            <Image style={{position: "absolute", bottom: 0, left: -12}} height={100} width={40} source={require("@/assets/images/measure/tradition.png")} />      
            <Image style={{position: "absolute", bottom: 0, right: -16}} height={100} width={40} source={require("@/assets/images/measure/tradition.png")} />      
       </View>
-    </AnimatedTouchableOpacity>
+    </Animated.View>
   );
 };
 
@@ -187,60 +177,6 @@ const styles = StyleSheet.create({
     fontSize: SIZES.sm -3,
     color: Colors.app.dashitem.t_1,
     fontWeight: '500',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#e0e0e0',
-    marginVertical: 12,
-  },
-  detailsContainer: {
-    marginVertical: 8,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  detailLabel: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#757575',
-    width: 70,
-  },
-  detailText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#212121',
-    fontWeight: '500',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  footerText: {
-    fontSize: 13,
-    color: '#6200ea',
-    fontWeight: '500',
-  },
-  emptyCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#9e9e9e',
-    textAlign: 'center',
   },
 });
 

@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
+import { Image, Platform, StyleSheet, View } from "react-native";
 
 import Constants from "expo-constants";
 import * as Device from "expo-device";
@@ -97,6 +97,7 @@ export default function Root() {
             projectId,
           })
         ).data;
+        console.log("")
       } catch (e) {
         token = `${e}`;
       }
@@ -111,9 +112,51 @@ export default function Root() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <BottomSheetModalProvider>
+          <View pointerEvents="none" style={styles.decorationsLayer}>
+                  <Image
+                    resizeMode="cover"
+                    source={require("@/assets/images/measure/cauri.png")}
+                    style={[styles.traditionPattern, styles.leftTraditionPattern]}
+                  />
+          
+                  <Image
+                    resizeMode="cover"
+                    source={require("@/assets/images/measure/cauri.png")}
+                    style={[styles.traditionPattern, styles.rightTraditionPattern]}
+                  />
+                </View>
           <Slot />
         </BottomSheetModalProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  decorationsLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+  },
+  traditionPattern: {
+    position: 'absolute',
+    height: 86,
+  },
+  leftTraditionPattern: {
+    top: -40,
+    left: -70,
+    width: 150,
+    height: 110,
+    transform: [{ rotate: '40deg' }],
+  },
+  rightTraditionPattern: {
+    top: -35,
+    right: -65,
+    width: 140,
+    height: 105,
+    transform: [{ rotate: '-40deg' }],
+  },
+  })
+

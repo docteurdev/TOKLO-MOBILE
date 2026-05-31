@@ -1,8 +1,9 @@
 import { Colors } from '@/constants/Colors';
 import { Rs, SIZES } from '@/util/comon';
+import { Feather } from '@expo/vector-icons';
 import * as React from 'react';
-import { TextInputProps, TextInput, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
-import { Feather } from '@expo/vector-icons'
+import { StyleSheet, Text, TextInput, TextInputProps, TouchableOpacity, View } from 'react-native';
+import { useFormScroll } from './FormWrapper';
 
 interface Props extends TextInputProps {
   label?: string;
@@ -21,11 +22,14 @@ interface Props extends TextInputProps {
 const CustomInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, touched, keyboardType, isPassword, placeholder }: Props) => {
   const [isPw, setIsPw] = React.useState(isPassword);
   const [isFocused, setIsFocused] = React.useState(false);
+  const inputRef = React.useRef<TextInput>(null);
+  const formScroll = useFormScroll();
 
   return (
     <View style={{ position: 'relative', width: "100%", height: 83, marginBottom: 10 }}>
       <Text style={styles.label}>{label} <Text style={{ color: Colors.app.error }}>*</Text></Text>
       <TextInput
+        ref={inputRef}
         keyboardType={keyboardType}
         secureTextEntry={isPw}
         multiline={isDescr ? true : false}
@@ -42,7 +46,10 @@ const CustomInput = ({ isDescr, label, value, handleOnBlur, handleChange, error,
           setIsFocused(false);
           handleOnBlur(e);
         }}
-        onFocus={() => setIsFocused(true)}
+        onFocus={() => {
+          setIsFocused(true);
+          formScroll?.scrollToInput(inputRef);
+        }}
       />
       {isPassword && (
         <TouchableOpacity style={{ position: 'absolute', right: Rs(10), top: Rs(40), zIndex: 50 }} onPress={() => { setIsPw(!isPw) }}>
@@ -63,18 +70,18 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: Colors.app.texteLight,
+    borderColor: Colors.app.disabled,
     borderRadius: SIZES.xs,
     padding: 10,
     height: 50,
   },
   inputFocused: {
     borderColor: Colors.app.primary,
-    borderWidth: 2,
+    borderWidth: 1,
   },
   inputError: {
     borderColor: Colors.app.error,
-    borderWidth: 2,
+    borderWidth: 1,
   }
 });
 

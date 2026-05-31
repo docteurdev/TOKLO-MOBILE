@@ -16,8 +16,7 @@ export default function AppLayout() {
   const {user, notify_token} = useUserStore();
 
   useEffect(() => {
-   console.log("user============================", notify_token);
-
+    
     if (user) {
       handleManageToken();
     }
@@ -27,12 +26,14 @@ export default function AppLayout() {
 
   async function handleManageToken() {
     try {
-      const token = await axios.post(`${baseURL}/otoken/verify`,{
+      const token = await axios.post(`${baseURL}/notif-token/verify`,{
         token: notify_token,
         tokloManId: user?.id,
       });
-      console.log("token============================", token);
-    } catch (error) {}
+    } catch (error) {
+            console.warn("token-error============================", error);
+
+    }
   }
   
   return (

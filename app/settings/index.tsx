@@ -112,69 +112,15 @@ const Page = () => {
      badge: null,
      count: 7
    },
-    {
-      id: 'toklo-users',
-      title: 'Équipe Couture',
-      icon: <Ionicons name="people-circle-outline" size={24} color="#ffffff" />,
-      color: '#9b59b6', 
-      description: "Gestion des artisans et du personnel de l'atelier",
-      badge: null,
-      count: usersIsLoading ? '...' : users?.length || 0
-    }
     // {
-    //   id: 'delivery-options',
-    //   title: 'Delivery Settings',
-    //   icon: <FontAwesome5 name="shipping-fast" size={20} color="#e74c3c" />,
-    //   color: '#e74c3c',
-    //   description: 'Delivery radius, fees, minimum orders, and availability',
-    //   badge: 'Updated',
-    //   count: 6
-    // },
-    // {
-    //   id: 'pickup-options',
-    //   title: 'Pickup Options',
-    //   icon: <MaterialCommunityIcons name="shopping" size={24} color="#2ecc71" />,
-    //   color: '#2ecc71',
-    //   description: 'In-store pickup rules, wait times, and procedures',
+    //   id: 'toklo-users',
+    //   title: 'Équipe Couture',
+    //   icon: <Ionicons name="people-circle-outline" size={24} color="#ffffff" />,
+    //   color: '#9b59b6', 
+    //   description: "Gestion des artisans et du personnel de l'atelier",
     //   badge: null,
-    //   count: 3
-    // },
-    // {
-    //   id: 'payment-methods',
-    //   title: 'Payment Methods',
-    //   icon: <MaterialCommunityIcons name="credit-card-outline" size={24} color="#f39c12" />,
-    //   color: '#f39c12',
-    //   description: 'Accepted payment types, cash handling, and digital payments',
-    //   badge: null,
-    //   count: 5
-    // },
-    // {
-    //   id: 'tax-settings',
-    //   title: 'Tax Settings',
-    //   icon: <FontAwesome5 name="percentage" size={18} color="#16a085" />,
-    //   color: '#16a085',
-    //   description: 'Sales tax configurations, tax-exempt rules, and reports',
-    //   badge: 'New',
-    //   count: 2
-    // },
-    // {
-    //   id: 'inventory',
-    //   title: 'Inventory Rules',
-    //   icon: <Feather name="box" size={22} color="#8e44ad" />,
-    //   color: '#8e44ad',
-    //   description: 'Stock handling, low inventory alerts, and auto-ordering',
-    //   badge: null,
-    //   count: 8
-    // },
-    // {
-    //   id: 'staff-access',
-    //   title: 'Staff & Permissions',
-    //   icon: <Ionicons name="people" size={24} color="#d35400" />,
-    //   color: '#d35400',
-    //   description: 'Employee access levels and management capabilities',
-    //   badge: null,
-    //   count: 4
-    // },
+    //   count: usersIsLoading ? '...' : users?.length || 0
+    // }
     
   ];
 

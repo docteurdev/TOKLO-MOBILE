@@ -1,103 +1,43 @@
+import ActiveToklomanCompo from "@/components/ActiveToklomanCompo";
+import BottomSheetCompo from "@/components/BottomSheetCompo";
+import BackButton from "@/components/form/BackButton";
+import CustomButton from "@/components/form/CustomButton";
+import FullScreenImgScrolling from "@/components/gallery/FullScreenImgScrolling";
+import UploadGallery from "@/components/gallery/UploadGallery";
+import SubscriptionCompo from "@/components/SubscriptionCompo";
+import { Colors } from "@/constants/Colors";
+import useDeleteGalery from "@/hooks/mutations/useDeleteGalery";
+import { QueryKeys } from "@/interfaces/queries-key";
+import { ICatalogue } from "@/interfaces/type";
+import { useUserStore } from "@/stores/user";
+import { base, baseURL } from "@/util/axios";
+import { Rs, SIZES } from "@/util/comon";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 import React, { useRef, useState } from "react";
 import {
+  Dimensions,
+  FlatList,
+  Image,
+  RefreshControl,
+  StatusBar,
   StyleSheet,
   Text,
-  View,
-  SafeAreaView,
   TouchableOpacity,
-  Image,
-  StatusBar,
-  FlatList,
-  Dimensions,
+  View,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { FullScreenImageView } from "@/components/gallery/FullScreenImg";
+import { XMarkIcon } from "react-native-heroicons/solid";
 import {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { Colors } from "@/constants/Colors";
-import BottomSheetCompo from "@/components/BottomSheetCompo";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import UploadGallery from "@/components/gallery/UploadGallery";
-import useGalery from "@/hooks/mutations/useGalery";
-import { useQuery } from "@tanstack/react-query";
-import { QueryKeys } from "@/interfaces/queries-key";
-import { base, baseURL } from "@/util/axios";
-import { useUserStore } from "@/stores/user";
-import { ICatalogue, IOrder } from "@/interfaces/type";
-import axios from "axios";
-import { LinearGradient } from "expo-linear-gradient";
-import FullScreenImgScrolling from "@/components/gallery/FullScreenImgScrolling";
-import { RefreshControl } from "react-native";
-import useDeleteGalery from "@/hooks/mutations/useDeleteGalery";
-import { Rs, SIZES } from "@/util/comon";
 
 // Get device width for responsive layout
 const { width } = Dimensions.get("window");
 const itemWidth = (width - 32) / 2;
 
-// Categories with Unsplash images
-const categories = [
-  {
-    id: "1",
-    name: "Graphic Design",
-    icon: "pencil-ruler",
-    image:
-      "https://images.unsplash.com/photo-1572044162444-ad60f128bdea?q=80&w=400&auto=format",
-  },
-  {
-    id: "2",
-    name: "Fine Arts",
-    icon: "palette",
-    image:
-      "https://images.unsplash.com/photo-1578926288207-a90a5366759d?q=80&w=400&auto=format",
-  },
-  {
-    id: "3",
-    name: "Photography",
-    icon: "camera",
-    image:
-      "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=400&auto=format",
-  },
-  {
-    id: "4",
-    name: "Interior Design",
-    icon: "sofa",
-    image:
-      "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=400&auto=format",
-  },
-  {
-    id: "5",
-    name: "Icon Design",
-    icon: "shape",
-    image:
-      "https://images.unsplash.com/photo-1572044162444-ad60f128bdea?q=80&w=400&auto=format",
-  },
-  {
-    id: "6",
-    name: "Street Art",
-    icon: "spray",
-    image:
-      "https://images.unsplash.com/photo-1572887183090-2a3a87839b25?q=80&w=400&auto=format",
-  },
-  {
-    id: "7",
-    name: "UI/UX",
-    icon: "monitor-cellphone",
-    image:
-      "https://images.unsplash.com/photo-1545235617-9465d2a55698?q=80&w=400&auto=format",
-  },
-  {
-    id: "8",
-    name: "Typography",
-    icon: "format-text",
-    image:
-      "https://images.unsplash.com/photo-1633774712923-c813e83a3d72?q=80&w=400&auto=format",
-  },
-];
 
 export default function Page() {
   const [selectedItem, setSelectedItem] = useState<ICatalogue | null>(null);
@@ -106,6 +46,8 @@ export default function Page() {
   const scale = useSharedValue(1);
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const subscribeBottomSheet = useRef<BottomSheetModal>(null);
+  const claimeActiveAccountBottomSheet = useRef<BottomSheetModal>(null);
 
   const { user } = useUserStore();
   const [visible, setVisible] = useState(false);
@@ -149,6 +91,20 @@ export default function Page() {
   const handleDelete = () => {
     if(selectedItem?.id) mutate(selectedItem?.id);
   }
+
+  const openSubscribeBottomSheet = () => {
+    bottomSheetModalRef.current?.dismiss();
+    setTimeout(() => {
+      subscribeBottomSheet.current?.present();
+    }, 300);
+  };
+
+  const openClaimActiveAccountBottomSheet = () => {
+    bottomSheetModalRef.current?.dismiss();
+    setTimeout(() => {
+      claimeActiveAccountBottomSheet.current?.present();
+    }, 300);
+  };
     
 
   const renderCategoryItem = ({ item }: { item: ICatalogue }) => (
@@ -185,7 +141,7 @@ export default function Page() {
 
   return (
     <>
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <StatusBar barStyle="dark-content" />
 
         {/* Header */}
@@ -201,9 +157,9 @@ export default function Page() {
         {/* Title */}
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Catalogue</Text>
-          <Text style={styles.subtitle}>
-            🧵 Enregistrez ce modèle pour le retrouver facilement à tout moment
-          </Text>
+          {/* <Text style={styles.subtitle}>
+            Enregistrez ce modèle pour le retrouver facilement à tout moment
+          </Text> */}
         </View>
 
         {/* Categories Grid using FlatList */}
@@ -223,31 +179,14 @@ export default function Page() {
 
         {/* Bottom Button */}
         <View style={styles.bottomContainer}>
-          <TouchableOpacity
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            onPress={() => {
+          <CustomButton
+           label="Séléctionner"
+           disabled
+           action={() => {
               bottomSheetModalRef.current?.present();
             }}
-            // activeOpacity={0.8}
-            style={styles.button}
-          >
-            <View>
-              <LinearGradient
-                colors={[Colors.app.primary, "#5E50EE"]}
-                start={[0, 0]}
-                end={[1, 0]}
-                style={styles.saveButton}
-              >
-                {/* <MaterialCommunityIcons
-                  name="check-circle-outline"
-                  size={20}
-                  color="#333"
-                /> */}
-                <Text style={styles.buttonText}>Séléctionner</Text>
-              </LinearGradient>
-            </View>
-          </TouchableOpacity>
+          />
+         
         </View>
 
         {/* Full Screen Image Modal */}
@@ -258,13 +197,63 @@ export default function Page() {
           // />
           <FullScreenImgScrolling initialIndex={initialIndex} visible={visible} items={data} onDelete={() => handleDelete()} onSelect={() => {}} onClose={() => setVisible(false)} />
         )}
-      </SafeAreaView>
+      </View>
       <BottomSheetCompo
         bottomSheetModalRef={bottomSheetModalRef}
         snapPoints={["90%"]}
       >
         <UploadGallery
           closeBottomSheet={() => bottomSheetModalRef.current?.dismiss()}
+          subscribeBottomSheet={openSubscribeBottomSheet}
+          claimActiveFreeTime={openClaimActiveAccountBottomSheet}
+        />
+      </BottomSheetCompo>
+
+      <BottomSheetCompo
+        bottomSheetModalRef={subscribeBottomSheet}
+        snapPoints={["100%"]}
+      >
+        <View style={{ padding: Rs(20), gap: Rs(20) }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Text
+              style={{
+                color: Colors.app.texte,
+                fontSize: SIZES.lg,
+                fontWeight: "bold",
+              }}
+            >
+              Votre abonnement a expiré.
+            </Text>
+            <BackButton
+              backAction={() => subscribeBottomSheet.current?.dismiss()}
+              icon={<XMarkIcon fill={Colors.app.texte} size={Rs(20)} />}
+            />
+          </View>
+          <Text style={{ color: Colors.app.available.unav_txt }}>
+            Pour continuer à profiter de tous nos services et fonctionnalités,
+            veuillez renouveler votre abonnement.
+          </Text>
+        </View>
+        <SubscriptionCompo
+          redirectURL="gallery"
+          closeBottomSheet={() => subscribeBottomSheet.current?.dismiss()}
+        />
+      </BottomSheetCompo>
+
+      <BottomSheetCompo
+        bottomSheetModalRef={claimeActiveAccountBottomSheet}
+        snapPoints={["40%"]}
+      >
+        <ActiveToklomanCompo
+          closeBottomSheet={() =>
+            claimeActiveAccountBottomSheet.current?.dismiss()
+          }
         />
       </BottomSheetCompo>
     </>
@@ -366,7 +355,7 @@ const styles = StyleSheet.create({
   },
   bottomContainer: {
     padding: 16,
-    marginTop: "auto",
+    marginBottom: Rs(50),
   },
   button: {
     // backgroundColor: Colors.app.primary,

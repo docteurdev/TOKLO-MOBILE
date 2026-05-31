@@ -1,11 +1,10 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react';
-import { UserIcon, ArrowRightIcon, SparklesIcon } from "react-native-heroicons/solid";
+import { ArrowRightIcon, SparklesIcon } from "react-native-heroicons/solid";
 import { Colors } from '@/constants/Colors';
 import { Rs, SIZES } from '@/util/comon';
-import { useRouter } from 'expo-router';
-import { IUser } from '@/interfaces/user';
-import { IClient, IDress } from '@/interfaces/type';
+import { IDress } from '@/interfaces/type';
+import { getDressStructureLabel } from '@/utils/dressMeasurements';
 
 
 type Props = {
@@ -16,8 +15,7 @@ type Props = {
 
 const DressItem = ({isListed, dress, action}: Props) => {
 
-
-  const route = useRouter();
+  const structureLabel = getDressStructureLabel(dress);
 
   return (
     <View>
@@ -31,7 +29,9 @@ const DressItem = ({isListed, dress, action}: Props) => {
         <View style={styles.userBloc} >
           <View style={{flex: 1}} >
            <Text style={styles.userName} > {dress?.nom} </Text>
-           <Text style={styles.userPhone} > {dress?.genre} </Text>
+           <Text style={styles.userPhone} numberOfLines={1} >
+            {dress?.genre} - {structureLabel}
+           </Text>
            {/* <Text style={styles.userPhone} > 01 42 26 90 19 </Text> */}
           </View>
           {!isListed && <View style={{width: 40, height: 40, justifyContent: "center", alignItems: "center", }} >

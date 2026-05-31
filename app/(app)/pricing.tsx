@@ -1,20 +1,15 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
-  ScrollView, 
-  TouchableOpacity, 
-  StatusBar 
-} from 'react-native';
-import { 
-  Ionicons, 
-  MaterialCommunityIcons, 
-  FontAwesome5, 
-  AntDesign 
-} from '@expo/vector-icons';
 import SubscriptionCompo from '@/components/SubscriptionCompo';
+import {
+  AntDesign,
+  FontAwesome5,
+  MaterialCommunityIcons
+} from '@expo/vector-icons';
+import React from 'react';
+import {
+  StyleSheet,
+  Text,
+  View
+} from 'react-native';
 
 const Page = () => {
   const renderPriceCard = (
@@ -55,11 +50,7 @@ const Page = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      
       <SubscriptionCompo redirectURL='pricing' />
-    </SafeAreaView>
   );
 };
 

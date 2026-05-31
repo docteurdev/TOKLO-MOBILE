@@ -1,14 +1,15 @@
 import { Colors } from '@/constants/Colors';
+import { colors } from '@/util/comon';
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming, 
-  withDelay, 
-  withSequence, 
-  withRepeat, 
-  Easing 
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming
 } from 'react-native-reanimated';
 
 const NotifEmptyCompo = ({ 
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
   line: {
     width: 60,
     height: 4,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.orange,
     borderRadius: 2,
     marginTop: 8,
   },

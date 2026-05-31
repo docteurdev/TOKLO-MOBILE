@@ -1,32 +1,91 @@
+import { Colors } from '@/constants/Colors';
+import { TNotif } from '@/interfaces/type';
+import { colors } from '@/util/comon';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  Pressable,
   Alert,
+  Dimensions,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  runOnJS,
-  interpolateColor,
-  interpolate,
-} from 'react-native-reanimated';
 import {
   Gesture,
   GestureDetector,
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
-import { MaterialIcons, Feather } from '@expo/vector-icons';
-import { TNotif } from '@/interfaces/type';
-import { Colors } from '@/constants/Colors';
+import Animated, {
+  interpolate,
+  interpolateColor,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = -SCREEN_WIDTH * 0.25;
+const NOTIFICATION_HEIGHT = 96;
+
+const parseReminderDate = (dateStr?: string | null) => {
+  if (!dateStr) return null;
+
+  const trimmedDate = dateStr.trim();
+  const dateOnly = trimmedDate.split(/[T\s]/)[0];
+  const slashParts = dateOnly.split('/');
+  const dashParts = dateOnly.split('-');
+
+  if (slashParts.length === 3) {
+    const [day, month, year] = slashParts.map(Number);
+    const date = new Date(year, month - 1, day);
+
+    if (
+      date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day
+    ) {
+      return date;
+    }
+  }
+
+  if (dashParts.length === 3) {
+    const [first, second, third] = dashParts.map(Number);
+    const isIsoLike = dashParts[0].length === 4;
+    const year = isIsoLike ? first : third;
+    const month = second;
+    const day = isIsoLike ? third : first;
+    const date = new Date(year, month - 1, day);
+
+    if (
+      date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day
+    ) {
+      return date;
+    }
+  }
+
+  const parsedDate = new Date(trimmedDate);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
+
+const formatDate = (dateStr: string) => {
+  const date = parseReminderDate(dateStr);
+
+  if (!date) {
+    return dateStr || "";
+  }
+
+  return date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
 
 
 interface NotificationItemProps {
@@ -41,7 +100,7 @@ const NotifItem: React.FC<NotificationItemProps> = ({
   onPress,
 }) => {
   const translateX = useSharedValue(0);
-  const itemHeight = useSharedValue(120);
+  const itemHeight = useSharedValue(NOTIFICATION_HEIGHT);
   const opacity = useSharedValue(1);
   const startX = useSharedValue(0);
 
@@ -60,7 +119,6 @@ const NotifItem: React.FC<NotificationItemProps> = ({
         {
           text: 'Supprimer',
           onPress: () => {
-            // Animate out and then delete
             opacity.value = withTiming(0, { duration: 200 });
             itemHeight.value = withTiming(0, { duration: 300 }, () => {
               runOnJS(onDelete)(notification.id);
@@ -117,15 +175,6 @@ const NotifItem: React.FC<NotificationItemProps> = ({
     };
   });
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
   const formatTime = (timeStr: string) => {
     return timeStr.slice(0, 5); // Extract HH:MM from HH:MM:SS
   };
@@ -140,6 +189,11 @@ const NotifItem: React.FC<NotificationItemProps> = ({
         
         <GestureDetector gesture={panGesture}>
           <Animated.View style={[styles.notification, animatedItemStyle]}>
+            <Image
+              resizeMode="stretch"
+              source={require("@/assets/images/measure/tradition.png")}
+              style={styles.traditionPattern}
+            />
             <Pressable
               style={styles.notificationContent}
               onPress={() => onPress?.(notification)}
@@ -205,14 +259,14 @@ const styles = StyleSheet.create({
     position: 'relative',
     borderRadius: 12,
     overflow: 'hidden',
-    elevation: 2,
+    elevation: 1,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 1,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
   },
   deleteBackground: {
     position: 'absolute',
@@ -235,20 +289,24 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     zIndex: 2,
+    position: 'relative',
   },
   notificationContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    minHeight: NOTIFICATION_HEIGHT,
+    paddingLeft: 50,
+    paddingRight: 14,
+    paddingVertical: 10,
   },
   iconContainer: {
     marginRight: 12,
   },
   iconBackground: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#edc4788d',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.lightOrange,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -279,7 +337,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   footer: {
     flexDirection: 'row',
@@ -301,6 +359,14 @@ const styles = StyleSheet.create({
   },
   chevron: {
     marginLeft: 8,
+  },
+  traditionPattern: {
+    position: 'absolute',
+    left: -44,
+    top: 0,
+    bottom: 0,
+    width: 100,
+    height: '100%',
   },
 });
 
