@@ -279,6 +279,13 @@ const Page = (props: Props) => {
     );
   }, [activeMeasurementPart, measurementGroups, visibleMeasurementGroups]);
 
+  const hasSelectedDeliveryTime =
+    selectedHour !== null && selectedMinute !== null;
+  const canContinueToMeasurements = Boolean(
+    selectedUser && date && selectedDress && hasSelectedDeliveryTime,
+  );
+  const canSaveOrder = Boolean(quantity.trim() && amount.trim());
+
   const activeMeasurementCount = useMemo(() => {
     return (
       activeMeasurementGroup?.categories.reduce(
@@ -336,6 +343,13 @@ const Page = (props: Props) => {
     () => [
       styles.measureStepScrollContent,
       { paddingBottom: keyboardHeight + Rs(260) },
+    ],
+    [keyboardHeight],
+  );
+  const billingScrollContentStyle = useMemo(
+    () => [
+      styles.billingStepScrollContent,
+      { paddingBottom: keyboardHeight + Rs(220) },
     ],
     [keyboardHeight],
   );
@@ -484,6 +498,11 @@ const Page = (props: Props) => {
 
     const handleSubmit = async () => {
       Keyboard.dismiss();
+
+      if (!hasSelectedDeliveryTime) {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        return;
+      }
   
       const formData = new FormData();
 
@@ -498,9 +517,7 @@ const Page = (props: Props) => {
   
       // Calculate solde
       const solde = (
-        Number(amount) * Number(quantity) -
-        Number(paiement)
-      ).toString();
+        Number(amount)- Number(paiement)).toString();
       formData.append("solde_cal", solde); 
 
   
@@ -548,6 +565,10 @@ const Page = (props: Props) => {
   
 
   const present = async () => {
+    if (!canContinueToMeasurements) {
+      return;
+    }
+
      scrollViewRef.current?.scrollTo({ y: SCREEN_H, animated: true})
 
   };
@@ -632,7 +653,7 @@ const Page = (props: Props) => {
         ref={scrollViewRef}
           nestedScrollEnabled
           automaticallyAdjustKeyboardInsets
-          scrollEnabled={Boolean(selectedUser && date && selectedDress && keyboardHeight === 0)}
+          scrollEnabled={Boolean(canContinueToMeasurements && keyboardHeight === 0)}
           showsVerticalScrollIndicator={false}
           snapToInterval={keyboardHeight > 0 ? undefined : SCREEN_H}
           decelerationRate="fast" 
@@ -727,12 +748,13 @@ const Page = (props: Props) => {
               <CustomButton
                 label="Continuez"
                 action={() => {
-                  if (selectedUser && date && selectedDress) {
+                  if (canContinueToMeasurements) {
                     present();
                   }
                   // router.push('/DressMeasure')
                 }}
-                disabled={selectedUser && date && selectedHour && selectedMinute && selectedDress ? true : false}
+                disabled={canContinueToMeasurements}
+                pressDisabled={!canContinueToMeasurements}
               />
             </View>
           
@@ -939,16 +961,17 @@ const Page = (props: Props) => {
           </View>
 
           <View style={[styles.screen, {  padding: Rs(16) }]}>
-            <View
-              style={{
-                width: "100%",
-                height: "100%",
-                backgroundColor: "#ffffff",
-              }}
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              keyboardVerticalOffset={Platform.OS === "ios" ? Rs(24) : 0}
+              style={styles.measureKeyboardAvoider}
             >
               <ScrollView
+                automaticallyAdjustKeyboardInsets
+                contentContainerStyle={billingScrollContentStyle}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="interactive"
               >
                 <ThemedText
                   style={{
@@ -1023,15 +1046,16 @@ const Page = (props: Props) => {
 
                   <View style={{ marginHorizontal: 20, marginVertical: 6 }}>
                     <CustomButton
-                      label="Enregister"
-                      action={() => quantity && amount ? handleSubmit() : null}
+                      label="Enregistrer"
+                      action={() => canSaveOrder ? handleSubmit() : null}
                       loading={isPending}
-                      disabled={quantity || amount? true : false}
+                      disabled={canSaveOrder}
+                      pressDisabled={!canSaveOrder}
                     />
                   </View>
                 </View>
               </ScrollView>
-            </View>
+            </KeyboardAvoidingView>
           </View>
 
           {/* model and image pick bottomsheet*/}
@@ -1214,6 +1238,10 @@ const styles = StyleSheet.create({
   measureStepScrollContent: {
     flexGrow: 1,
     paddingBottom: Rs(220),
+  },
+  billingStepScrollContent: {
+    flexGrow: 1,
+    paddingBottom: Rs(180),
   },
   measureKeyboardAvoider: {
     flex: 1,

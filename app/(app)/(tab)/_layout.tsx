@@ -26,7 +26,7 @@ export default function AppLayout() {
 
   async function handleManageToken() {
     try {
-      const token = await axios.post(`${baseURL}/notif-token/verify`,{
+      const token = await axios.post(`${baseURL}/token/verify`,{
         token: notify_token,
         tokloManId: user?.id,
       });

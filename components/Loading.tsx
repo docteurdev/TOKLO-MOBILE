@@ -1,13 +1,20 @@
 import { Colors } from '@/constants/Colors';
-import React from 'react';
-import { 
-  View, 
-  Modal,
+import React, { useEffect } from 'react';
+import {
+  Image,
   StyleSheet,
   Text,
-  ModalProps
+  View
 } from 'react-native';
-import { Swing } from 'react-native-animated-spinkit';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 /**
  * Props for the LoadingScreen component
@@ -65,7 +72,6 @@ interface LoadingScreenProps {
  * A simple loading overlay component using Modal and Swing animation
  */
 const LoadingScreen: React.FC<LoadingScreenProps> = ({
-  visible = true,
   backgroundColor = 'white',
   indicatorColor = Colors.app.primary,
   indicatorSize = 48,
@@ -74,12 +80,47 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
   animationType = 'slide',
   transparent = true,
 }) => {
+  const rotation = useSharedValue(0);
+
+  useEffect(() => {
+    rotation.value = 0;
+    rotation.value = withRepeat(
+      withSequence(
+        withTiming(1, {
+          duration: 2200,
+          easing: Easing.linear,
+        }),
+        withTiming(0, { duration: 0 }),
+      ),
+      -1,
+      false,
+    );
+
+    return () => cancelAnimation(rotation);
+  }, [rotation]);
+
+  const loaderAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value * 360}deg` }],
+  }));
+
   return (
     <View style={[styles.container, { backgroundColor }]}>
-        <Swing 
+        {/* <Swing 
           size={indicatorSize} 
           color={Colors.app.primary}
-        />
+        /> */}
+        <Animated.View style={[styles.imageContainer, loaderAnimatedStyle]}>
+          <Image
+            resizeMode="contain"
+            source={require('@/assets/images/measure/cauri.png')}
+            style={styles.image}
+          />
+          <Image
+            resizeMode="contain"
+            source={require('@/assets/images/measure/cauri.png')}
+            style={[styles.image, styles.perpendicularImage]}
+          />
+        </Animated.View>
         
         {message && (
           <Text style={[styles.message, { color: textColor }]}>
@@ -104,7 +145,22 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
     fontWeight: '500',
-  }
+  },
+  image: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+  },
+  imageContainer: {
+    width: 150,
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  perpendicularImage: {
+    transform: [{ rotate: '90deg' }],
+  },
 });
 
 export default LoadingScreen;
