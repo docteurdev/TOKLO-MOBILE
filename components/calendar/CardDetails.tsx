@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BanknotesIcon, Bars2Icon, CalendarDaysIcon, CalendarIcon, ClockIcon, MinusCircleIcon, PhoneIcon, Square3Stack3DIcon, SunIcon, UserIcon } from 'react-native-heroicons/solid';
 import Animated, { FadeInLeft, FadeOutRight } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { DisplayMeasure } from '../dress/DisplayMeasure';
 import ItemChild from '../dress/ItemChild';
 
@@ -193,15 +193,38 @@ const normalizeMeasureSections = (measure: unknown): MeasureSection[] => {
 };
 
 const MeasurePartIcon = ({ part, color }: { part: string; color: string }) => {
+  const size = Rs(22);
+  const strokeWidth = 1.65;
+
   if (part === 'haut') {
     return (
-      <Svg width={Rs(17)} height={Rs(17)} viewBox="0 0 24 24" fill="none">
+      <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
         <Path
-          d="M8 4 4 7l3 4 2-1v10h6V10l2 1 3-4-4-3-2 2h-4L8 4Z"
+          d="M11.4 5.5 5.7 9.3l3.7 6 3-1.7v12.1h7.2V13.6l3 1.7 3.7-6-5.7-3.8-2.8 2.8h-3.6l-2.8-2.8Z"
+          fill={color}
+          opacity={0.12}
+        />
+        <Path
+          d="M11.4 5.5 5.7 9.3l3.7 6 3-1.7v12.1h7.2V13.6l3 1.7 3.7-6-5.7-3.8-2.8 2.8h-3.6l-2.8-2.8Z"
           stroke={color}
-          strokeWidth={1.8}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
+        />
+        <Path
+          d="M13.5 8.6c.5 1 1.4 1.7 2.5 1.7s2-.7 2.5-1.7M12.4 17.7h7.2M12.4 21.3h7.2"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={0.8}
+        />
+        <Path
+          d="M8.7 9.3c.9.9 1.8 1.6 2.7 2M23.3 9.3c-.9.9-1.8 1.6-2.7 2"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          opacity={0.55}
         />
       </Svg>
     );
@@ -209,25 +232,64 @@ const MeasurePartIcon = ({ part, color }: { part: string; color: string }) => {
 
   if (part === 'bas') {
     return (
-      <Svg width={Rs(17)} height={Rs(17)} viewBox="0 0 24 24" fill="none">
+      <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
         <Path
-          d="M8 4h8l1 16h-4l-1-8-1 8H7L8 4Z"
+          d="M10.5 5.4h11L23.1 26h-5.4L16 15.8 14.3 26H8.9l1.6-20.6Z"
+          fill={color}
+          opacity={0.12}
+        />
+        <Path
+          d="M10.5 5.4h11L23.1 26h-5.4L16 15.8 14.3 26H8.9l1.6-20.6Z"
           stroke={color}
-          strokeWidth={1.8}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
         <Path
-          d="M12 4v8"
+          d="M16 5.4v10.4M10.9 9h10.2M12.2 13.2h2.1M17.7 13.2h2.1"
           stroke={color}
-          strokeWidth={1.8}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={0.8}
         />
+        <Circle cx={13.1} cy={7.1} r={0.75} fill={color} opacity={0.75} />
+        <Circle cx={18.9} cy={7.1} r={0.75} fill={color} opacity={0.75} />
       </Svg>
     );
   }
 
-  return <Square3Stack3DIcon fill={color} size={Rs(15)} />;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+      <Path
+        d="M16 4.5 7.2 8.7 16 13l8.8-4.3L16 4.5Z"
+        fill={color}
+        opacity={0.14}
+      />
+      <Path
+        d="M7.2 8.7 16 13l8.8-4.3M7.2 8.7V19.2L16 23.5l8.8-4.3V8.7"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M16 13v10.5M10.2 15.1l3 1.4M21.8 15.1l-3 1.4"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.75}
+      />
+      <Path
+        d="M10.7 25.7c2.8 1.4 7.8 1.4 10.6 0"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        opacity={0.55}
+      />
+    </Svg>
+  );
 };
 
 const TabButton = ({ title, isActive, onTabPress }:{title: string, isActive: string, onTabPress: () => void}) => (

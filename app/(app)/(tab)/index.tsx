@@ -197,7 +197,6 @@ const DeliveredList = () => {
   if (isLoading) {
     return  <LoadingScreen 
             visible={isLoading}
-            // backgroundColor="rgba(0, 0, 0, 0.7)"
             indicatorColor="#FFFFFF"
             indicatorSize={48}
             message=""
