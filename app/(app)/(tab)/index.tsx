@@ -3,20 +3,19 @@ import PaymentInterface from '@/components/calendar/CardDetails';
 import PaymentDetails from '@/components/calendar/OrderDetail';
 import LoadingScreen from '@/components/Loading';
 import ScreenWrapper from '@/components/ScreenWrapper';
-import EmptyAppoint from '@/components/svgCompo/EmptyAppoint';
 import { Colors } from '@/constants/Colors';
 import { QueryKeys } from '@/interfaces/queries-key';
 import { EDressStatus, IOrder } from '@/interfaces/type';
 import { useOrderStore } from '@/stores/order';
-import { baseURL } from '@/util/axios';
-import { colors, Rs, SIZES } from '@/util/comon';
+import { base, baseURL } from '@/util/axios';
+import { formatXOF, Rs, SIZES } from '@/util/comon';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import React, { useRef, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AgendaList, Calendar, LocaleConfig } from 'react-native-calendars';
-import { ClockIcon, PhoneIcon, SparklesIcon, UserIcon } from 'react-native-heroicons/solid';
 
 import { useUserStore } from '@/stores/user';
 
@@ -56,6 +55,8 @@ type AgendaOrderItemProps = {
   onPress: (order: IOrder) => void;
 };
 
+type MaterialIconName = keyof typeof MaterialCommunityIcons.glyphMap;
+
 const getOrderStatus = (order: IOrder) => {
   return typeof order.status === 'string' ? order.status : order.status?.status;
 };
@@ -72,39 +73,207 @@ const normalizeOrderStatus = (status: IOrder['status'] | EDressStatus | string |
   return status.status;
 };
 
-const AgendaOrderItem = ({ item, onPress }: AgendaOrderItemProps) => {
-  const backgroundColor =
-    getOrderStatus(item.data) === "ONGOING"
-      ? colors.lightOrange
-      : Colors.app.available.av_bg;
+const formatDisplayDate = (dateString: string) => {
+  if (!dateString) {
+    return '';
+  }
+
+  const [day, month, year] = dateString.split('/');
+  const monthName = LocaleConfig.locales.fr.monthNames[Number(month) - 1];
+
+  return monthName ? `${Number(day)} ${monthName} ${year}` : dateString;
+};
+
+const getOrderTitle = (item: CalendarAgendaItem) => {
+  return item.name || 'Commande couture';
+};
+
+const getClientName = (order: IOrder) => {
+  return `${order.client_name ?? ''} ${order.client_lastname ?? ''}`.trim() || 'Client Toklo';
+};
+
+const getOrderAmount = (order: IOrder) => {
+  const amount = Number(order.amount);
+  const quantity = Number(order.quantite || 1);
+  const fallback = Number(order.solde_cal || 0);
+  const total = Number.isFinite(amount) && amount > 0 ? amount * (Number.isFinite(quantity) && quantity > 0 ? quantity : 1) : fallback;
+
+  return formatXOF(total);
+};
+
+const getStatusLabel = (order: IOrder) => {
+  const status = getOrderStatus(order);
+
+  if (status === EDressStatus.DELIVERED) {
+    return 'LIVRÉE';
+  }
+
+  if (status === EDressStatus.FINISHED) {
+    return 'TERMINÉE';
+  }
+
+  return 'EN COURS';
+};
+
+const getStatusColors = (order: IOrder) => {
+  const status = getOrderStatus(order);
+
+  if (status === EDressStatus.DELIVERED) {
+    return {
+      backgroundColor: Colors.app.available.av_bg,
+      textColor: Colors.app.available.av_txt,
+    };
+  }
+
+  if (status === EDressStatus.FINISHED) {
+    return {
+      backgroundColor: '#EAF5FF',
+      textColor: Colors.app.dashitem.t_2,
+    };
+  }
+
+  return {
+    backgroundColor: '#FFF4DB',
+    textColor: Colors.app.primary,
+  };
+};
+
+const getGarmentIcon = (title: string): MaterialIconName => {
+  const normalizedTitle = title.toLowerCase();
+
+  if (normalizedTitle.includes('pantalon')) {
+    return 'human-male-height';
+  }
+
+  if (normalizedTitle.includes('chemise')) {
+    return 'tshirt-crew-outline';
+  }
+
+  if (normalizedTitle.includes('robe')) {
+    return 'hanger';
+  }
+
+  if (normalizedTitle.includes('veste')) {
+    return 'coat-rack';
+  }
+
+  return 'hanger';
+};
+
+const compactCalendarTheme = {
+  calendarBackground: '#fff',
+  textDayFontSize: Rs(12),
+  textMonthFontSize: Rs(14),
+  textDayHeaderFontSize: Rs(10),
+  textDayFontWeight: '500',
+  textMonthFontWeight: '700',
+  textSectionTitleColor: Colors.app.texteLight,
+  monthTextColor: Colors.app.texte,
+  dayTextColor: Colors.app.texte,
+  arrowColor: Colors.app.primary,
+  todayTextColor: Colors.app.primary,
+  selectedDayBackgroundColor: Colors.app.primary,
+  weekVerticalMargin: 0,
+  'stylesheet.calendar.main': {
+    week: {
+      marginVertical: 0,
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+    },
+  },
+  'stylesheet.day.basic': {
+    base: {
+      width: Rs(26),
+      height: Rs(26),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    selected: {
+      borderRadius: Rs(13),
+    },
+    today: {
+      borderRadius: Rs(13),
+    },
+    text: {
+      marginTop: 0,
+      fontSize: Rs(12),
+    },
+  },
+} as const;
+
+const OrderCard = ({ item, onPress }: AgendaOrderItemProps) => {
+  const title = getOrderTitle(item);
+  const statusColors = getStatusColors(item.data);
 
   return (
     <TouchableOpacity
-      style={[styles.agendaItem, { backgroundColor }]}
+      activeOpacity={0.88}
+      style={styles.orderCard}
       onPress={() => onPress(item.data)}
     >
-      <Image
-        resizeMode="cover"
-        style={styles.traditionStyle}
-        source={require("@/assets/images/measure/tradition.png")}
-      />
-      <View style={styles.agendaItemContent}>
-        <View style={styles.agendaItemRow}>
-          <ClockIcon fill={Colors.app.primary} size={Rs(18)} />
-          <Text style={styles.agendaItemTime}>{item.time}</Text>
+      <View style={styles.orderPatternTop}>
+        <Image style={{width: 100, height: 100}} source={require("@/assets/images/measure/app-bar.png")} />
+      </View>
+      <View style={styles.orderPatternBottom}>
+        <Image style={{width: 100, height: 100}} source={require("@/assets/images/measure/app-bar.png")} />
+      </View>
+
+      <View style={styles.orderMain}>
+        <View style={styles.garmentIconBox}>
+          {item.data.photos ? (
+            <Image
+              resizeMode="cover"
+              source={{ uri: base+"uploads/"+ item.data.tissus }}
+              style={styles.garmentImage}
+            />
+          ) : (
+            <MaterialCommunityIcons
+              name={getGarmentIcon(title)}
+              size={Rs(36)}
+              color={Colors.app.primary}
+            />
+          )}
         </View>
-        <View style={styles.agendaItemRow}>
-          <SparklesIcon fill={Colors.app.primary} size={Rs(18)} />
-          <Text style={styles.agendaItemName}>{item.name}</Text>
+
+        <View style={styles.orderContent}>
+          <Text style={styles.orderTitle} numberOfLines={1}>
+            {title}
+          </Text>
+          <View style={styles.orderInfoRow}>
+            <Feather name="user" size={Rs(14)} color="#4E4A43" />
+            <Text style={styles.orderInfoText} numberOfLines={1}>{getClientName(item.data)}</Text>
+          </View>
+          <View style={styles.orderInfoRow}>
+            <Feather name="phone" size={Rs(14)} color="#4E4A43" />
+            <Text style={styles.orderInfoText} numberOfLines={1}>{item.data.client_phone}</Text>
+          </View>
+          <View style={styles.orderMetaRow}>
+            <View style={styles.orderMetaItem}>
+              <Feather name="calendar" size={Rs(13)} color="#666" />
+              <Text style={styles.orderDateText} numberOfLines={1}>{formatDisplayDate(item.originalDate)}</Text>
+            </View>
+            
+          </View>
         </View>
-        <View style={styles.agendaItemRow}>
-          <UserIcon fill={Colors.app.primary} size={Rs(18)} />
-          <Text style={styles.agendaItemDetail}>Client: {item.data.client_name}</Text>
+      </View>
+
+      <View style={styles.orderSide}>
+        <View style={[styles.statusBadge, { backgroundColor: statusColors.backgroundColor }]}>
+          <Text style={[styles.statusBadgeText, { color: statusColors.textColor }]}>
+            {getStatusLabel(item.data)}
+          </Text>
         </View>
-        <View style={styles.agendaItemRow}>
-          <PhoneIcon fill={Colors.app.primary} size={Rs(18)} />
-          <Text style={styles.agendaItemDetail}>Téléphone: {item.data.client_phone}</Text>
+
+        <View style={styles.sideAmount}>
+          <Feather name="credit-card" size={Rs(15)} color={Colors.app.primary} />
+          <Text style={styles.sideAmountText} numberOfLines={1}>{getOrderAmount(item.data)}</Text>
         </View>
+
+       <View style={styles.orderMetaItem}>
+              <Feather name="clock" size={Rs(13)} color="#FF3B30" />
+              <Text style={styles.orderTimeText}>{item.time}</Text>
+        </View>
+
       </View>
     </TouchableOpacity>
   );
@@ -181,18 +350,21 @@ const DeliveredList = () => {
 
   const transformedData = data ? transformData(data) : {};
   const agendaItems = transformedData[selectedDate] || [];
+  const hasAgendaItems = agendaItems.length > 0;
 
   const markedDates = Object.keys(transformedData).reduce((acc, date) => {
     acc[date] = { selected: true, selectedColor: Colors.app.primary,  };
     return acc;
   }, {} as { [key: string]: { selected: boolean; selectedColor: string } });
 
-  const sections = [
-    {
-      title: selectedDate,
-      data: agendaItems,
-    },
-  ];
+  const sections = hasAgendaItems
+    ? [
+        {
+          title: selectedDate,
+          data: agendaItems,
+        },
+      ]
+    : [];
 
   if (isLoading) {
     return  <LoadingScreen 
@@ -217,6 +389,8 @@ const DeliveredList = () => {
           sections={sections}
           ListHeaderComponent={
             <Calendar
+              style={styles.calendar}
+              theme={compactCalendarTheme}
               onDayPress={(day) => {
                 setSelectedDate(day.dateString);
               }}
@@ -227,11 +401,15 @@ const DeliveredList = () => {
             />
           }
           renderItem={({ item }) => (
-            <AgendaOrderItem item={item} onPress={handleOpenSheet} />
+            <OrderCard item={item} onPress={handleOpenSheet} />
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <EmptyAppoint />
+              <Image
+                resizeMode='cover'
+                source={require('@/assets/images/empty-order.png')}
+                style={styles.emptyOrderImage}
+              />
               <Text style={styles.emptyText}>Pas d&apos;évènements pour cette date.</Text>
             </View>
           }
@@ -291,47 +469,194 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: Rs(24),
   },
-  agendaItem: {
-    padding: Rs(16),
-    paddingLeft: Rs(34),
+  calendar: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ccc',
-    position: "relative",
-    minHeight: Rs(120),
-    overflow: "hidden",
-    marginBottom: 10
+    borderBottomColor: '#EEE',
+    paddingBottom: Rs(4),
   },
-  agendaItemContent: {
+  orderCard: {
+    width: '100%',
+    height: Rs(120),
+    backgroundColor: '#FFFFFF',
+    borderRadius: Rs(1),
+    marginBottom: Rs(12),
+    padding: Rs(14),
+    flexDirection: 'row',
+    overflow: 'hidden',
+    position: 'relative',
+    boxShadow: '0px 5px 16px rgba(33, 26, 19, 0.05)',
+  },
+  orderMain: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingRight: Rs(10),
     zIndex: 1,
-    gap: Rs(6),
   },
-  agendaItemRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Rs(8),
+  garmentIconBox: {
+    width: Rs(50),
+    height: Rs(50),
+    borderRadius: Rs(18),
+    backgroundColor: '#FFF8EF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Rs(12),
+    overflow: 'hidden',
   },
-  agendaItemTime: {
-    fontSize: SIZES.sm,
-    color: Colors.app.error,
+  garmentImage: {
+    width: '100%',
+    height: '100%',
   },
-  agendaItemName: {
+  orderContent: {
+    flex: 1,
+    paddingTop: Rs(2),
+  },
+  orderTitle: {
+    color: '#222222',
     fontSize: SIZES.md,
-    fontWeight: 'bold',
-    marginTop: Rs(4),
+    fontWeight: '700',
+    letterSpacing: 0,
+    marginBottom: Rs(11),
   },
-  agendaItemDetail: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: Rs(4),
+  orderInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Rs(7),
+    marginBottom: Rs(6),
+  },
+  orderInfoText: {
+    flex: 1,
+    color: '#4E4A43',
+    fontSize: SIZES.xs,
+    fontWeight: '500',
+  },
+  orderMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: Rs(8),
+    marginTop: Rs(8),
+  },
+  orderMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Rs(5),
+  },
+  orderDateText: {
+    color: '#666666',
+    fontSize: Rs(12),
+    fontWeight: '600',
+  },
+  orderTimeText: {
+    color: '#FF3B30',
+    fontSize: Rs(12),
+    fontWeight: '700',
+  },
+  orderSide: {
+    width: Rs(116),
+    borderLeftWidth: 1,
+    borderLeftColor: '#EFE7D8',
+    paddingLeft: Rs(12),
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    zIndex: 1,
+    marginLeft: 15
+  },
+  statusBadge: {
+    borderRadius: Rs(999),
+    paddingHorizontal: Rs(12),
+    paddingVertical: Rs(6),
+    alignSelf: 'flex-start',
+  },
+  statusBadgeText: {
+    fontSize: Rs(9),
+    fontWeight: '800',
+    letterSpacing: 0,
+  },
+  sideMetric: {
+    alignItems: 'flex-start',
+  },
+  sideMetricValue: {
+    color: '#222222',
+    fontSize: Rs(22),
+    fontWeight: '800',
+    marginTop: Rs(2),
+  },
+  sideMetricLabel: {
+    color: '#756B5C',
+    fontSize: SIZES.xs,
+    fontWeight: '600',
+  },
+  sideAmount: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Rs(5),
+  },
+  sideAmountText: {
+    flex: 1,
+    color: '#222222',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  detailsLink: {
+    color: Colors.app.primary,
+    fontSize: Rs(11),
+    fontWeight: '700',
+  },
+  orderPatternTop: {
+    position: 'absolute',
+    right: Rs(-8),
+    top: Rs(-44),
+    width: Rs(40),
+    height: Rs(42),
+    transform: [{ rotate: '45deg' }],
+  },
+  orderPatternBottom: {
+    position: 'absolute',
+    left: Rs(-12),
+    bottom: Rs(25),
+    width: Rs(40),
+    height: Rs(42),
+    transform: [{ rotate: '45deg' }],
+  },
+  orderPatternDiamond: {
+    position: 'absolute',
+    top: Rs(6),
+    right: Rs(8),
+    width: Rs(12),
+    height: Rs(12),
+    borderWidth: 1,
+    borderColor: Colors.app.primary,
+    transform: [{ rotate: '45deg' }],
+  },
+  orderPatternDiamondSmall: {
+    top: Rs(22),
+    right: Rs(22),
+    width: Rs(8),
+    height: Rs(8),
+  },
+  orderPatternLine: {
+    position: 'absolute',
+    right: Rs(4),
+    bottom: Rs(5),
+    width: Rs(30),
+    height: 1,
+    backgroundColor: Colors.app.primary,
   },
   emptyContainer: {
     flex: 1,
+    minHeight: Rs(320),
     justifyContent: 'center',
     alignItems: 'center',
     padding: Rs(16),
   },
+  emptyOrderImage: {
+    width: Rs(200),
+    height: Rs(200),
+    marginBottom: Rs(12),
+  },
   emptyText: {
-    fontSize: Rs(16),
+    fontSize: Rs(14),
     color: '#666',
   },
   errorText: {
@@ -339,11 +664,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: Rs(20),
   },
-  traditionStyle: {
-    height: 180,
-    width: Rs(10),
-    position: "absolute",
-    left: 0,
-    top: -10,
-  }
 });
