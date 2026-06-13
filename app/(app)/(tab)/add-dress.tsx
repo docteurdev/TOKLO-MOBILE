@@ -496,6 +496,16 @@ const Page = (props: Props) => {
     setpaiement(value);
   }, []);
 
+  const formatSelectedTime = (hour: number | null, minute: number | null) => {
+  if (hour === null || minute === null) {
+    return "";
+  }
+
+  return `${hour.toString().padStart(2, "0")}:${minute
+    .toString()
+    .padStart(2, "0")}`;
+};
+
     const handleSubmit = async () => {
       Keyboard.dismiss();
 
@@ -510,7 +520,7 @@ const Page = (props: Props) => {
       formData.append("measure", JSON.stringify(measureValuesForSubmit)); 
       formData.append("date_depote", new Date().toLocaleDateString('fr-FR')) 
       formData.append("date_remise", date?.toLocaleDateString('fr-FR') || "" );
-      formData.append("deliveryHour", `${selectedHour}:${selectedMinute}`);
+      formData.append("deliveryHour", formatSelectedTime(selectedHour,selectedMinute));
       formData.append("amount", amount); 
       formData.append("paiement", paiement); 
       formData.append("description", `${selectedDress?.nom}, ${selectedDress?.genre}`); 
@@ -521,15 +531,14 @@ const Page = (props: Props) => {
       formData.append("solde_cal", solde); 
 
   
-      // Append required fields
       if(user?.id){formData.append("toklo_menid", user.id.toString())};
 
       formData.append("status", "ONGOING");
-       // Ensure this is a valid number (converted to string)
-      formData.append("client_id", selectedUser?.id?.toString() ?? ""); // Ensure this is a valid number (converted to string)
-      formData.append("client_name", selectedUser?.name || ""); // Ensure this is a valid number (converted to string)
-      formData.append("client_lastname", selectedUser?.lastname || ""); // Ensure this is a valid number (converted to string)
-      formData.append("client_phone", selectedUser?.telephone || ""); // Ensure this is a valid number (converted to string)
+
+      formData.append("client_id", selectedUser?.id?.toString() ?? ""); 
+      formData.append("client_name", selectedUser?.name || ""); 
+      formData.append("client_lastname", selectedUser?.lastname || ""); 
+      formData.append("client_phone", selectedUser?.telephone || ""); 
       formData.append("notifToken", notify_token || " ");
 
       formData.append("notif_monrning", user?.notif_monrning || defaultRemindTime.notif_monrning);

@@ -435,7 +435,7 @@ const Page = () => {
           >
             <CustomButton
               label='Sauvegarder'
-              disabled={isPending}
+              disabled={true}
               loading={isPending}
               action={saveSettings}
             />

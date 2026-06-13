@@ -8,9 +8,7 @@ const devFallbackBase =
 const prodFallbackBase = "https://toklo.allons-y.ci/";
 const configuredBase = process.env.EXPO_PUBLIC_API_URL;
 
-export const base = (
-  configuredBase ?? (__DEV__ ? devFallbackBase : prodFallbackBase)
-).replace(/\/?$/, "/");
+export const base = (configuredBase ?? prodFallbackBase).replace(/\/?$/, "/");
 export const baseURL = base + "api";
 
 export const apiClient = create({

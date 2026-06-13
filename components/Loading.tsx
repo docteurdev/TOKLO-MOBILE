@@ -1,4 +1,3 @@
-import { Colors } from '@/constants/Colors';
 import React, { useEffect } from 'react';
 import {
   Image,
@@ -12,7 +11,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -73,35 +71,30 @@ interface LoadingScreenProps {
  */
 const LoadingScreen: React.FC<LoadingScreenProps> = ({
   backgroundColor = 'white',
-  indicatorColor = Colors.app.primary,
-  indicatorSize = 48,
   message,
   textColor = '#FFFFFF',
-  animationType = 'slide',
-  transparent = true,
 }) => {
-  const rotation = useSharedValue(0);
+  const pulseProgress = useSharedValue(0);
 
   useEffect(() => {
-    rotation.value = 0;
-    rotation.value = withRepeat(
-      withSequence(
-        withTiming(1, {
-          duration: 2200,
-          easing: Easing.linear,
-        }),
-        withTiming(0, { duration: 0 }),
-      ),
+    pulseProgress.value = 0;
+    pulseProgress.value = withRepeat(
+      withTiming(1, { duration: 900, easing: Easing.inOut(Easing.ease) }),
       -1,
       false,
     );
 
-    return () => cancelAnimation(rotation);
-  }, [rotation]);
+    return () => cancelAnimation(pulseProgress);
+  }, [pulseProgress]);
 
-  const loaderAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value * 360}deg` }],
-  }));
+  const loaderAnimatedStyle = useAnimatedStyle(() => {
+    const pulse = Math.sin(pulseProgress.value * Math.PI);
+
+    return {
+      opacity: 0.9 + pulse * 0.1,
+      transform: [{ scale: 1 + pulse * 0.06 }],
+    };
+  });
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
@@ -112,14 +105,14 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
         <Animated.View style={[styles.imageContainer, loaderAnimatedStyle]}>
           <Image
             resizeMode="contain"
-            source={require('@/assets/images/measure/cauri.png')}
+            source={require('@/assets/images/buton.png')}
             style={styles.image}
           />
-          <Image
+          {/* <Image
             resizeMode="contain"
             source={require('@/assets/images/measure/cauri.png')}
             style={[styles.image, styles.perpendicularImage]}
-          />
+          /> */}
         </Animated.View>
         
         {message && (

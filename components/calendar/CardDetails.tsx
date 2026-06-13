@@ -1,6 +1,7 @@
 import { Colors } from '@/constants/Colors';
 import { base } from '@/util/axios';
 import { formatXOF, Rs, SCREEN_W, SIZES } from '@/util/comon';
+import { formatHour } from '@/utils';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BanknotesIcon, Bars2Icon, CalendarDaysIcon, CalendarIcon, ClockIcon, MinusCircleIcon, PhoneIcon, Square3Stack3DIcon, SunIcon, UserIcon } from 'react-native-heroicons/solid';
@@ -350,14 +351,14 @@ const PaymentInterface = ({clientfullname, clientphone, dresstype, tissu, fabric
 
            <ItemChild label={`Reception : `+ date_depot} icon={<CalendarDaysIcon fill={Colors.app.primary} size={Rs(23)} />} />
            <ItemChild label={`Livraison : `+ date_remise} icon={<CalendarIcon fill={Colors.app.primary} size={Rs(23)} />} />
-           <ItemChild label={`Heure de livraison : ${deliveryHour}`} icon={<ClockIcon fill={Colors.app.primary} size={Rs(23)} />} />
+           <ItemChild label={`Heure de livraison : ${formatHour(deliveryHour)}`} icon={<ClockIcon fill={Colors.app.primary} size={Rs(23)} />} />
          </CardItem>
 
          <CardItem>
            <ItemChild label={`Vêtement: ${dresstype}`} icon={<SunIcon fill={Colors.app.primary} size={Rs(23)} />} />
           
            <ItemChild label={`Quantité: ( ${quantity} )`} icon={<Square3Stack3DIcon fill={Colors.app.primary} size={Rs(23)} />} />
-           <ItemChild label={`Total: ${formatXOF(Number(price) * Number(quantity))}`} icon={<BanknotesIcon fill={Colors.app.primary} size={Rs(23)} />} />
+           <ItemChild label={`Total: ${formatXOF(Number(price))}`} icon={<BanknotesIcon fill={Colors.app.primary} size={Rs(23)} />} />
            <ItemChild label={`Prix unitaire: ${formatXOF(Number(price))}`} icon={<BanknotesIcon fill={Colors.app.primary} size={Rs(23)} />} />
            <ItemChild label={`Avance: ( ${formatXOF(Number(paid))} )`} icon={<MinusCircleIcon fill={Colors.app.primary} size={Rs(23)} />} />
            <ItemChild label={`Solde: ( ${formatXOF(Number(solde))} )`} icon={<Bars2Icon fill={Colors.app.primary} size={Rs(23)} />} />
@@ -368,17 +369,21 @@ const PaymentInterface = ({clientfullname, clientphone, dresstype, tissu, fabric
 
           <Text>Tissu</Text>
 
-             {tissu && 
-                 <Image style={{width: SCREEN_W * 0.8 , aspectRatio: 1, alignSelf: "center", borderRadius: Rs(10)}}
+             {tissu ? (
+                 <Image style={styles.mediaImage}
                   source={{uri:base+"uploads/"+tissu}}  /> 
-             }
+             ) : (
+               <Text style={styles.mediaEmptyText}>Aucune photo du tissu</Text>
+             )}
 
          <Text>Modèle</Text>
 
-         {fabric && 
-             <Image style={{width: SCREEN_W * 0.8 , aspectRatio: 1, alignSelf: "center", borderRadius: Rs(10)}}
+         {fabric ? (
+             <Image style={styles.mediaImage}
               source={{uri:base+"uploads/"+fabric}}  /> 
-         }
+         ) : (
+           <Text style={styles.mediaEmptyText}>Aucune photo du modèle</Text>
+         )}
           
         </CardItem>}
 
@@ -550,6 +555,20 @@ const styles = StyleSheet.create({
     fontSize: SIZES.sm,
     textAlign: 'center',
     paddingVertical: Rs(12),
+  },
+  mediaImage: {
+    width: SCREEN_W * 0.8,
+    aspectRatio: 1,
+    alignSelf: "center",
+    borderRadius: Rs(10),
+  },
+  mediaEmptyText: {
+    color: Colors.app.texteLight,
+    fontSize: SIZES.sm,
+    textAlign: 'center',
+    paddingVertical: Rs(20),
+    backgroundColor: Colors.app.secondary,
+    borderRadius: Rs(10),
   },
   cardLeft: {
     flexDirection: 'row',

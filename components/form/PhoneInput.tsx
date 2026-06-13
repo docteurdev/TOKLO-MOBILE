@@ -38,7 +38,7 @@ const normalizeCountriesResponse = (data: unknown): PhoneCountry[] => {
   return [];
 };
 
-const PhoneInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, touched, keyboardType, isPassword, placeholder }: Props) => {
+const PhoneInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, touched, keyboardType, isPassword, placeholder, onFocus }: Props) => {
   const [isPw, setIsPw] = React.useState(isPassword);
   const [isFocused, setIsFocused] = React.useState(false);
   const [isCountryModalVisible, setIsCountryModalVisible] = React.useState(false);
@@ -135,9 +135,10 @@ const PhoneInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, 
             setIsFocused(false);
             handleOnBlur(e);
           }}
-          onFocus={() => {
+          onFocus={(event) => {
             setIsFocused(true);
             formScroll?.scrollToInput(inputRef);
+            onFocus?.(event);
           }}
         />
       </View>
@@ -172,7 +173,7 @@ const PhoneInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, 
                   <Image source={{ uri: item.flag }} style={styles.countryFlag} />
                   <Text style={styles.countryName}>{item.name}</Text>
                   <Text style={styles.countryDialCode}>
-                    {item.dialCode} · {item.phoneLength}
+                    {item.dialCode}
                   </Text>
                 </Pressable>
               )}

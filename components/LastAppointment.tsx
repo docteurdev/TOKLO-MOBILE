@@ -4,6 +4,7 @@ import { IOrder } from '@/interfaces/type';
 import { useUserStore } from '@/stores/user';
 import { baseURL } from '@/util/axios';
 import { colors, Rs, SIZES } from '@/util/comon';
+import { formatHour } from '@/utils';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
@@ -65,7 +66,7 @@ const LastAppointment = () => {
           </View>
           <View style={styles.infoItem}>
             <MaterialIcons name="access-time" size={27} color={Colors.app.dashitem.t_1} />
-            <Text style={styles.infoText}>{order.deliveryHour ?? ""}</Text>
+            <Text style={styles.infoText}>{formatHour(order.deliveryHour) ?? ""}</Text>
           </View>
         </View>
            <Image style={{position: "absolute", bottom: 0, left: -12}} height={100} width={40} source={require("@/assets/images/measure/tradition.png")} />      

@@ -40,7 +40,7 @@ export const colors = {
   grayText: "#1F2C37",
   black: "#000",
   green: "#1E9600",
-  orange: "#f5af19",
+  orange: "#fcac02", //"#f5af19",
   lightOrange: "#f2ca810b",
   yellow: "#FACC15",
   purple: "#ad5389",

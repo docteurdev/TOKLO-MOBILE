@@ -1,9 +1,8 @@
 import * as Yup from "yup";
 import { getPhoneCountryByValue, getPhoneLocalDigits } from "../phoneCountries";
 
-const phoneByCountrySchema = Yup.string()
-  .required("Entrez votre numéro de téléphone")
-  .test("valid-country-phone", function (value) {
+const createPhoneByCountrySchema = (requiredMessage: string) =>
+  Yup.string().test("valid-country-phone", function (value) {
     if (!value) return true;
 
     const country = getPhoneCountryByValue(value);
@@ -31,6 +30,13 @@ const phoneByCountrySchema = Yup.string()
 
     return true;
   });
+
+const phoneByCountrySchema = createPhoneByCountrySchema(
+  "Entrez votre numéro de téléphone",
+);
+const whatsappByCountrySchema = createPhoneByCountrySchema(
+  "Entrez votre numéro WhatsApp",
+);
 
 const personNameSchema = (fieldName: string) =>
   Yup.string()
@@ -135,9 +141,6 @@ export const StoreSchema = Yup.object().shape({
   store_slogan: Yup.string().min(2, "Trop court!").max(100, "Trop long!"),
   //  .required('Le nom de la boutique est requis'),
   phone: phoneByCountrySchema,
-  whatsapp: Yup.string()
-    .matches(/^[0-9]+$/, "Doit être uniquement des chiffres")
-    .min(8, "Trop court!")
-    .max(15, "Trop long!"),
+  whatsapp: whatsappByCountrySchema,
   location: Yup.string(),
 });
