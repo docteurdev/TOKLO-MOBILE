@@ -70,6 +70,7 @@ export default function Page() {
     <FormWrapper>
       <BackButton backAction={() => router.back()} />
       <FormBanner
+      isLogo
         title="Mot de passe oublié"
         subtitle="Entrez votre numéro de téléphone pour recevoir le code de réinitialisation de mot de passe"
       />

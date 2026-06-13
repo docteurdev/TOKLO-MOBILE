@@ -1,165 +1,143 @@
-import { QueryKeys } from '@/interfaces/queries-key';
-import { IPlan, ISubscription } from '@/interfaces/type';
-import { baseURL } from '@/util/axios';
-import { formatXOF } from '@/util/comon';
+import LoadingScreen from "@/components/Loading";
+import PaymentLottieCompo from "@/components/PaymentLottieCompo";
+import { QueryKeys } from "@/interfaces/queries-key";
+import { IPlan, ISubscription } from "@/interfaces/type";
+import { useUserStore } from "@/stores/user";
+import { baseURL } from "@/util/axios";
+import { colors, formatXOF, Rs, SIZES } from "@/util/comon";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import * as Linking from "expo-linking";
+import { useNavigation, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import React, { ComponentProps, useCallback, useEffect, useMemo } from "react";
 import {
-  AntDesign,
-  FontAwesome5,
-  Ionicons,
-  MaterialCommunityIcons,
-  MaterialIcons
-} from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-import React, { useEffect } from 'react';
-import {
-  Dimensions,
+  Image,
+  Platform,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StatusBar,
+  StyleProp,
   StyleSheet,
   Text,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+  useWindowDimensions,
+  View,
+  ViewStyle,
+} from "react-native";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 
-import { Colors } from '@/constants/Colors';
-import { useUserStore } from '@/stores/user';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Linking from 'expo-linking';
-import * as WebBrowser from 'expo-web-browser';
-import LoadingScreen from './Loading';
-import PaymentLottieCompo from './PaymentLottieCompo';
-import CustomButton from './form/CustomButton';
+const BG = "#FFFDF8";
+const CARD = "#FFFFFF";
+const GOLD = "#D8A032";
+const GOLD_LIGHT = "#FFF4D8";
+const BORDER = "#F0E3CC";
+const TEXT = "#1F1F1F";
+const MUTED = "#6B7280";
+const SUCCESS = "#16A34A";
+const CINETPAY = "#E53935";
 
-const { width } = Dimensions.get('window');
+type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
+type PlanKind = "basic" | "pro" | "premium";
 
 type TOut = {
-  userId?: number,
-  userLastname?: string,
-  userFirstname?: string,
-  phone?: string,
-  adress?: string,
-  planId?: number,
-  planPrice?: string,
-  nubm_order?: number,
-  numb_catalog?: number,
-  status?: boolean,
-  notify_token?: string,
-}
+  userId?: number;
+  userLastname?: string;
+  userFirstname?: string;
+  phone?: string;
+  adress?: string;
+  planId?: number;
+  planPrice?: number | string;
+  nubm_order?: number;
+  numb_catalog?: number;
+  status?: boolean;
+  notify_token?: string;
+};
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
-const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
+type SubscriptionCompoProps = {
+  redirectURL: string;
+  closeBottomSheet?: () => void;
+};
 
-const PlanBadge = ({ type }) => {
-  const getBadgeStyle = () => {
-    switch(type?.toLowerCase()) {
-      case 'premium':
-        return {
-          colors: ['#FFD700', '#FFA500'],
-          text: 'Premium',
-          icon: 'crown'
-        };
-      case 'pro':
-        return {
-          colors: ['#614385', '#516395'],
-          text: 'Pro',
-          icon: 'star'
-        };
-      default:
-        return {
-          colors: ['#4CA1AF', '#2C3E50'],
-          text: 'Basic',
-          icon: 'check-circle'
-        };
-    }
+type DrawerNavigation = {
+  openDrawer?: () => void;
+};
+
+type ComparisonRow = {
+  label: string;
+  basic: string;
+  pro: string;
+  premium: string;
+  icon: IconName;
+};
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const COMPARISON_ROWS: ComparisonRow[] = [
+  { label: "Nombre de clients", basic: "20", pro: "Illimités", premium: "Illimités", icon: "account-group-outline" },
+  { label: "Gestion des mesures", basic: "✓", pro: "✓", premium: "✓", icon: "tape-measure" },
+  { label: "Catalogue de créations", basic: "✓", pro: "Avancé", premium: "Avancé", icon: "view-grid-outline" },
+  { label: "Statistiques & rapports", basic: "—", pro: "✓", premium: "✓", icon: "chart-box-outline" },
+  { label: "Boutique en ligne", basic: "—", pro: "—", premium: "✓", icon: "storefront-outline" },
+  { label: "Marketplace Toklo", basic: "—", pro: "—", premium: "✓", icon: "shopping-outline" },
+  { label: "Support", basic: "Standard", pro: "Prioritaire", premium: "Dédié", icon: "headset" },
+];
+
+const normalizePlanName = (name?: string) => name?.trim().toLowerCase() ?? "";
+
+const getPlanKind = (plan?: IPlan): PlanKind => {
+  const name = normalizePlanName(plan?.name);
+
+  if (name.includes("premium")) return "premium";
+  if (name.includes("pro")) return "pro";
+
+  return "basic";
+};
+
+const getPlanIcon = (plan?: IPlan): IconName => {
+  const kind = getPlanKind(plan);
+
+  if (kind === "premium") return "crown";
+  if (kind === "pro") return "hanger";
+
+  return "needle";
+};
+
+const getPlanPeriod = (plan?: IPlan) => {
+  if (!plan || Number(plan.price) === 0) return "Gratuit";
+  return "par mois";
+};
+
+const sortPlans = (plans?: IPlan[]) => {
+  const order: Record<PlanKind, number> = {
+    basic: 0,
+    pro: 1,
+    premium: 2,
   };
 
-  const badge = getBadgeStyle();
-
-  return (
-    <LinearGradient
-      colors={badge.colors}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      style={styles.badgeContainer}
-    >
-      <AntDesign name={badge.icon} size={12} color="#FFF" />
-      <Text style={styles.badgeText}>{badge.text}</Text>
-    </LinearGradient>
-  );
+  return [...(plans ?? [])].sort((a, b) => order[getPlanKind(a)] - order[getPlanKind(b)]);
 };
 
-const PlanCard = ({ plan, isSelected, onSelect }) => {
-  return (
-    <AnimatedTouchableOpacity 
-      entering={FadeInDown.delay(200 + (plan?.id * 100)).springify()}
-      style={[
-        styles.planCard,
-        isSelected && styles.selectedPlanCard
-      ]}
-      onPress={() => onSelect(plan)}
-    >
-      <View style={styles.planHeader}>
-        <Text style={styles.planName}>{plan?.name}</Text>
-        <PlanBadge type={plan?.name} />
-      </View>
+const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoProps) => {
+  const router = useRouter();
+  const navigation = useNavigation<DrawerNavigation>();
+  const { width } = useWindowDimensions();
+  const { user, notify_token } = useUserStore();
 
-      <Text style={styles.planPrice}>{formatXOF(Number(plan?.price))}</Text>
-      
-      <View style={styles.divider} />
-
-      <View style={styles.featuresList}>
-        {plan?.items.features?.map((feature, index) => {
-          // Define icon based on the feature
-          let IconComponent = MaterialCommunityIcons;
-          let iconName = 'check-circle';
-          let iconColor = '#4CAF50';
-
-          // Customize icons based on features
-          if (feature.includes('notification')) {
-            IconComponent = Ionicons;
-            iconName = 'notifications';
-            iconColor = '#FFB84D';
-          } else if (feature.includes('catalog')) {
-            IconComponent = MaterialIcons;
-            iconName = 'menu-book';
-            iconColor = '#9C27B0';
-          } else if (feature.includes('support')) {
-            IconComponent = MaterialCommunityIcons;
-            iconName = 'headset';
-            iconColor = '#5C6BC0';
-          } else if (feature.includes('commande')) {
-            IconComponent = FontAwesome5;
-            iconName = 'shipping-fast';
-            iconColor = '#F06292';
-          }
-
-          return (
-            <View key={index} style={styles.featureItem}>
-              <IconComponent name={iconName} size={18} color={iconColor} />
-              <Text style={styles.featureText}>{feature}</Text>
-            </View>
-          );
-        })}
-      </View>
-
-      {isSelected && (
-        <View style={styles.selectedIndicator}>
-          <AntDesign name="checkcircle" size={22} color="#FFF" />
-        </View>
-      )}
-    </AnimatedTouchableOpacity>
-  );
-};
-
-const SubscriptionCompo = ({redirectURL, closeBottomSheet}: {redirectURL: string, closeBottomSheet?: () => void}) => {
-  const [result, setResult] = React.useState(null);
-  const [outData, setOutData] = React.useState<TOut | null>(null);
   const [showSuccess, setShowSuccess] = React.useState(false);
+  const [selectedPlan, setSelectedPlan] = React.useState<IPlan | undefined>(undefined);
 
-  const { data, isLoading, error } = useQuery<IPlan[]>({
+  const continueScale = useSharedValue(1);
+
+  const { data, isLoading } = useQuery<IPlan[]>({
     queryKey: [QueryKeys.subscriptionType.all],
     queryFn: async (): Promise<IPlan[]> => {
       const response = await axios.get(`${baseURL}/subscriptionTypes`);
@@ -167,74 +145,60 @@ const SubscriptionCompo = ({redirectURL, closeBottomSheet}: {redirectURL: string
     },
   });
 
-  const {user, notify_token} = useUserStore();
-
-  const { data: userSub, isLoading: userLogin, error: userError, refetch } = useQuery<ISubscription>({
+  const { data: userSub, refetch } = useQuery<ISubscription>({
     queryKey: [QueryKeys.tokloman.subscriptionType],
     queryFn: async (): Promise<ISubscription> => {
       const response = await axios.get(`${baseURL}/subscriptions/last/${user?.id}`);
       return response.data;
     },
-    enabled: user?.id ? true : false,
+    enabled: Boolean(user?.id),
   });
 
-  const [selectedPlan, setSelectedPlan] = React.useState<IPlan | undefined>(undefined);
-  
-  useEffect(() => {
-    setSelectedPlan(data?.[0]);
-  }, [data]);
+  const plans = useMemo(() => sortPlans(data), [data]);
 
   useEffect(() => {
-    // Register for the URL event listener
-    const subscription = Linking.addEventListener('url', handleDeepLink);
-    
-    // Clean up
-    return () => subscription.remove();
-  }, []);
+    if (!selectedPlan && plans.length > 0) {
+      setSelectedPlan(plans[0]);
+    }
+  }, [plans, selectedPlan]);
 
-  function handleDeepLink(event) {
-    console.log("Received deep link:", event.url);
-    
-    // Parse the URL to get the result data
+  const handleDeepLink = useCallback((event: { url: string }) => {
     const { queryParams } = Linking.parse(event.url);
-    
-    if (queryParams && queryParams.result) {
-      try {
-        const resultData = JSON.parse(decodeURIComponent(queryParams?.result));
 
-        if(resultData){
+    if (queryParams?.result) {
+      try {
+        const resultData = JSON.parse(decodeURIComponent(String(queryParams.result)));
+
+        if (resultData) {
           refetch();
           setShowSuccess(true);
-          setTimeout(() => {
-            setShowSuccess(false);
-          }, 6000);
-
-          setTimeout(() => {
-            closeBottomSheet?.();
-          }, 8000);
+          setTimeout(() => setShowSuccess(false), 6000);
+          setTimeout(() => closeBottomSheet?.(), 8000);
         }
       } catch (error) {
         console.error("Error parsing result data:", error);
       }
     }
-  }
+  }, [closeBottomSheet, refetch]);
 
-  // Open browser with the JSON data
-  const openBrowserWithData = async (data: TOut) => {
-    // Create your callback/redirect URL
+  useEffect(() => {
+    const subscription = Linking.addEventListener("url", handleDeepLink);
+    return () => subscription.remove();
+  }, [handleDeepLink]);
+
+  const continueAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: continueScale.value }],
+  }));
+
+  const openBrowserWithData = async (outData: TOut) => {
     const redirectUrl = Linking.createURL(redirectURL);
-    
-    // Construct the URL with the data as query parameters
-    const url = `https://cinetpay2.leyorodelimmo.com/?data=${encodeURIComponent(JSON.stringify(data))}&redirect=${encodeURIComponent(redirectUrl)}`;
-    
+    const url = `https://cinetpay2.leyorodelimmo.com/?data=${encodeURIComponent(
+      JSON.stringify(outData),
+    )}&redirect=${encodeURIComponent(redirectUrl)}`;
+
     try {
-      // Open the browser - using auth session for redirect handling
-      const result = await WebBrowser.openAuthSessionAsync(
-        url,
-        redirectUrl
-      );
-      
-      console.log('WebBrowser result:', result);
+      const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
+      console.log("WebBrowser result:", result);
     } catch (error) {
       console.error(error);
     }
@@ -242,246 +206,773 @@ const SubscriptionCompo = ({redirectURL, closeBottomSheet}: {redirectURL: string
 
   const handleSubscribe = () => {
     if (!selectedPlan) return;
-    
+
     openBrowserWithData({
       userId: user?.id,
       userLastname: user?.lastname,
       userFirstname: user?.name,
       phone: user?.phone,
       adress: "adress",
-      planId: selectedPlan?.id,
-      planPrice: selectedPlan?.price,
+      planId: selectedPlan.id,
+      planPrice: selectedPlan.price,
       nubm_order: userSub?.numb_order ?? 0,
       numb_catalog: userSub?.numb_catalog ?? 0,
-      notify_token: notify_token,
+      notify_token: notify_token ?? undefined,
     });
   };
 
-  if(!data){
-    return <LoadingScreen visible={true} backgroundColor="#ffffff" indicatorColor="#FFFFFF" indicatorSize={48} message="" />
+  if (isLoading || !data) {
+    return (
+      <LoadingScreen
+        visible
+        backgroundColor={BG}
+        indicatorColor={GOLD}
+        indicatorSize={48}
+        message=""
+      />
+    );
   }
+
+  const planGap = Rs(8);
+  const cardWidth = (width - Rs(32) - planGap * 2) / 3;
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="dark-content" backgroundColor={BG} />
       {showSuccess && <PaymentLottieCompo />}
-      
-      {/* Header */}
-      <Animated.View entering={FadeIn.duration(500)} style={styles.header}>
-        <Text style={styles.headerTitle}> {selectedPlan?.name} </Text>
-        <Text style={styles.headerSubtitle}>{selectedPlan?.description}</Text>
-      </Animated.View>
-      
-      {/* Plans List */}
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.plansContainer}>
-          {data && data.map((plan) => (
-            <PlanCard 
-              key={plan?.id}
-              plan={plan}
-              isSelected={selectedPlan?.id === plan?.id}
-              onSelect={setSelectedPlan}
-            />
-          ))}
-        </View>
-        
-        <View style={styles.benefitsContainer}>
-          <Text style={styles.benefitsTitle}>Tous les plans incluent:</Text>
-          <View style={styles.benefitsList}>
-            <View style={styles.benefitItem}>
-              <MaterialCommunityIcons name="shield-check" size={22} color="#4CAF50" />
-              <Text style={styles.benefitText}>Un paiment sécurisé</Text>
+      <Pattern source="top" style={styles.topLeftPattern} />
+      <Pattern source="bottom" style={styles.topRightPattern} />
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Animated.View entering={FadeIn.duration(500)} style={styles.hero}>
+          <View style={styles.heroTextWrap}>
+            <View style={styles.heroLabelRow}>
+              <Text style={styles.heroLabel}>ABONNEMENTS TOKLO</Text>
+              <Text style={styles.heroDiamond}>◈</Text>
             </View>
-            <View style={styles.benefitItem}>
-              <MaterialCommunityIcons name="update" size={22} color="#2196F3" />
-              <Text style={styles.benefitText}>Une sauvegarde régulière de vos données</Text>
-            </View>
-            {/* <View style={styles.benefitItem}>
-              <MaterialCommunityIcons name="credit-card-refund" size={22} color="#FF9800" />
-              <Text style={styles.benefitText}>Money Back Guarantee</Text>
-            </View> */}
           </View>
-        </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(110).duration(520).springify()} style={styles.plansSection}>
+          <View style={[styles.plansRow, { gap: planGap }]}>
+            {plans.map((plan, index) => (
+              <PlanCard
+                key={plan.id}
+                index={index}
+                plan={plan}
+                width={cardWidth}
+                isSelected={selectedPlan?.id === plan.id}
+                onSelect={() => setSelectedPlan(plan)}
+              />
+            ))}
+          </View>
+        </Animated.View>
+
+        <ComparisonCard />
       </ScrollView>
-      
-      {/* Subscribe Button */}
-      <Animated.View entering={FadeInDown.delay(500)} style={styles.buttonContainer}>
-        
-        <CustomButton
-         action={handleSubscribe}
-         label={`Souscrire  ${formatXOF(Number(selectedPlan?.price || 0))}`}
-         disabled
-        
-        />
-        <Text style={styles.termsText}>
-        Les paiements seront effectués de manière sécurisée via <Text style={{color: Colors.app.available.unav_txt}}>CinetPay</Text>.
-        </Text>
-      </Animated.View>
+
+      <SelectedPlanFooter
+        selectedPlan={selectedPlan}
+        animatedStyle={continueAnimatedStyle}
+        onContinue={handleSubscribe}
+        onPressIn={() => {
+          continueScale.value = withTiming(0.97, { duration: 110 });
+        }}
+        onPressOut={() => {
+          continueScale.value = withSpring(1);
+        }}
+      />
     </SafeAreaView>
   );
 };
 
+type HeaderProps = {
+  onMenuPress: () => void;
+  onQrPress: () => void;
+  onNotificationPress: () => void;
+};
+
+const Header = ({ onMenuPress, onQrPress, onNotificationPress }: HeaderProps) => (
+  <View style={styles.header}>
+    <Pressable onPress={onMenuPress} style={styles.headerIconButton}>
+      <MaterialCommunityIcons name="menu" size={Rs(27)} color={TEXT} />
+    </Pressable>
+
+    <Text style={styles.headerTitle}>Toklo</Text>
+
+    <View style={styles.headerActions}>
+      <Pressable onPress={onQrPress} style={styles.headerIconButton}>
+        <MaterialCommunityIcons name="qrcode" size={Rs(25)} color={GOLD} />
+      </Pressable>
+      <Pressable onPress={onNotificationPress} style={styles.headerIconButton}>
+        <MaterialCommunityIcons name="bell-outline" size={Rs(25)} color={TEXT} />
+        <View style={styles.notificationBadge} />
+      </Pressable>
+    </View>
+  </View>
+);
+
+type PlanCardProps = {
+  index: number;
+  plan: IPlan;
+  isSelected: boolean;
+  width: number;
+  onSelect: () => void;
+};
+
+const PlanCard = ({ index, plan, isSelected, width, onSelect }: PlanCardProps) => {
+  const scale = useSharedValue(isSelected ? 1.02 : 1);
+  const kind = getPlanKind(plan);
+  const isPro = kind === "pro";
+  const icon = getPlanIcon(plan);
+
+  useEffect(() => {
+    scale.value = withSpring(isSelected ? 1.02 : 1, { damping: 15, stiffness: 170 });
+  }, [isSelected, scale]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <AnimatedPressable
+      entering={FadeInDown.delay(170 + index * 80).duration(520).springify()}
+      onPress={onSelect}
+      style={[
+        styles.planCard,
+        { width },
+        isPro && styles.proPlanCard,
+        isSelected && styles.selectedPlanCard,
+        animatedStyle,
+      ]}
+    >
+      {isPro && <PopularBadge />}
+      {isSelected && (
+        <View style={styles.selectedBadge}>
+          <MaterialCommunityIcons name="check" size={Rs(13)} color={GOLD} />
+          <Text style={styles.selectedBadgeText}>Sélectionné</Text>
+        </View>
+      )}
+      {(kind === "basic" || kind === "premium") && <Pattern source="top" style={styles.cardPattern} />}
+
+      <View style={styles.planIconCircle}>
+        {kind === "basic" ? (
+          <Image
+            resizeMode="contain"
+            source={require("@/assets/souscription/sewing-machine.png")}
+            style={styles.planSewingMachine}
+          />
+        ) : (
+          <MaterialCommunityIcons name={icon} size={Rs(26)} color={GOLD} />
+        )}
+      </View>
+
+      <Text style={styles.planName}>{plan.name.toUpperCase()}</Text>
+      <Text style={styles.planPrice}>{formatXOF(Number(plan.price))}</Text>
+      <Text style={styles.planPeriod}>{getPlanPeriod(plan)}</Text>
+
+      <View style={styles.planDivider} />
+
+      <View style={styles.featuresList}>
+        {plan.items?.features?.map((feature) => (
+          <View key={feature} style={styles.featureItem}>
+            <Text style={styles.featureCheck}>✓</Text>
+            <Text style={styles.featureText}>{feature}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={[styles.planButton, isPro ? styles.planButtonFilled : styles.planButtonOutline]}>
+        <Text style={[styles.planButtonText, isPro && styles.planButtonTextFilled]}>
+          {isSelected ? "Sélectionné" : "Choisir ce plan"}
+        </Text>
+      </View>
+    </AnimatedPressable>
+  );
+};
+
+const PopularBadge = () => (
+  <View style={styles.popularBadge}>
+    <Text style={styles.popularBadgeText}>★ PLUS POPULAIRE</Text>
+  </View>
+);
+
+const ComparisonCard = () => (
+  <Animated.View entering={FadeInDown.delay(260).duration(520).springify()} style={styles.comparisonCard}>
+    <Pattern source="bottom" style={styles.comparisonPattern} />
+    <Text style={styles.comparisonTitle}>Comparatif des fonctionnalités</Text>
+
+    <View style={styles.tableHeader}>
+      <Text style={styles.tableFeatureHeader}>Fonctionnalités</Text>
+      <Text style={styles.tablePlanHeader}>Basique</Text>
+      <Text style={styles.tablePlanHeader}>Pro</Text>
+      <Text style={styles.tablePlanHeader}>Premium</Text>
+    </View>
+
+    {COMPARISON_ROWS.map((row) => (
+      <View key={row.label} style={styles.tableRow}>
+        <View style={styles.tableFeatureCell}>
+          <MaterialCommunityIcons name={row.icon} size={Rs(16)} color={GOLD} />
+          <Text style={styles.tableFeatureText}>{row.label}</Text>
+        </View>
+        <TableValue value={row.basic} />
+        <TableValue value={row.pro} isPro />
+        <TableValue value={row.premium} />
+      </View>
+    ))}
+  </Animated.View>
+);
+
+type TableValueProps = {
+  value: string;
+  isPro?: boolean;
+};
+
+const TableValue = ({ value, isPro }: TableValueProps) => {
+  const isCheck = value === "✓";
+  const isDash = value === "—";
+
+  return (
+    <Text style={[styles.tableValue, isPro && styles.tableValuePro, isCheck && styles.tableValueCheck, isDash && styles.tableValueDash]}>
+      {value}
+    </Text>
+  );
+};
+
+type SelectedPlanFooterProps = {
+  selectedPlan?: IPlan;
+  animatedStyle: StyleProp<ViewStyle>;
+  onContinue: () => void;
+  onPressIn: () => void;
+  onPressOut: () => void;
+};
+
+const SelectedPlanFooter = ({
+  selectedPlan,
+  animatedStyle,
+  onContinue,
+  onPressIn,
+  onPressOut,
+}: SelectedPlanFooterProps) => (
+  <Animated.View entering={FadeInDown.delay(360).duration(500)} style={styles.footerWrap}>
+    <View style={styles.footerCard}>
+      <View style={styles.footerLeft}>
+        <View style={styles.footerIconCircle}>
+          <Image
+            resizeMode="contain"
+            source={require("@/assets/souscription/sewing-machine.png")}
+            style={styles.footerSewingMachine}
+          />
+        </View>
+
+        <View style={styles.footerTextWrap}>
+          <Text style={styles.footerEyebrow}>Forfait sélectionné</Text>
+          <Text numberOfLines={1} style={styles.footerPlanName}>{selectedPlan?.name ?? "Aucun plan"}</Text>
+          <Text style={styles.footerPlanPrice}>{formatXOF(Number(selectedPlan?.price ?? 0))} / mois</Text>
+        </View>
+      </View>
+
+      <AnimatedPressable
+        disabled={!selectedPlan}
+        onPress={onContinue}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        style={[styles.continueButton, !selectedPlan && styles.continueButtonDisabled, animatedStyle]}
+      >
+        <Text style={styles.continueButtonText}>Continuer →</Text>
+      </AnimatedPressable>
+    </View>
+
+    <Text style={styles.paymentText}>
+      🔒 Paiement 100% sécurisé via <Text style={styles.cinetPay}>CinetPay</Text>.
+    </Text>
+  </Animated.View>
+);
+
+type PatternProps = {
+  source: "top" | "bottom";
+  style: StyleProp<ViewStyle>;
+};
+
+const Pattern = ({ source, style }: PatternProps) => (
+  <View pointerEvents="none" style={[styles.patternBase, style]}>
+    <Image
+      resizeMode="contain"
+      source={
+        source === "top"
+          ? require("@/assets/images/measure/top-sheet.png")
+          : require("@/assets/images/measure/down-sheet.png")
+      }
+      style={styles.patternImage}
+    />
+  </View>
+);
+
+const premiumFont = Platform.select({
+  ios: "Georgia",
+  android: "serif",
+  default: undefined,
+});
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: BG,
+    overflow: "hidden",
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-    backgroundColor: '#FFFFFF',
+    alignItems: "center",
+    flexDirection: "row",
+    height: Rs(70),
+    justifyContent: "space-between",
+    paddingHorizontal: Rs(16),
+    zIndex: 2,
+  },
+  headerIconButton: {
+    alignItems: "center",
+    height: Rs(42),
+    justifyContent: "center",
+    width: Rs(42),
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#333333',
-    textAlign: 'center',
+    color: TEXT,
+    fontFamily: premiumFont,
+    fontSize: Rs(22),
+    fontWeight: "800",
+    left: 0,
+    position: "absolute",
+    right: 0,
+    textAlign: "center",
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 4,
+  headerActions: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Rs(4),
   },
-  scrollView: {
-    flex: 1,
-    paddingHorizontal: 16,
+  notificationBadge: {
+    backgroundColor: GOLD,
+    borderColor: BG,
+    borderRadius: Rs(5),
+    borderWidth: 2,
+    height: Rs(10),
+    position: "absolute",
+    right: Rs(8),
+    top: Rs(8),
+    width: Rs(10),
   },
-  plansContainer: {
-    paddingVertical: 16,
+  scrollContent: {
+    paddingBottom: Rs(108),
+    paddingHorizontal: Rs(14),
+  },
+  hero: {
+    // minHeight: Rs(128),
+    paddingBottom: Rs(6),
+    paddingTop: Rs(6),
+    position: "relative",
+  },
+  heroTextWrap: {
+    maxWidth: "86%",
+  },
+  heroLabelRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Rs(8),
+    marginBottom: Rs(5),
+  },
+  heroLabel: {
+    color: GOLD,
+    fontSize: Rs(9),
+    fontWeight: "900",
+    letterSpacing: 1.2,
+  },
+  heroDiamond: {
+    color: GOLD,
+    fontSize: Rs(12),
+  },
+  heroTitle: {
+    color: TEXT,
+    fontFamily: premiumFont,
+    fontSize: Rs(21),
+    fontWeight: "800",
+    lineHeight: Rs(26),
+  },
+  heroTitleGold: {
+    color: GOLD,
+  },
+  heroSubtitle: {
+    color: MUTED,
+    fontSize: Rs(10),
+    lineHeight: Rs(16),
+    marginTop: Rs(6),
+  },
+  heroIllustration: {
+    alignItems: "center",
+    opacity: 0.14,
+    position: "absolute",
+    right: Rs(-4),
+    top: Rs(30),
+  },
+  heroSewingMachine: {
+    height: Rs(48),
+    tintColor: GOLD,
+    width: Rs(48),
+  },
+  threadIcon: {
+    marginTop: Rs(-10),
+    transform: [{ rotate: "-14deg" }],
+  },
+  plansSection: {
+    marginBottom: Rs(8),
+  },
+  plansRow: {
+    alignItems: "stretch",
+    flexDirection: "row",
+    paddingTop: Rs(4),
   },
   planCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginBottom: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
+    backgroundColor: CARD,
+    borderColor: BORDER,
+    borderRadius: Rs(16),
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    minHeight: Rs(150),
+    overflow: "hidden",
+    padding: Rs(7),
+  },
+  proPlanCard: {
+    borderColor: colors.orange,
+    borderWidth: 1.5,
+    height: Rs(150),
+    paddingTop: Rs(8),
   },
   selectedPlanCard: {
-    borderColor: '#4481eb',
-    borderWidth: 2,
-    shadowColor: '#4481eb',
-    shadowOpacity: 0.2,
-    elevation: 5,
+    backgroundColor: "#FFFCF4",
+    borderColor: GOLD,
   },
-  planHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+  selectedBadge: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderColor: BORDER,
+    borderRadius: Rs(999),
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: Rs(2),
+    paddingHorizontal: Rs(5),
+    paddingVertical: Rs(3),
+    position: "absolute",
+    right: Rs(6),
+    top: Rs(6),
+    zIndex: 2,
+  },
+  selectedBadgeText: {
+    color: GOLD,
+    fontSize: Rs(7),
+    fontWeight: "900",
+  },
+  popularBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: GOLD_LIGHT,
+    borderColor: BORDER,
+    borderRadius: Rs(999),
+    borderWidth: 1,
+    marginBottom: Rs(4),
+    paddingHorizontal: Rs(4),
+    paddingVertical: Rs(3),
+  },
+  popularBadgeText: {
+    color: GOLD,
+    fontSize: Rs(6),
+    fontWeight: "900",
+    letterSpacing: 0,
+  },
+  planIconCircle: {
+    alignItems: "center",
+    backgroundColor: GOLD_LIGHT,
+    borderRadius: Rs(18),
+    height: Rs(28),
+    justifyContent: "center",
+    marginBottom: Rs(5),
+    width: Rs(28),
+  },
+  planSewingMachine: {
+    height: Rs(16),
+    tintColor: GOLD,
+    width: Rs(16),
   },
   planName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333333',
+    color: TEXT,
+    fontSize: Rs(8),
+    fontWeight: "900",
+    letterSpacing: 0,
+    marginBottom: Rs(3),
   },
   planPrice: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#333333',
-    marginBottom: 8,
+    color: TEXT,
+    fontFamily: premiumFont,
+    fontSize: Rs(13),
+    fontWeight: "800",
+    lineHeight: Rs(16),
   },
-  divider: {
+  planPeriod: {
+    color: MUTED,
+    fontSize: Rs(8),
+    marginTop: Rs(2),
+  },
+  planDivider: {
+    backgroundColor: BORDER,
     height: 1,
-    backgroundColor: '#F0F0F0',
-    marginVertical: 12,
+    marginVertical: Rs(5),
+    width: "100%",
   },
   featuresList: {
-    marginTop: 8,
+    gap: Rs(3),
   },
   featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: Rs(4),
+  },
+  featureCheck: {
+    color: SUCCESS,
+    fontSize: Rs(9),
+    fontWeight: "900",
+    lineHeight: Rs(10),
   },
   featureText: {
-    fontSize: 14,
-    color: '#555555',
-    marginLeft: 10,
+    color: MUTED,
     flex: 1,
+    fontSize: SIZES.xs,
+    lineHeight: Rs(10),
   },
-  selectedIndicator: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    backgroundColor: '#4481eb',
-    borderRadius: 12,
-    padding: 2,
+  planButton: {
+    alignItems: "center",
+    borderRadius: Rs(9),
+    borderWidth: 1,
+    height: Rs(26),
+    justifyContent: "center",
+    marginTop: "auto",
+    paddingHorizontal: Rs(4),
   },
-  badgeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+  planButtonOutline: {
+    backgroundColor: "transparent",
+    borderColor: colors.orange,
   },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
+  planButtonFilled: {
+    backgroundColor: colors.orange,
+    borderColor: colors.orange,
   },
-  benefitsContainer: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
+  planButtonText: {
+    color: colors.orange,
+    fontSize: SIZES.xs,
+    fontWeight: "900",
+    textAlign: "center",
   },
-  benefitsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 12,
+  planButtonTextFilled: {
+    color: CARD,
   },
-  benefitsList: {
-    gap: 12,
+  comparisonCard: {
+    backgroundColor: CARD,
+    borderColor: BORDER,
+    borderRadius: Rs(22),
+    borderWidth: 1,
+    marginBottom: Rs(12),
+    marginTop: Rs(4),
+    overflow: "hidden",
+    padding: Rs(10),
   },
-  benefitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  comparisonTitle: {
+    color: TEXT,
+    fontFamily: premiumFont,
+    fontSize: Rs(15),
+    fontWeight: "800",
+    marginBottom: Rs(8),
   },
-  benefitText: {
-    fontSize: 14,
-    color: '#555555',
-    marginLeft: 10,
+  tableHeader: {
+    alignItems: "center",
+    backgroundColor: "#FFF8EC",
+    borderRadius: Rs(14),
+    flexDirection: "row",
+    paddingHorizontal: Rs(8),
+    paddingVertical: Rs(10),
   },
-  buttonContainer: {
-    padding: 16,
+  tableFeatureHeader: {
+    color: TEXT,
+    flex: 1.45,
+    fontSize: Rs(10),
+    fontWeight: "900",
+  },
+  tablePlanHeader: {
+    color: TEXT,
+    flex: 0.74,
+    fontSize: Rs(9),
+    fontWeight: "900",
+    textAlign: "center",
+  },
+  tableRow: {
+    alignItems: "center",
+    borderBottomColor: BORDER,
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    minHeight: Rs(36),
+    paddingHorizontal: Rs(4),
+  },
+  tableFeatureCell: {
+    alignItems: "center",
+    flex: 1.45,
+    flexDirection: "row",
+    gap: Rs(6),
+    paddingRight: Rs(6),
+  },
+  tableFeatureText: {
+    color: TEXT,
+    flex: 1,
+    fontSize: SIZES.xs,
+    lineHeight: Rs(12),
+  },
+  tableValue: {
+    color: MUTED,
+    flex: 0.74,
+    fontSize: Rs(8),
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  tableValuePro: {
+    color: GOLD,
+  },
+  tableValueCheck: {
+    color: colors.orange,
+    fontSize: Rs(12),
+  },
+  tableValueDash: {
+    color: MUTED,
+    fontWeight: "700",
+  },
+  footerWrap: {
+    backgroundColor: BG,
+    borderTopColor: BORDER,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    backgroundColor: '#FFFFFF',
+    bottom: Rs(30),
+    left: 0,
+    paddingHorizontal: Rs(10),
+    paddingTop: Rs(5),
+    position: "absolute",
+    right: 0,
   },
-  subscribeButton: {
-    overflow: 'hidden',
-    borderRadius: 12,
-    marginBottom: 8,
+  footerCard: {
+    alignItems: "center",
+    backgroundColor: CARD,
+    borderColor: BORDER,
+    borderRadius: Rs(20),
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: Rs(10),
+    minHeight: Rs(68),
+    padding: Rs(8),
   },
-  gradientButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
+  footerLeft: {
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    gap: Rs(10),
+    minWidth: 0,
   },
-  subscribeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-    marginRight: 8,
+  footerIconCircle: {
+    alignItems: "center",
+    backgroundColor: GOLD_LIGHT,
+    borderRadius: Rs(19),
+    height: Rs(30),
+    justifyContent: "center",
+    width: Rs(30),
   },
-  termsText: {
-    fontSize: 12,
-    color: '#888888',
-    textAlign: 'center',
-    marginTop: 8,
-  }
+  footerSewingMachine: {
+    height: Rs(18),
+    tintColor: GOLD,
+    width: Rs(18),
+  },
+  footerTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  footerEyebrow: {
+    color: MUTED,
+    fontSize: Rs(8),
+    fontWeight: "800",
+  },
+  footerPlanName: {
+    color: TEXT,
+    fontSize: Rs(13),
+    fontWeight: "900",
+    marginTop: Rs(3),
+  },
+  footerPlanPrice: {
+    color: colors.orange,
+    fontSize: Rs(12),
+    fontWeight: "900",
+    marginTop: Rs(2),
+  },
+  continueButton: {
+    alignItems: "center",
+    backgroundColor: colors.orange,
+    borderRadius: Rs(14),
+    flexBasis: "50%",
+    height: Rs(36),
+    justifyContent: "center",
+  },
+  continueButtonDisabled: {
+    opacity: 0.55,
+  },
+  continueButtonText: {
+    color: CARD,
+    fontSize: Rs(10),
+    fontWeight: "900",
+    letterSpacing: 0.2,
+    textTransform: "uppercase",
+  },
+  paymentText: {
+    color: MUTED,
+    fontSize: Rs(9),
+    paddingBottom: Rs(4),
+    paddingTop: Rs(4),
+    textAlign: "center",
+  },
+  cinetPay: {
+    color: CINETPAY,
+    fontWeight: "900",
+  },
+  patternBase: {
+    opacity: 0.07,
+    position: "absolute",
+  },
+  patternImage: {
+    height: "100%",
+    width: "100%",
+  },
+  topLeftPattern: {
+    height: Rs(150),
+    left: Rs(-70),
+    top: Rs(40),
+    width: Rs(150),
+  },
+  topRightPattern: {
+    height: Rs(190),
+    right: Rs(-66),
+    top: Rs(50),
+    width: Rs(190),
+  },
+  cardPattern: {
+    height: Rs(128),
+    right: Rs(-34),
+    top: Rs(-20),
+    width: Rs(128),
+  },
+  comparisonPattern: {
+    bottom: Rs(-40),
+    height: Rs(160),
+    right: Rs(-38),
+    width: Rs(160),
+  },
 });
 
 export default SubscriptionCompo;

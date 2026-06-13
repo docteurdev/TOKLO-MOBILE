@@ -73,7 +73,9 @@ const Page = () => {
   useEffect(() => {
     if (data?.location) {
       try {
-        const locationJSON = JSON.parse(data.location);
+        const locationJSON = typeof data.location === 'string'
+          ? JSON.parse(data.location)
+          : data.location;
         const latitude = Number(locationJSON?.x);
         const longitude = Number(locationJSON?.y);
 
@@ -170,9 +172,9 @@ const Page = () => {
             style={styles.categoryCard}
             onPress={() => {
               if(category.id === "store-info"){
-                bottosheetRef.current?.present()
-              }else{
-               router.push("/settings/"+category.id)
+                router.push('/settings/store')
+              }else if(category.id === "notifications"){
+               router.push("/settings/notifications")
               }
             }}
           >
@@ -207,7 +209,13 @@ const Page = () => {
         
       </ScrollView>}
 
-      <BottomSheetCompo bottomSheetModalRef={bottosheetRef} snapPoints={['90%']} >
+      <BottomSheetCompo
+        bottomSheetModalRef={bottosheetRef}
+        snapPoints={['90%']}
+        android_keyboardInputMode="adjustResize"
+        keyboardBehavior="extend"
+        keyboardBlurBehavior="restore"
+      >
         
         <StoreInfo  handleClose={handleClose} />
       </BottomSheetCompo>

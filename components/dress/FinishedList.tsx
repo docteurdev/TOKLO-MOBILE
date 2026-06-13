@@ -15,16 +15,14 @@ import axios from "axios";
 import React, { useCallback, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import BottomSheetCompo from "../BottomSheetCompo";
-import RoundedBtn from "../form/RoundedBtn";
+import RoundedSmBtn from "../form/RoundedSmBtn";
 import DressItem from "./DressItem";
 
-type Props = {};
-
-const FinishedList = (props: Props) => {
+const FinishedList = () => {
     const {setFinishedOrderLength} = useOrderStore()
   
    const {user} = useUserStore()
-  const { data, isLoading, error, refetch } = useQuery<IOrder[], Error>({
+  const { data, isLoading, refetch } = useQuery<IOrder[], Error>({
     queryKey: QueryKeys.orders.finished,
     queryFn: async (): Promise<IOrder[]> => {
       const data = {
@@ -47,6 +45,8 @@ const FinishedList = (props: Props) => {
   const [selectedItem, setSelectedItem] = useState<IOrder | null>(null);
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const remainingBalance = Number(selectedItem?.solde_cal ?? 0);
+  const hasRemainingBalance = remainingBalance > 0;
   
   const  {mutate, isPending} = useChangeOrderStatus(() => {}, EDressStatus.FINISHED );
   const  {mutate: payOrderSoldMutate, isPending: isPayOrderSoldPending} = usePayOrderSold(() => {}, EDressStatus.FINISHED );
@@ -68,6 +68,12 @@ const FinishedList = (props: Props) => {
     // console.log('horray! sheet has been presented 💩')
   };
 
+  const presentDeliverModal = useCallback((item: IOrder) => {
+    setSelectedItem(item);
+    requestAnimationFrame(() => {
+      bottomSheetModalRef.current?.present();
+    });
+  }, []);
 
   // Memoize keyExtractor
   const keyExtractor = useCallback((item: IOrder) => item.id.toString(), []);
@@ -76,11 +82,10 @@ const FinishedList = (props: Props) => {
   const renderItem = useCallback(
     ({ item }: { item: IOrder }) => (
       <DressItem item={item} type="ORDER" showDetail={presentDetailModal} handleChangeStatus={() => {
-        setSelectedItem(item);
-        bottomSheetModalRef.current?.present()
+        presentDeliverModal(item);
       }} />
     ),
-    []
+    [presentDeliverModal]
   );
 
   return (
@@ -114,15 +119,27 @@ const FinishedList = (props: Props) => {
 
     </View>
 
-    <BottomSheetCompo bottomSheetModalRef={bottomSheetModalRef} snapPoints={[Rs(190)]} >
-          <View style={{height: Rs(150), justifyContent: "center", alignItems: "center" ,  gap: Rs(20), paddingHorizontal: Rs(20)}} >
-            <Text style={{fontSize: SIZES.sm, color: Colors.app.texteLight, textAlign: "justify"}}> 
-              {Number(selectedItem?.solde_cal) > 0 ? <Text>Il reste un solde de <Text style={{color: Colors.app.error}} > {formatXOF(Number(selectedItem?.solde_cal))} </Text> à régler pour ce vêtement. 💰 </Text> :  alertMgs.order.order.statussChanging.deliver.fr }
+    <BottomSheetCompo bottomSheetModalRef={bottomSheetModalRef} snapPoints={[hasRemainingBalance ? Rs(220) : Rs(190)]} >
+          <View style={styles.sheetContent} >
+            <Text style={styles.sheetMessage}> 
+              {hasRemainingBalance ? <Text>Il reste un solde de <Text style={styles.remainingBalance} >{formatXOF(remainingBalance)}</Text> à régler pour ce vêtement. 💰</Text> :  alertMgs.order.order.statussChanging.deliver.fr }
             </Text>
-            <View style={{flexDirection: "row", justifyContent: "space-between", alignItems: "center", }} >
-            <RoundedBtn label={"Livrer"} isOutline={Number(selectedItem?.solde_cal) > 0}  disabled loading={isPending} action={() => handleChangeStatus(false) }  />
-            {Number(selectedItem?.solde_cal) > 0 && <RoundedBtn label={"Payer puis livrer"}  disabled loading={isPending} action={() => handleChangeStatus(true) }  />}
-
+            <View style={styles.sheetActions} >
+               <RoundedSmBtn
+                label="Livrer"
+                isOutline={hasRemainingBalance}
+                disabled={isPayOrderSoldPending}
+                loading={isPending}
+                action={() => handleChangeStatus(false)}
+               />
+               {hasRemainingBalance && (
+                <RoundedSmBtn
+                  label="Payer puis livrer"
+                  disabled={isPending}
+                  loading={isPayOrderSoldPending}
+                  action={() => handleChangeStatus(true)}
+                />
+               )}
             </View>
           </View>
         </BottomSheetCompo>
@@ -136,5 +153,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 20,
+  },
+  sheetContent: {
+    minHeight: Rs(150),
+    justifyContent: "center",
+    alignItems: "center",
+    gap: Rs(20),
+    paddingHorizontal: Rs(20),
+    paddingVertical: Rs(16),
+  },
+  sheetMessage: {
+    color: Colors.app.texteLight,
+    fontSize: SIZES.sm,
+    textAlign: "center",
+  },
+  remainingBalance: {
+    color: Colors.app.error,
+  },
+  sheetActions: {
+    alignItems: "center",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Rs(12),
+    justifyContent: "center",
   },
 });

@@ -62,7 +62,7 @@ const DressItem = ({type, item, handleChangeStatus, handlePrint}: Props) => {
        
        <View style={[styles.dressInfo, {gap: 10, flexDirection: "row", justifyContent: "space-between"}]} >
           {/* <Text style={styles.dressType}> Dress type </Text> */}
-             <ItemChild label={`Prix: ${formatXOF(Number(amount) * Number(quantite))}`} icon={<BanknotesIcon fill={Colors.app.primary} size={Rs(23)} />} />
+             <ItemChild label={`Prix: ${formatXOF(Number(amount))}`} icon={<BanknotesIcon fill={Colors.app.primary} size={Rs(23)} />} />
              <ItemChild label={`Avance: ${formatXOF(Number(paiement))}`} icon={<MinusCircleIcon fill={Colors.app.primary} size={Rs(23)} />} />
              {/* <ItemChild label='Rest: 0€' icon={<Bars2Icon fill={Colors.app.primary} size={18} />} /> */}
           

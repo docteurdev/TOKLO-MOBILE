@@ -8,7 +8,7 @@ import { QueryKeys } from '@/interfaces/queries-key';
 import { EDressStatus, IOrder } from '@/interfaces/type';
 import { useOrderStore } from '@/stores/order';
 import { base, baseURL } from '@/util/axios';
-import { formatXOF, Rs, SIZES } from '@/util/comon';
+import { colors, formatPhoneNumber, formatXOF, Rs, SIZES } from '@/util/comon';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useQuery } from '@tanstack/react-query';
@@ -16,8 +16,10 @@ import axios from 'axios';
 import React, { useRef, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AgendaList, Calendar, LocaleConfig } from 'react-native-calendars';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useUserStore } from '@/stores/user';
+import { formatHour } from '@/utils';
 
 // Configure French locale
 LocaleConfig.locales['fr'] = {
@@ -56,6 +58,8 @@ type AgendaOrderItemProps = {
 };
 
 type MaterialIconName = keyof typeof MaterialCommunityIcons.glyphMap;
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 const getOrderStatus = (order: IOrder) => {
   return typeof order.status === 'string' ? order.status : order.status?.status;
@@ -206,7 +210,8 @@ const OrderCard = ({ item, onPress }: AgendaOrderItemProps) => {
   const statusColors = getStatusColors(item.data);
 
   return (
-    <TouchableOpacity
+    <AnimatedTouchableOpacity
+      entering={FadeInDown.duration(350)}
       activeOpacity={0.88}
       style={styles.orderCard}
       onPress={() => onPress(item.data)}
@@ -245,12 +250,12 @@ const OrderCard = ({ item, onPress }: AgendaOrderItemProps) => {
           </View>
           <View style={styles.orderInfoRow}>
             <Feather name="phone" size={Rs(14)} color="#4E4A43" />
-            <Text style={styles.orderInfoText} numberOfLines={1}>{item.data.client_phone}</Text>
+            <Text style={styles.orderInfoText} numberOfLines={1}>{formatPhoneNumber(item.data.client_phone)}</Text>
           </View>
           <View style={styles.orderMetaRow}>
             <View style={styles.orderMetaItem}>
               <Feather name="calendar" size={Rs(13)} color="#666" />
-              <Text style={styles.orderDateText} numberOfLines={1}>{formatDisplayDate(item.originalDate)}</Text>
+              <Text style={[styles.orderDateText, {color: colors.orange}]} numberOfLines={1}>{formatDisplayDate(item.originalDate)}</Text>
             </View>
             
           </View>
@@ -271,11 +276,11 @@ const OrderCard = ({ item, onPress }: AgendaOrderItemProps) => {
 
        <View style={styles.orderMetaItem}>
               <Feather name="clock" size={Rs(13)} color="#FF3B30" />
-              <Text style={styles.orderTimeText}>{item.time}</Text>
+              <Text style={styles.orderTimeText}>{formatHour(item.time)}</Text>
         </View>
 
       </View>
-    </TouchableOpacity>
+    </AnimatedTouchableOpacity>
   );
 };
 
@@ -404,14 +409,16 @@ const DeliveredList = () => {
             <OrderCard item={item} onPress={handleOpenSheet} />
           )}
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
+            <Animated.View
+            entering={FadeInDown.duration(350)}
+            style={styles.emptyContainer}>
               <Image
                 resizeMode='cover'
                 source={require('@/assets/images/empty-order.png')}
                 style={styles.emptyOrderImage}
               />
               <Text style={styles.emptyText}>Pas d&apos;évènements pour cette date.</Text>
-            </View>
+            </Animated.View>
           }
           keyExtractor={(item, index) => index.toString()}
           contentContainerStyle={styles.agendaListContent}

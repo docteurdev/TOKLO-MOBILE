@@ -99,11 +99,11 @@ const CustomDrawer = (props: any) => {
         
         <ProfileShower />
 
-        <Image
+        {/* <Image
           source={require('@/assets/images/measure/double-arrow.png')}
           resizeMode="cover"
           style={styles.headerDoubleArrow}
-        />
+        /> */}
       </View>
 
       <DrawerContentScrollView
@@ -293,9 +293,9 @@ const styles = StyleSheet.create({
   },
   menuItem: {
     position: "relative",
-    minHeight: Rs(62),
+    minHeight: Rs(48),
     width: Rs(250),
-    borderRadius: Rs(16),
+    borderRadius: Rs(6),
     paddingHorizontal: Rs(12),
     flexDirection: 'row',
     alignItems: 'center',
@@ -313,8 +313,8 @@ const styles = StyleSheet.create({
     opacity: 0.82,
   },
   iconCircle: {
-    width: Rs(42),
-    height: Rs(42),
+    width: Rs(35),
+    height: Rs(35),
     borderRadius: Rs(21),
     alignItems: 'center',
     justifyContent: 'center',
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   activePattern: {
     position: 'absolute',
     right: Rs(-12),
-    top: Rs(0),
+    top: Rs(-2),
     // bottom: Rs(8),
     justifyContent: 'space-around',
     

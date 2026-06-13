@@ -1,8 +1,10 @@
 import { useUserStore } from "@/stores/user";
+import { Colors } from "@/constants/Colors";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Slot, useRouter, type Href } from "expo-router";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
+import { AlertNotificationRoot } from 'react-native-alert-notification';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import * as Notifications from "expo-notifications";
@@ -23,6 +25,33 @@ if (shouldEnableVexo) {
 
 const queryClient = new QueryClient();
 
+const tokloAlertColors = {
+  label: Colors.app.texte,
+  card: "#FFFDF8",
+  overlay: "rgba(0, 0, 0, 0.28)",
+  success: Colors.app.success,
+  danger: Colors.app.error,
+  warning: Colors.app.warning,
+  info: Colors.app.primary,
+};
+
+const alertNotificationColors = [tokloAlertColors, tokloAlertColors] as [
+  typeof tokloAlertColors,
+  typeof tokloAlertColors,
+];
+
+const alertTitleStyle = {
+  color: Colors.app.texte,
+  fontSize: 15,
+  fontWeight: "700" as const,
+};
+
+const alertTextBodyStyle = {
+  color: Colors.app.texteLight,
+  fontSize: 13,
+  lineHeight: 18,
+};
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -35,6 +64,16 @@ Notifications.setNotificationHandler({
 export default function Root() {
   const { setNotifyToken } = useUserStore();
   const router = useRouter();
+
+  const redirect = useCallback(
+    (notification: Notifications.Notification) => {
+      const url = notification.request.content.data?.url;
+      if (typeof url === "string") {
+        router.push(url as Href);
+      }
+    },
+    [router],
+  );
 
   useEffect(() => {
     registerForPushNotificationsAsync().then((token) => {
@@ -51,24 +90,17 @@ export default function Root() {
     return () => {
       responseListener.remove();
     };
-  }, []);
-
-  function redirect(notification: Notifications.Notification) {
-    const url = notification.request.content.data?.url;
-    if (typeof url === "string") {
-      router.push(url as Href);
-    }
-  }
+  }, [redirect, setNotifyToken]);
 
   async function registerForPushNotificationsAsync() {
     let token;
 
     if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync("default", {
-        name: "default",
+        name: "Toklo",
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#FF231F7C",
+        lightColor: Colors.app.primary,
       });
     }
 
@@ -110,24 +142,39 @@ export default function Root() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
-        <BottomSheetModalProvider>
-          <View pointerEvents="none" style={styles.decorationsLayer}>
-                  <Image
-                    resizeMode="cover"
-                    source={require("@/assets/images/measure/cauri.png")}
-                    style={[styles.traditionPattern, styles.leftTraditionPattern]}
-                  />
-          
-                  <Image
-                    resizeMode="cover"
-                    source={require("@/assets/images/measure/cauri.png")}
-                    style={[styles.traditionPattern, styles.rightTraditionPattern]}
-                  />
-                </View>
-          <Slot />
-        </BottomSheetModalProvider>
-      </QueryClientProvider>
+      <AlertNotificationRoot
+        theme="light"
+        colors={alertNotificationColors}
+        toastConfig={{
+          autoClose: 3200,
+          titleStyle: alertTitleStyle,
+          textBodyStyle: alertTextBodyStyle,
+        }}
+        dialogConfig={{
+          closeOnOverlayTap: true,
+          autoClose: false,
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <BottomSheetModalProvider>
+            <View pointerEvents="none" style={styles.decorationsLayer}>
+                    <Image
+                      resizeMode="cover"
+                      source={require("@/assets/images/measure/cauri.png")}
+                      style={[styles.traditionPattern, styles.leftTraditionPattern]}
+                    />
+            
+                    <Image
+                      resizeMode="cover"
+                      source={require("@/assets/images/measure/cauri.png")}
+                      style={[styles.traditionPattern, styles.rightTraditionPattern]}
+                    />
+                  </View>
+            <Slot />
+          </BottomSheetModalProvider>
+        </QueryClientProvider>
+
+      </AlertNotificationRoot>
     </GestureHandlerRootView>
   );
 }
@@ -159,4 +206,3 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-40deg' }],
   },
   })
-

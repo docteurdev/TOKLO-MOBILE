@@ -47,7 +47,7 @@ const steps: {
 const normalizeSignUpValues = (values: TypeValues): TypeValues => ({
   name: values.name.trim(),
   lastname: values.lastname.trim(),
-  phone: values.phone.trim(),
+  phone: values?.phone?.trim(),
   password: values.password.trim(),
 });
 

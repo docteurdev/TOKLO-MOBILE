@@ -34,7 +34,7 @@ const ProfileShower = (props: Props) => {
           <ThemedText numberOfLines={1} style={styles.nameText}>
             {user?.store_name}
           </ThemedText>
-          <Feather name="check-circle" size={Rs(16)} color={Colors.app.primary} />
+          <Feather name="check-circle" size={Rs(16)} color={Colors.app.success} />
          </View>
          
          {/* <Text  style={{fontSize: SIZES.lg, color: Colors.app.texteLight}}>
