@@ -260,10 +260,15 @@ export interface IPlan {
   description: string;
   type: string;
   items: {
-    features: string[];
-  };
+    icon: string;
+    feature: string;
+    basic: number | string | boolean;
+    pro: number | string | boolean;
+    premium: number | string | boolean;
+  }[];
   numb_order: number;
   numb_catalog: number;
+  duration?: number;
 }
 
 export interface ISubscription {
