@@ -1,22 +1,22 @@
+import BottomSheetCompo from "@/components/BottomSheetCompo";
 import LoadingScreen from "@/components/Loading";
 import PaymentLottieCompo from "@/components/PaymentLottieCompo";
 import { QueryKeys } from "@/interfaces/queries-key";
 import { IPlan, ISubscription } from "@/interfaces/type";
 import { useUserStore } from "@/stores/user";
 import { baseURL } from "@/util/axios";
-import { colors, formatXOF, Rs, SIZES } from "@/util/comon";
+import { formatXOF, Rs } from "@/util/comon";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import * as Linking from "expo-linking";
-import { useNavigation, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { ComponentProps, useCallback, useEffect, useMemo } from "react";
 import {
   Image,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleProp,
@@ -43,23 +43,25 @@ const BORDER = "#F0E3CC";
 const TEXT = "#1F1F1F";
 const MUTED = "#6B7280";
 const SUCCESS = "#16A34A";
-const CINETPAY = "#E53935";
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 type PlanKind = "basic" | "pro" | "premium";
+type JekoStatus = "pending" | "success" | "error";
 
-type TOut = {
-  userId?: number;
-  userLastname?: string;
-  userFirstname?: string;
-  phone?: string;
-  adress?: string;
-  planId?: number;
-  planPrice?: number | string;
-  nubm_order?: number;
-  numb_catalog?: number;
-  status?: boolean;
-  notify_token?: string;
+type JekoCheckoutResponse = {
+  reference: string;
+  paymentRequestId: string;
+  redirectUrl: string;
+};
+
+type JekoStatusResponse = {
+  status: JekoStatus;
+};
+
+type JekoPaymentMethod = {
+  id: string;
+  name: string;
+  logo?: string | null;
 };
 
 type SubscriptionCompoProps = {
@@ -67,37 +69,33 @@ type SubscriptionCompoProps = {
   closeBottomSheet?: () => void;
 };
 
-type DrawerNavigation = {
-  openDrawer?: () => void;
-};
-
-type ComparisonRow = {
-  label: string;
-  basic: string;
-  pro: string;
-  premium: string;
-  icon: IconName;
-};
-
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const JEKO_PAYMENT_BASE_URL = __DEV__ ? "http://192.168.1.232:3344/api" : baseURL;
+const JEKO_ASSET_BASE_URL = JEKO_PAYMENT_BASE_URL.replace(/\/api\/?$/, "");
+const PAYMENT_POLL_INTERVAL = 3344;
+const PAYMENT_POLL_MAX_DURATION = 120000;
 
-const COMPARISON_ROWS: ComparisonRow[] = [
-  { label: "Nombre de clients", basic: "20", pro: "Illimités", premium: "Illimités", icon: "account-group-outline" },
-  { label: "Gestion des mesures", basic: "✓", pro: "✓", premium: "✓", icon: "tape-measure" },
-  { label: "Catalogue de créations", basic: "✓", pro: "Avancé", premium: "Avancé", icon: "view-grid-outline" },
-  { label: "Statistiques & rapports", basic: "—", pro: "✓", premium: "✓", icon: "chart-box-outline" },
-  { label: "Boutique en ligne", basic: "—", pro: "—", premium: "✓", icon: "storefront-outline" },
-  { label: "Marketplace Toklo", basic: "—", pro: "—", premium: "✓", icon: "shopping-outline" },
-  { label: "Support", basic: "Standard", pro: "Prioritaire", premium: "Dédié", icon: "headset" },
-];
+const getQueryParam = (value: unknown) => {
+  if (Array.isArray(value)) return value[0] ? String(value[0]) : undefined;
+  if (typeof value === "string") return value;
+  if (value == null) return undefined;
+  return String(value);
+};
+
+const getPaymentMethodLogoUrl = (logo?: string | null) => {
+  if (!logo) return undefined;
+  if (/^https?:\/\//i.test(logo)) return logo;
+  return `${JEKO_ASSET_BASE_URL}/${logo.replace(/^\/+/, "")}`;
+};
 
 const normalizePlanName = (name?: string) => name?.trim().toLowerCase() ?? "";
 
 const getPlanKind = (plan?: IPlan): PlanKind => {
+  const type = normalizePlanName(plan?.type);
   const name = normalizePlanName(plan?.name);
 
-  if (name.includes("premium")) return "premium";
-  if (name.includes("pro")) return "pro";
+  if (type.includes("premium") || name.includes("premium")) return "premium";
+  if (type.includes("pro") || name.includes("pro")) return "pro";
 
   return "basic";
 };
@@ -116,6 +114,15 @@ const getPlanPeriod = (plan?: IPlan) => {
   return "par mois";
 };
 
+const getPlanItemValue = (plan: IPlan | undefined, kind = getPlanKind(plan)) => {
+  return (item: IPlan["items"][number]) => item[kind];
+};
+
+const formatFeatureValue = (value: number | string | boolean) => {
+  if (typeof value === "boolean") return value ? "✓" : "—";
+  return String(value);
+};
+
 const sortPlans = (plans?: IPlan[]) => {
   const order: Record<PlanKind, number> = {
     basic: 0,
@@ -127,13 +134,22 @@ const sortPlans = (plans?: IPlan[]) => {
 };
 
 const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoProps) => {
-  const router = useRouter();
-  const navigation = useNavigation<DrawerNavigation>();
   const { width } = useWindowDimensions();
-  const { user, notify_token } = useUserStore();
+  const { user, token } = useUserStore();
 
   const [showSuccess, setShowSuccess] = React.useState(false);
   const [selectedPlan, setSelectedPlan] = React.useState<IPlan | undefined>(undefined);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState<string>("wave");
+  const [currentPaymentReference, setCurrentPaymentReference] = React.useState<string | undefined>(undefined);
+  const [isCheckoutLoading, setIsCheckoutLoading] = React.useState(false);
+  const [isPaymentPending, setIsPaymentPending] = React.useState(false);
+  const [paymentError, setPaymentError] = React.useState<string | undefined>(undefined);
+
+  const pollingTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const successTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentPaymentReferenceRef = React.useRef<string | undefined>(undefined);
+  const paymentMethodBottomSheetRef = React.useRef<BottomSheetModal>(null);
 
   const continueScale = useSharedValue(1);
 
@@ -145,13 +161,36 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
     },
   });
 
-  const { data: userSub, refetch } = useQuery<ISubscription>({
+  const { refetch } = useQuery<ISubscription>({
     queryKey: [QueryKeys.tokloman.subscriptionType],
     queryFn: async (): Promise<ISubscription> => {
       const response = await axios.get(`${baseURL}/subscriptions/last/${user?.id}`);
       return response.data;
     },
     enabled: Boolean(user?.id),
+  });
+
+  const {
+    data: paymentMethods,
+    isLoading: isPaymentMethodsLoading,
+    isError: isPaymentMethodsError,
+    refetch: refetchPaymentMethods,
+  } = useQuery<JekoPaymentMethod[]>({
+    queryKey: ["jeko-payment-methods", token],
+    queryFn: async (): Promise<JekoPaymentMethod[]> => {
+      const response = await axios.get<JekoPaymentMethod[]>(
+        `${JEKO_PAYMENT_BASE_URL}/subscriptions/jeko/payment-methods`,
+        {
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : undefined,
+        },
+      );
+      return response.data;
+    },
+    enabled: Boolean(token),
   });
 
   const plans = useMemo(() => sortPlans(data), [data]);
@@ -162,63 +201,264 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
     }
   }, [plans, selectedPlan]);
 
-  const handleDeepLink = useCallback((event: { url: string }) => {
-    const { queryParams } = Linking.parse(event.url);
+  useEffect(() => {
+    if (!paymentMethods?.length) return;
+    if (paymentMethods.some((method) => method.id === selectedPaymentMethod)) return;
+    setSelectedPaymentMethod(paymentMethods[0].id);
+  }, [paymentMethods, selectedPaymentMethod]);
 
-    if (queryParams?.result) {
-      try {
-        const resultData = JSON.parse(decodeURIComponent(String(queryParams.result)));
+  useEffect(() => {
+    currentPaymentReferenceRef.current = currentPaymentReference;
+  }, [currentPaymentReference]);
 
-        if (resultData) {
-          refetch();
-          setShowSuccess(true);
-          setTimeout(() => setShowSuccess(false), 6000);
-          setTimeout(() => closeBottomSheet?.(), 8000);
-        }
-      } catch (error) {
-        console.error("Error parsing result data:", error);
-      }
+  const clearPaymentTimers = useCallback(() => {
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current);
+      pollingTimeoutRef.current = null;
     }
-  }, [closeBottomSheet, refetch]);
+
+    if (successTimeoutRef.current) {
+      clearTimeout(successTimeoutRef.current);
+      successTimeoutRef.current = null;
+    }
+
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return clearPaymentTimers;
+  }, [clearPaymentTimers]);
+
+  const continueAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: continueScale.value }],
+  }));
+
+  const checkPaymentStatus = useCallback(async (
+    reference: string,
+    options: { keepPollingOnError?: boolean; startPollingOnPending?: boolean } = {},
+  ) => {
+    const { keepPollingOnError = false, startPollingOnPending = true } = options;
+    
+    console.log("-------------111",reference,options)
+    if (!token) {
+      setPaymentError("Session expirée. Reconnecte-toi pour relancer le paiement.");
+      setIsPaymentPending(false);
+      return false;
+    }
+
+    try {
+      const response = await axios.get<JekoStatusResponse>(
+        `${JEKO_PAYMENT_BASE_URL}/subscriptions/jeko/status/${reference}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const status = response.data.status;
+
+      if (status === "success") {
+        setPaymentError(undefined);
+        setIsPaymentPending(false);
+        setCurrentPaymentReference(reference);
+        await WebBrowser.dismissBrowser();
+        await refetch();
+        setShowSuccess(true);
+
+        if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+        if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+
+        successTimeoutRef.current = setTimeout(() => setShowSuccess(false), 6000);
+        closeTimeoutRef.current = setTimeout(() => closeBottomSheet?.(), 8000);
+        return false;
+      }
+
+      if (status === "error") {
+        setIsPaymentPending(false);
+        setPaymentError("Le paiement a échoué. Vérifie ton moyen de paiement puis réessaie.");
+        await WebBrowser.dismissBrowser();
+        return false;
+      }
+
+      setPaymentError(undefined);
+      if (startPollingOnPending) {
+        setCurrentPaymentReference(reference);
+        setIsPaymentPending(true);
+      }
+      return true;
+    } catch (error) {
+      console.error("Error checking Jeko payment status:", error);
+      if (keepPollingOnError) {
+        setPaymentError("Vérification du paiement en cours...");
+        return true;
+      }
+      setPaymentError("Impossible de vérifier le paiement pour le moment.");
+      return false;
+    }
+  }, [closeBottomSheet, refetch, token]);
+
+  useEffect(() => {
+    if (!isPaymentPending || !currentPaymentReference) return;
+
+    let isCancelled = false;
+    const startedAt = Date.now();
+
+    const poll = async () => {
+      if (isCancelled) return;
+
+      const isStillPending = await checkPaymentStatus(currentPaymentReference, {
+        keepPollingOnError: true,
+        startPollingOnPending: false,
+      });
+
+      if (isCancelled || !isStillPending) return;
+
+      if (Date.now() - startedAt >= PAYMENT_POLL_MAX_DURATION) {
+        setIsPaymentPending(false);
+        setPaymentError("Paiement toujours en attente. Nous actualiserons ton abonnement dès confirmation.");
+        return;
+      }
+
+      pollingTimeoutRef.current = setTimeout(poll, PAYMENT_POLL_INTERVAL);
+    };
+
+    pollingTimeoutRef.current = setTimeout(poll, PAYMENT_POLL_INTERVAL);
+
+    return () => {
+      isCancelled = true;
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
+        pollingTimeoutRef.current = null;
+      }
+    };
+  }, [checkPaymentStatus, currentPaymentReference, isPaymentPending]);
+
+  const handleDeepLink = useCallback((event: { url: string }) => {
+    const parsedUrl = Linking.parse(event.url);
+    const reference = getQueryParam(parsedUrl.queryParams?.reference)
+      ?? currentPaymentReferenceRef.current;
+    const paymentPath = [parsedUrl.hostname, parsedUrl.path].filter(Boolean).join("/");
+    const pathStatus: JekoStatus | undefined = paymentPath.includes("success")
+      ? "success"
+      : paymentPath.includes("error")
+        ? "error"
+        : undefined;
+    const isPaymentReturn = paymentPath.includes("payment") || Boolean(pathStatus);
+
+    if (!reference || !isPaymentReturn) return;
+
+    setCurrentPaymentReference(reference);
+    checkPaymentStatus(reference);
+  }, [checkPaymentStatus]);
 
   useEffect(() => {
     const subscription = Linking.addEventListener("url", handleDeepLink);
     return () => subscription.remove();
   }, [handleDeepLink]);
 
-  const continueAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: continueScale.value }],
-  }));
-
-  const openBrowserWithData = async (outData: TOut) => {
-    const redirectUrl = Linking.createURL(redirectURL);
-    const url = `https://cinetpay2.leyorodelimmo.com/?data=${encodeURIComponent(
-      JSON.stringify(outData),
-    )}&redirect=${encodeURIComponent(redirectUrl)}`;
-
-    try {
-      const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
-      console.log("WebBrowser result:", result);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const handleSubscribe = () => {
+  const handleOpenPaymentSheet = () => {
     if (!selectedPlan) return;
 
-    openBrowserWithData({
-      userId: user?.id,
-      userLastname: user?.lastname,
-      userFirstname: user?.name,
-      phone: user?.phone,
-      adress: "adress",
-      planId: selectedPlan.id,
-      planPrice: selectedPlan.price,
-      nubm_order: userSub?.numb_order ?? 0,
-      numb_catalog: userSub?.numb_catalog ?? 0,
-      notify_token: notify_token ?? undefined,
-    });
+    if (!token) {
+      setPaymentError("Session expirée. Reconnecte-toi pour relancer le paiement.");
+      return;
+    }
+
+    if (!user?.id) {
+      setPaymentError("Utilisateur introuvable. Reconnecte-toi pour relancer le paiement.");
+      return;
+    }
+
+    if (!isPaymentMethodsLoading && !paymentMethods?.length) {
+      setPaymentError("Aucun moyen de paiement disponible pour le moment.");
+      refetchPaymentMethods();
+      paymentMethodBottomSheetRef.current?.present();
+      return;
+    }
+
+    setPaymentError(undefined);
+    paymentMethodBottomSheetRef.current?.present();
+  };
+
+  const handleSubscribe = async () => {
+    if (!selectedPlan) return;
+
+    if (!token) {
+      setPaymentError("Session expirée. Reconnecte-toi pour relancer le paiement.");
+      return;
+    }
+
+    if (!user?.id) {
+      setPaymentError("Utilisateur introuvable. Reconnecte-toi pour relancer le paiement.");
+      return;
+    }
+
+    if (!selectedPaymentMethod) {
+      setPaymentError("Sélectionne un moyen de paiement pour continuer.");
+      return;
+    }
+
+    setPaymentError(undefined);
+    setIsCheckoutLoading(true);
+    setIsPaymentPending(false);
+
+    try {
+      const response = await axios.post<JekoCheckoutResponse>(
+        `${JEKO_PAYMENT_BASE_URL}/subscriptions/jeko/checkout`,
+        {
+          planId: selectedPlan.id,
+          paymentMethod: selectedPaymentMethod,
+          tokloMenId: user.id,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const { reference, redirectUrl } = response.data;
+
+      if (!reference || !redirectUrl) {
+        throw new Error("Invalid Jeko checkout response");
+      }
+
+      setCurrentPaymentReference(reference);
+      setIsPaymentPending(true);
+      setIsCheckoutLoading(false);
+      paymentMethodBottomSheetRef.current?.dismiss();
+
+      let result: Awaited<ReturnType<typeof WebBrowser.openAuthSessionAsync>> | undefined;
+     console.log("redirectUrl===========", redirectUrl)
+      try {
+        result = await WebBrowser.openAuthSessionAsync(
+          redirectUrl,
+          Linking.createURL(redirectURL),
+        );
+      } catch (browserError) {
+        console.error("Error opening Jeko payment browser:", browserError);
+      }
+
+      if (result?.type === "success" && result.url) {
+        handleDeepLink({ url: result.url });
+        return;
+      }
+
+      await checkPaymentStatus(reference, {
+        keepPollingOnError: true,
+        startPollingOnPending: true,
+      });
+    } catch (error) {
+      console.error("Error creating Jeko checkout:", error);
+      setIsCheckoutLoading(false);
+      setIsPaymentPending(false);
+      setPaymentError("Impossible de lancer le paiement. Réessaie dans un instant.");
+    }
   };
 
   if (isLoading || !data) {
@@ -237,7 +477,7 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
   const cardWidth = (width - Rs(32) - planGap * 2) / 3;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={BG} />
       {showSuccess && <PaymentLottieCompo />}
       <Pattern source="top" style={styles.topLeftPattern} />
@@ -251,7 +491,6 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
           <View style={styles.heroTextWrap}>
             <View style={styles.heroLabelRow}>
               <Text style={styles.heroLabel}>ABONNEMENTS TOKLO</Text>
-              <Text style={styles.heroDiamond}>◈</Text>
             </View>
           </View>
         </Animated.View>
@@ -271,13 +510,17 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
           </View>
         </Animated.View>
 
-        <ComparisonCard />
+        {paymentError && <Text style={styles.paymentErrorText}>{paymentError}</Text>}
+
+        <FeatureCard selectedPlan={selectedPlan} />
       </ScrollView>
 
       <SelectedPlanFooter
+        isLoading={isCheckoutLoading}
+        isPending={isPaymentPending}
         selectedPlan={selectedPlan}
         animatedStyle={continueAnimatedStyle}
-        onContinue={handleSubscribe}
+        onContinue={handleOpenPaymentSheet}
         onPressIn={() => {
           continueScale.value = withTiming(0.97, { duration: 110 });
         }}
@@ -285,33 +528,163 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
           continueScale.value = withSpring(1);
         }}
       />
-    </SafeAreaView>
+
+      <BottomSheetCompo
+        bottomSheetModalRef={paymentMethodBottomSheetRef}
+        snapPoints={['50%']}
+      >
+        <PaymentMethodSheet
+          isLoading={isCheckoutLoading}
+          isPending={isPaymentPending}
+          isPaymentMethodsError={isPaymentMethodsError}
+          isPaymentMethodsLoading={isPaymentMethodsLoading}
+          paymentError={paymentError}
+          paymentMethods={paymentMethods ?? []}
+          selectedPaymentMethod={selectedPaymentMethod}
+          selectedPlan={selectedPlan}
+          onClose={() => paymentMethodBottomSheetRef.current?.dismiss()}
+          onConfirm={handleSubscribe}
+          onRetryPaymentMethods={refetchPaymentMethods}
+          onSelect={setSelectedPaymentMethod}
+        />
+      </BottomSheetCompo>
+    </View>
   );
 };
 
-type HeaderProps = {
-  onMenuPress: () => void;
-  onQrPress: () => void;
-  onNotificationPress: () => void;
+type PaymentMethodSelectorProps = {
+  disabled: boolean;
+  paymentMethods: JekoPaymentMethod[];
+  selectedPaymentMethod: string;
+  onSelect: (paymentMethod: string) => void;
 };
 
-const Header = ({ onMenuPress, onQrPress, onNotificationPress }: HeaderProps) => (
-  <View style={styles.header}>
-    <Pressable onPress={onMenuPress} style={styles.headerIconButton}>
-      <MaterialCommunityIcons name="menu" size={Rs(27)} color={TEXT} />
-    </Pressable>
+const PaymentMethodSelector = ({
+  disabled,
+  paymentMethods,
+  selectedPaymentMethod,
+  onSelect,
+}: PaymentMethodSelectorProps) => (
+  <Animated.View entering={FadeInDown.delay(210).duration(500).springify()} style={styles.paymentMethodWrap}>
+    <View style={styles.paymentMethodRow}>
+      {paymentMethods.map((method) => {
+        const isSelected = selectedPaymentMethod === method.id;
+        const logoUrl = getPaymentMethodLogoUrl(method.logo);
 
-    <Text style={styles.headerTitle}>Toklo</Text>
+        return (
+          <Pressable
+            disabled={disabled}
+            key={method.id}
+            onPress={() => onSelect(method.id)}
+            style={[
+              styles.paymentMethodButton,
+              isSelected && styles.paymentMethodButtonSelected,
+              disabled && styles.paymentMethodButtonDisabled,
+            ]}
+          >
+            {logoUrl ? (
+              <Image
+                resizeMode="contain"
+                source={{ uri: logoUrl }}
+                style={styles.paymentMethodLogo}
+              />
+            ) : (
+              <View style={styles.paymentMethodLogoFallback}>
+                <Text style={styles.paymentMethodLogoFallbackText}>{method.name.charAt(0).toUpperCase()}</Text>
+              </View>
+            )}
+            <Text style={[styles.paymentMethodText, isSelected && styles.paymentMethodTextSelected]}>
+              {method.name}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  </Animated.View>
+);
 
-    <View style={styles.headerActions}>
-      <Pressable onPress={onQrPress} style={styles.headerIconButton}>
-        <MaterialCommunityIcons name="qrcode" size={Rs(25)} color={GOLD} />
-      </Pressable>
-      <Pressable onPress={onNotificationPress} style={styles.headerIconButton}>
-        <MaterialCommunityIcons name="bell-outline" size={Rs(25)} color={TEXT} />
-        <View style={styles.notificationBadge} />
+type PaymentMethodSheetProps = {
+  isLoading: boolean;
+  isPending: boolean;
+  isPaymentMethodsError: boolean;
+  isPaymentMethodsLoading: boolean;
+  paymentError?: string;
+  paymentMethods: JekoPaymentMethod[];
+  selectedPaymentMethod: string;
+  selectedPlan?: IPlan;
+  onClose: () => void;
+  onConfirm: () => void;
+  onRetryPaymentMethods: () => void;
+  onSelect: (paymentMethod: string) => void;
+};
+
+const PaymentMethodSheet = ({
+  isLoading,
+  isPending,
+  isPaymentMethodsError,
+  isPaymentMethodsLoading,
+  paymentError,
+  paymentMethods,
+  selectedPaymentMethod,
+  selectedPlan,
+  onClose,
+  onConfirm,
+  onRetryPaymentMethods,
+  onSelect,
+}: PaymentMethodSheetProps) => (
+  <View style={styles.paymentSheetContent}>
+    <View style={styles.paymentSheetHeader}>
+      <View>
+        <Text style={styles.paymentSheetTitle}>Moyen de paiement</Text>
+        <Text style={styles.paymentSheetSubtitle}>
+          {selectedPlan?.name ?? "Plan"} · {formatXOF(Number(selectedPlan?.price ?? 0))}
+        </Text>
+      </View>
+
+      <Pressable
+        disabled={isLoading || isPending}
+        onPress={onClose}
+        style={styles.paymentSheetCloseButton}
+      >
+        <MaterialCommunityIcons name="close" size={Rs(18)} color={TEXT} />
       </Pressable>
     </View>
+
+    {isPaymentMethodsLoading ? (
+      <Text style={styles.paymentMethodStateText}>Chargement des moyens de paiement...</Text>
+    ) : isPaymentMethodsError ? (
+      <View style={styles.paymentMethodStateWrap}>
+        <Text style={styles.paymentMethodStateText}>Impossible de charger les moyens de paiement.</Text>
+        <Pressable onPress={onRetryPaymentMethods} style={styles.paymentMethodRetryButton}>
+          <Text style={styles.paymentMethodRetryText}>Réessayer</Text>
+        </Pressable>
+      </View>
+    ) : paymentMethods.length === 0 ? (
+      <Text style={styles.paymentMethodStateText}>Aucun moyen de paiement disponible.</Text>
+    ) : (
+      <PaymentMethodSelector
+        disabled={isLoading || isPending}
+        paymentMethods={paymentMethods}
+        selectedPaymentMethod={selectedPaymentMethod}
+        onSelect={onSelect}
+      />
+    )}
+
+    {paymentError && <Text style={styles.paymentSheetErrorText}>{paymentError}</Text>}
+
+    <Pressable
+      disabled={!selectedPlan || paymentMethods.length === 0 || isLoading || isPending || isPaymentMethodsLoading}
+      onPress={onConfirm}
+      style={[
+        styles.paymentSheetConfirmButton,
+        (!selectedPlan || paymentMethods.length === 0 || isLoading || isPending || isPaymentMethodsLoading)
+          && styles.continueButtonDisabled,
+      ]}
+    >
+      <Text style={styles.paymentSheetConfirmText}>
+        {isLoading ? "Chargement..." : isPending ? "Vérification..." : "Payer maintenant"}
+      </Text>
+    </Pressable>
   </View>
 );
 
@@ -349,7 +722,7 @@ const PlanCard = ({ index, plan, isSelected, width, onSelect }: PlanCardProps) =
         animatedStyle,
       ]}
     >
-      {isPro && <PopularBadge />}
+      {/* {isPro && <PopularBadge />} */}
       {isSelected && (
         <View style={styles.selectedBadge}>
           <MaterialCommunityIcons name="check" size={Rs(13)} color={GOLD} />
@@ -366,7 +739,7 @@ const PlanCard = ({ index, plan, isSelected, width, onSelect }: PlanCardProps) =
             style={styles.planSewingMachine}
           />
         ) : (
-          <MaterialCommunityIcons name={icon} size={Rs(26)} color={GOLD} />
+          <MaterialCommunityIcons name={icon} size={Rs(12)} color={GOLD} />
         )}
       </View>
 
@@ -375,15 +748,6 @@ const PlanCard = ({ index, plan, isSelected, width, onSelect }: PlanCardProps) =
       <Text style={styles.planPeriod}>{getPlanPeriod(plan)}</Text>
 
       <View style={styles.planDivider} />
-
-      <View style={styles.featuresList}>
-        {plan.items?.features?.map((feature) => (
-          <View key={feature} style={styles.featureItem}>
-            <Text style={styles.featureCheck}>✓</Text>
-            <Text style={styles.featureText}>{feature}</Text>
-          </View>
-        ))}
-      </View>
 
       <View style={[styles.planButton, isPro ? styles.planButtonFilled : styles.planButtonOutline]}>
         <Text style={[styles.planButtonText, isPro && styles.planButtonTextFilled]}>
@@ -394,55 +758,54 @@ const PlanCard = ({ index, plan, isSelected, width, onSelect }: PlanCardProps) =
   );
 };
 
-const PopularBadge = () => (
-  <View style={styles.popularBadge}>
-    <Text style={styles.popularBadgeText}>★ PLUS POPULAIRE</Text>
-  </View>
-);
+type FeatureCardProps = {
+  selectedPlan?: IPlan;
+};
 
-const ComparisonCard = () => (
+const FeatureCard = ({ selectedPlan }: FeatureCardProps) => {
+  const planKind = getPlanKind(selectedPlan);
+  const valueForPlan = getPlanItemValue(selectedPlan, planKind);
+
+  return (
   <Animated.View entering={FadeInDown.delay(260).duration(520).springify()} style={styles.comparisonCard}>
     <Pattern source="bottom" style={styles.comparisonPattern} />
-    <Text style={styles.comparisonTitle}>Comparatif des fonctionnalités</Text>
-
-    <View style={styles.tableHeader}>
-      <Text style={styles.tableFeatureHeader}>Fonctionnalités</Text>
-      <Text style={styles.tablePlanHeader}>Basique</Text>
-      <Text style={styles.tablePlanHeader}>Pro</Text>
-      <Text style={styles.tablePlanHeader}>Premium</Text>
+    <View style={styles.featureSectionHeader}>
+      <Text style={styles.comparisonTitle}>Fonctionnalités</Text>
+      <Text style={styles.selectedPlanPill}>{selectedPlan?.name ?? "Plan"}</Text>
     </View>
 
-    {COMPARISON_ROWS.map((row) => (
-      <View key={row.label} style={styles.tableRow}>
+    {selectedPlan?.items.map((item) => (
+      <View key={item.feature} style={styles.tableRow}>
         <View style={styles.tableFeatureCell}>
-          <MaterialCommunityIcons name={row.icon} size={Rs(16)} color={GOLD} />
-          <Text style={styles.tableFeatureText}>{row.label}</Text>
+          <Text>{item.icon}</Text>
+          <Text style={styles.tableFeatureText}>{item.feature}</Text>
         </View>
-        <TableValue value={row.basic} />
-        <TableValue value={row.pro} isPro />
-        <TableValue value={row.premium} />
+        <TableValue value={valueForPlan(item)} />
       </View>
     ))}
   </Animated.View>
-);
-
-type TableValueProps = {
-  value: string;
-  isPro?: boolean;
+  );
 };
 
-const TableValue = ({ value, isPro }: TableValueProps) => {
-  const isCheck = value === "✓";
-  const isDash = value === "—";
+type TableValueProps = {
+  value: number | string | boolean;
+};
+
+const TableValue = ({ value }: TableValueProps) => {
+  const formattedValue = formatFeatureValue(value);
+  const isCheck = formattedValue === "✓";
+  const isDash = formattedValue === "—";
 
   return (
-    <Text style={[styles.tableValue, isPro && styles.tableValuePro, isCheck && styles.tableValueCheck, isDash && styles.tableValueDash]}>
-      {value}
+    <Text style={[styles.tableValue, isCheck && styles.tableValueCheck, isDash && styles.tableValueDash]}>
+      {formattedValue}
     </Text>
   );
 };
 
 type SelectedPlanFooterProps = {
+  isLoading: boolean;
+  isPending: boolean;
   selectedPlan?: IPlan;
   animatedStyle: StyleProp<ViewStyle>;
   onContinue: () => void;
@@ -451,6 +814,8 @@ type SelectedPlanFooterProps = {
 };
 
 const SelectedPlanFooter = ({
+  isLoading,
+  isPending,
   selectedPlan,
   animatedStyle,
   onContinue,
@@ -476,19 +841,22 @@ const SelectedPlanFooter = ({
       </View>
 
       <AnimatedPressable
-        disabled={!selectedPlan}
+        disabled={!selectedPlan || isLoading || isPending}
         onPress={onContinue}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
-        style={[styles.continueButton, !selectedPlan && styles.continueButtonDisabled, animatedStyle]}
+        style={[
+          styles.continueButton,
+          (!selectedPlan || isLoading || isPending) && styles.continueButtonDisabled,
+          animatedStyle,
+        ]}
       >
-        <Text style={styles.continueButtonText}>Continuer →</Text>
+        <Text style={styles.continueButtonText}>
+          {isLoading ? "Chargement..." : isPending ? "Vérification..." : "Continuer →"}
+        </Text>
       </AnimatedPressable>
     </View>
 
-    <Text style={styles.paymentText}>
-      🔒 Paiement 100% sécurisé via <Text style={styles.cinetPay}>CinetPay</Text>.
-    </Text>
   </Animated.View>
 );
 
@@ -520,7 +888,7 @@ const premiumFont = Platform.select({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG,
+    backgroundColor: "white",
     overflow: "hidden",
   },
   header: {
@@ -635,14 +1003,14 @@ const styles = StyleSheet.create({
   planCard: {
     backgroundColor: CARD,
     borderColor: BORDER,
-    borderRadius: Rs(16),
+    borderRadius: Rs(10),
     borderWidth: 1,
     minHeight: Rs(150),
     overflow: "hidden",
     padding: Rs(7),
   },
   proPlanCard: {
-    borderColor: colors.orange,
+    borderColor: GOLD,
     borderWidth: 1.5,
     height: Rs(150),
     paddingTop: Rs(8),
@@ -697,13 +1065,13 @@ const styles = StyleSheet.create({
     width: Rs(28),
   },
   planSewingMachine: {
-    height: Rs(16),
+    height: Rs(23),
     tintColor: GOLD,
-    width: Rs(16),
+    width: Rs(23),
   },
   planName: {
     color: TEXT,
-    fontSize: Rs(8),
+    fontSize: Rs(12),
     fontWeight: "900",
     letterSpacing: 0,
     marginBottom: Rs(3),
@@ -717,7 +1085,7 @@ const styles = StyleSheet.create({
   },
   planPeriod: {
     color: MUTED,
-    fontSize: Rs(8),
+    fontSize: Rs(10),
     marginTop: Rs(2),
   },
   planDivider: {
@@ -743,7 +1111,7 @@ const styles = StyleSheet.create({
   featureText: {
     color: MUTED,
     flex: 1,
-    fontSize: SIZES.xs,
+    fontSize: Rs(7),
     lineHeight: Rs(10),
   },
   planButton: {
@@ -757,25 +1125,172 @@ const styles = StyleSheet.create({
   },
   planButtonOutline: {
     backgroundColor: "transparent",
-    borderColor: colors.orange,
+    borderColor: GOLD,
   },
   planButtonFilled: {
-    backgroundColor: colors.orange,
-    borderColor: colors.orange,
+    backgroundColor: GOLD,
+    borderColor: GOLD,
   },
   planButtonText: {
-    color: colors.orange,
-    fontSize: SIZES.xs,
+    color: GOLD,
+    fontSize: Rs(10),
     fontWeight: "900",
     textAlign: "center",
   },
   planButtonTextFilled: {
     color: CARD,
   },
+  paymentMethodWrap: {
+    marginBottom: Rs(8),
+  },
+  paymentMethodTitle: {
+    color: TEXT,
+    fontSize: Rs(10),
+    fontWeight: "900",
+    marginBottom: Rs(6),
+  },
+  paymentMethodRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Rs(6),
+  },
+  paymentMethodButton: {
+    alignItems: "center",
+    backgroundColor: CARD,
+    borderColor: BORDER,
+    borderRadius: Rs(5),
+    borderWidth: StyleSheet.hairlineWidth,
+    flexBasis: "48%",
+    flexDirection: "row",
+    gap: Rs(5),
+    justifyContent: "flex-start",
+    minHeight: Rs(50),
+    paddingHorizontal: Rs(9),
+    paddingVertical: Rs(5),
+  },
+  paymentMethodButtonSelected: {
+    backgroundColor: GOLD_LIGHT,
+    borderColor: GOLD,
+  },
+  paymentMethodButtonDisabled: {
+    opacity: 0.65,
+  },
+  paymentMethodLogo: {
+    height: Rs(30),
+    width: Rs(30),
+    borderRadius: Rs(10)
+  },
+  paymentMethodLogoFallback: {
+    alignItems: "center",
+    backgroundColor: GOLD_LIGHT,
+    borderRadius: Rs(8),
+    height: Rs(16),
+    justifyContent: "center",
+    width: Rs(16),
+  },
+  paymentMethodLogoFallbackText: {
+    color: GOLD,
+    fontSize: Rs(8),
+    fontWeight: "900",
+  },
+  paymentMethodText: {
+    color: MUTED,
+    fontSize: Rs(10),
+    fontWeight: "600",
+  },
+  paymentMethodTextSelected: {
+    color: GOLD,
+  },
+  paymentErrorText: {
+    color: "#B42318",
+    fontSize: Rs(10),
+    fontWeight: "800",
+    lineHeight: Rs(14),
+    marginBottom: Rs(8),
+  },
+  paymentSheetContent: {
+    paddingHorizontal: Rs(16),
+    paddingTop: Rs(8),
+  },
+  paymentSheetHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: Rs(14),
+  },
+  paymentSheetTitle: {
+    color: TEXT,
+    fontFamily: premiumFont,
+    fontSize: Rs(17),
+    fontWeight: "800",
+  },
+  paymentSheetSubtitle: {
+    color: MUTED,
+    fontSize: Rs(11),
+    fontWeight: "800",
+    marginTop: Rs(4),
+  },
+  paymentSheetCloseButton: {
+    alignItems: "center",
+    backgroundColor: GOLD_LIGHT,
+    borderColor: BORDER,
+    borderRadius: Rs(17),
+    borderWidth: 1,
+    height: Rs(34),
+    justifyContent: "center",
+    width: Rs(34),
+  },
+  paymentMethodStateWrap: {
+    marginBottom: Rs(8),
+  },
+  paymentMethodStateText: {
+    color: MUTED,
+    fontSize: Rs(10),
+    fontWeight: "800",
+    lineHeight: Rs(14),
+    marginBottom: Rs(8),
+  },
+  paymentMethodRetryButton: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    borderColor: GOLD,
+    borderRadius: Rs(999),
+    borderWidth: 1,
+    minHeight: Rs(28),
+    paddingHorizontal: Rs(10),
+    paddingVertical: Rs(5),
+  },
+  paymentMethodRetryText: {
+    color: GOLD,
+    fontSize: Rs(9),
+    fontWeight: "900",
+  },
+  paymentSheetErrorText: {
+    color: "#B42318",
+    fontSize: Rs(10),
+    fontWeight: "800",
+    lineHeight: Rs(14),
+    marginBottom: Rs(10),
+  },
+  paymentSheetConfirmButton: {
+    alignItems: "center",
+    backgroundColor: GOLD,
+    borderRadius: Rs(10),
+    height: Rs(42),
+    justifyContent: "center",
+    marginTop: Rs(4),
+  },
+  paymentSheetConfirmText: {
+    color: CARD,
+    fontSize: Rs(11),
+    fontWeight: "900",
+    letterSpacing: 0.2,
+    textTransform: "uppercase",
+  },
   comparisonCard: {
     backgroundColor: CARD,
     borderColor: BORDER,
-    borderRadius: Rs(22),
+    borderRadius: Rs(10),
     borderWidth: 1,
     marginBottom: Rs(12),
     marginTop: Rs(4),
@@ -787,7 +1302,24 @@ const styles = StyleSheet.create({
     fontFamily: premiumFont,
     fontSize: Rs(15),
     fontWeight: "800",
+  },
+  featureSectionHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: Rs(8),
+  },
+  selectedPlanPill: {
+    backgroundColor: GOLD_LIGHT,
+    borderColor: BORDER,
+    borderRadius: Rs(999),
+    borderWidth: 1,
+    color: GOLD,
+    fontSize: Rs(9),
+    fontWeight: "900",
+    maxWidth: Rs(120),
+    paddingHorizontal: Rs(8),
+    paddingVertical: Rs(4),
   },
   tableHeader: {
     alignItems: "center",
@@ -800,7 +1332,7 @@ const styles = StyleSheet.create({
   tableFeatureHeader: {
     color: TEXT,
     flex: 1.45,
-    fontSize: Rs(10),
+    fontSize: Rs(9),
     fontWeight: "900",
   },
   tablePlanHeader: {
@@ -828,21 +1360,18 @@ const styles = StyleSheet.create({
   tableFeatureText: {
     color: TEXT,
     flex: 1,
-    fontSize: SIZES.xs,
+    fontSize: Rs(10),
     lineHeight: Rs(12),
   },
   tableValue: {
     color: MUTED,
     flex: 0.74,
-    fontSize: Rs(8),
+    fontSize: Rs(12),
     fontWeight: "800",
     textAlign: "center",
   },
-  tableValuePro: {
-    color: GOLD,
-  },
   tableValueCheck: {
-    color: colors.orange,
+    color: GOLD,
     fontSize: Rs(12),
   },
   tableValueDash: {
@@ -853,7 +1382,7 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
     borderTopColor: BORDER,
     borderTopWidth: 1,
-    bottom: Rs(30),
+    bottom: Rs(50),
     left: 0,
     paddingHorizontal: Rs(10),
     paddingTop: Rs(5),
@@ -864,7 +1393,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: CARD,
     borderColor: BORDER,
-    borderRadius: Rs(20),
+    borderRadius: Rs(10),
     borderWidth: 1,
     flexDirection: "row",
     gap: Rs(10),
@@ -897,7 +1426,7 @@ const styles = StyleSheet.create({
   },
   footerEyebrow: {
     color: MUTED,
-    fontSize: Rs(8),
+    fontSize: Rs(10),
     fontWeight: "800",
   },
   footerPlanName: {
@@ -907,15 +1436,15 @@ const styles = StyleSheet.create({
     marginTop: Rs(3),
   },
   footerPlanPrice: {
-    color: colors.orange,
+    color: GOLD,
     fontSize: Rs(12),
     fontWeight: "900",
     marginTop: Rs(2),
   },
   continueButton: {
     alignItems: "center",
-    backgroundColor: colors.orange,
-    borderRadius: Rs(14),
+    backgroundColor: GOLD,
+    borderRadius: Rs(9),
     flexBasis: "50%",
     height: Rs(36),
     justifyContent: "center",
@@ -929,17 +1458,6 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0.2,
     textTransform: "uppercase",
-  },
-  paymentText: {
-    color: MUTED,
-    fontSize: Rs(9),
-    paddingBottom: Rs(4),
-    paddingTop: Rs(4),
-    textAlign: "center",
-  },
-  cinetPay: {
-    color: CINETPAY,
-    fontWeight: "900",
   },
   patternBase: {
     opacity: 0.07,
