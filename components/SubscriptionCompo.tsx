@@ -34,6 +34,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import PaymentResult from "./PaymentResult";
 
 const BG = "#FFFDF8";
 const CARD = "#FFFFFF";
@@ -144,12 +145,14 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
   const [isCheckoutLoading, setIsCheckoutLoading] = React.useState(false);
   const [isPaymentPending, setIsPaymentPending] = React.useState(false);
   const [paymentError, setPaymentError] = React.useState<string | undefined>(undefined);
+  const [paymentSuccessPaidAt, setPaymentSuccessPaidAt] = React.useState<string | undefined>(undefined);
 
   const pollingTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const successTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentPaymentReferenceRef = React.useRef<string | undefined>(undefined);
   const paymentMethodBottomSheetRef = React.useRef<BottomSheetModal>(null);
+  const paymentResultBottomSheetRef = React.useRef<BottomSheetModal>(null);
 
   const continueScale = useSharedValue(1);
 
@@ -194,12 +197,20 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
   });
 
   const plans = useMemo(() => sortPlans(data), [data]);
+  const selectedPaymentMethodData = useMemo(
+    () => paymentMethods?.find((method) => method.id === selectedPaymentMethod),
+    [paymentMethods, selectedPaymentMethod],
+  );
 
   useEffect(() => {
     if (!selectedPlan && plans.length > 0) {
       setSelectedPlan(plans[0]);
     }
   }, [plans, selectedPlan]);
+
+  // useEffect(() =>{
+  //   paymentResultBottomSheetRef.current?.present() 
+  // }, [])
 
   useEffect(() => {
     if (!paymentMethods?.length) return;
@@ -242,7 +253,6 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
   ) => {
     const { keepPollingOnError = false, startPollingOnPending = true } = options;
     
-    console.log("-------------111",reference,options)
     if (!token) {
       setPaymentError("Session expirée. Reconnecte-toi pour relancer le paiement.");
       setIsPaymentPending(false);
@@ -260,20 +270,21 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
       );
 
       const status = response.data.status;
-
+      
       if (status === "success") {
         setPaymentError(undefined);
         setIsPaymentPending(false);
         setCurrentPaymentReference(reference);
+        setPaymentSuccessPaidAt(new Date().toISOString());
         await WebBrowser.dismissBrowser();
         await refetch();
         setShowSuccess(true);
+        paymentResultBottomSheetRef?.current?.present();
 
         if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
         if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
 
-        successTimeoutRef.current = setTimeout(() => setShowSuccess(false), 6000);
-        closeTimeoutRef.current = setTimeout(() => closeBottomSheet?.(), 8000);
+        successTimeoutRef.current = setTimeout(() => setShowSuccess(false), 2500);
         return false;
       }
 
@@ -299,7 +310,7 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
       setPaymentError("Impossible de vérifier le paiement pour le moment.");
       return false;
     }
-  }, [closeBottomSheet, refetch, token]);
+  }, [refetch, token]);
 
   useEffect(() => {
     if (!isPaymentPending || !currentPaymentReference) return;
@@ -434,7 +445,6 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
       paymentMethodBottomSheetRef.current?.dismiss();
 
       let result: Awaited<ReturnType<typeof WebBrowser.openAuthSessionAsync>> | undefined;
-     console.log("redirectUrl===========", redirectUrl)
       try {
         result = await WebBrowser.openAuthSessionAsync(
           redirectUrl,
@@ -548,6 +558,26 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
           onSelect={setSelectedPaymentMethod}
         />
       </BottomSheetCompo>
+      <BottomSheetCompo
+        bottomSheetModalRef={paymentResultBottomSheetRef}
+        snapPoints={['100%']}
+      >
+        <PaymentResult
+          amount={Number(selectedPlan?.price ?? 0)}
+          paidAt={paymentSuccessPaidAt}
+          paymentMethod={selectedPaymentMethodData?.name}
+          planName={selectedPlan?.name}
+          transactionId={currentPaymentReference}
+          onPrimaryPress={() => {
+            paymentResultBottomSheetRef.current?.dismiss();
+            closeBottomSheet?.();
+          }}
+          onSecondaryPress={() => {
+            paymentResultBottomSheetRef.current?.dismiss();
+          }}
+        />
+      </BottomSheetCompo>
+      
     </View>
   );
 };
@@ -1133,8 +1163,8 @@ const styles = StyleSheet.create({
   },
   planButtonText: {
     color: GOLD,
-    fontSize: Rs(10),
-    fontWeight: "900",
+    fontSize: Rs(9),
+    fontWeight: "600",
     textAlign: "center",
   },
   planButtonTextFilled: {
