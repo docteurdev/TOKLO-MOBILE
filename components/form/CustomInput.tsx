@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/Colors';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import { Rs, SIZES } from '@/util/comon';
 import { Feather } from '@expo/vector-icons';
 import * as React from 'react';
@@ -20,6 +20,8 @@ interface Props extends TextInputProps {
 }
 
 const CustomInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, touched, keyboardType, isPassword, placeholder }: Props) => {
+  const theme = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
   const [isPw, setIsPw] = React.useState(isPassword);
   const [isFocused, setIsFocused] = React.useState(false);
   const inputRef = React.useRef<TextInput>(null);
@@ -27,14 +29,14 @@ const CustomInput = ({ isDescr, label, value, handleOnBlur, handleChange, error,
 
   return (
     <View style={{ position: 'relative', width: "100%", height: 83, marginBottom: 10 }}>
-      <Text style={styles.label}>{label} <Text style={{ color: Colors.app.error }}>*</Text></Text>
+      <Text style={styles.label}>{label} <Text style={styles.required}>*</Text></Text>
       <TextInput
         ref={inputRef}
         keyboardType={keyboardType}
         secureTextEntry={isPw}
         multiline={isDescr ? true : false}
         placeholder={placeholder ?? "Entrez ..."}
-        placeholderTextColor={Colors.app.texteLight}
+        placeholderTextColor={theme.muted}
         value={value}
         style={[
           styles.input,
@@ -53,35 +55,44 @@ const CustomInput = ({ isDescr, label, value, handleOnBlur, handleChange, error,
       />
       {isPassword && (
         <TouchableOpacity style={{ position: 'absolute', right: Rs(10), top: Rs(40), zIndex: 50 }} onPress={() => { setIsPw(!isPw) }}>
-          <Feather name='eye' size={20} color={Colors.app.texteLight} />
+          <Feather name='eye' size={20} color={theme.muted} />
         </TouchableOpacity>
       )}
-      {error && touched && <Text style={{ color: Colors.app.error, fontSize: SIZES.xs }}>{error}</Text>}
+      {error && touched && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   label: {
     fontSize: SIZES.sm,
-    color: Colors.app.texteLight,
+    color: theme.muted,
     marginBottom: 10,
     fontWeight: 'bold',
   },
+  required: {
+    color: theme.danger,
+  },
   input: {
+    backgroundColor: theme.card,
     borderWidth: 1,
-    borderColor: Colors.app.disabled,
+    borderColor: theme.border,
     borderRadius: SIZES.xs,
+    color: theme.text,
     padding: 10,
     height: 50,
   },
   inputFocused: {
-    borderColor: Colors.app.primary,
+    borderColor: theme.primary,
     borderWidth: 1,
   },
   inputError: {
-    borderColor: Colors.app.error,
+    borderColor: theme.danger,
     borderWidth: 1,
+  },
+  errorText: {
+    color: theme.danger,
+    fontSize: SIZES.xs,
   }
 });
 

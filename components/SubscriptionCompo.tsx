@@ -1,6 +1,7 @@
 import BottomSheetCompo from "@/components/BottomSheetCompo";
 import LoadingScreen from "@/components/Loading";
 import PaymentLottieCompo from "@/components/PaymentLottieCompo";
+import { AppTheme, useAppTheme } from "@/hooks/useAppTheme";
 import { QueryKeys } from "@/interfaces/queries-key";
 import { IPlan, ISubscription } from "@/interfaces/type";
 import { useUserStore } from "@/stores/user";
@@ -35,15 +36,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import PaymentResult from "./PaymentResult";
+import CustomButton from "./form/CustomButton";
 
 const BG = "#FFFDF8";
-const CARD = "#FFFFFF";
-const GOLD = "#D8A032";
-const GOLD_LIGHT = "#FFF4D8";
-const BORDER = "#F0E3CC";
-const TEXT = "#1F1F1F";
-const MUTED = "#6B7280";
-const SUCCESS = "#16A34A";
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 type PlanKind = "basic" | "pro" | "premium";
@@ -135,6 +130,9 @@ const sortPlans = (plans?: IPlan[]) => {
 };
 
 const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoProps) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const statusBarStyle = theme.background === BG ? "dark-content" : "light-content";
   const { width } = useWindowDimensions();
   const { user, token } = useUserStore();
 
@@ -374,6 +372,11 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
   const handleOpenPaymentSheet = () => {
     if (!selectedPlan) return;
 
+    if (Number(selectedPlan.price) === 0) {
+      setPaymentError(undefined);
+      return;
+    }
+
     if (!token) {
       setPaymentError("Session expirée. Reconnecte-toi pour relancer le paiement.");
       return;
@@ -397,6 +400,12 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
 
   const handleSubscribe = async () => {
     if (!selectedPlan) return;
+
+    if (Number(selectedPlan.price) === 0) {
+      setPaymentError(undefined);
+      paymentMethodBottomSheetRef.current?.dismiss();
+      return;
+    }
 
     if (!token) {
       setPaymentError("Session expirée. Reconnecte-toi pour relancer le paiement.");
@@ -475,8 +484,8 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
     return (
       <LoadingScreen
         visible
-        backgroundColor={BG}
-        indicatorColor={GOLD}
+        backgroundColor={theme.background}
+        indicatorColor={theme.gold}
         indicatorSize={48}
         message=""
       />
@@ -488,7 +497,7 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={BG} />
+      <StatusBar barStyle={statusBarStyle} backgroundColor={theme.background} />
       {showSuccess && <PaymentLottieCompo />}
       <Pattern source="top" style={styles.topLeftPattern} />
       <Pattern source="bottom" style={styles.topRightPattern} />
@@ -594,44 +603,49 @@ const PaymentMethodSelector = ({
   paymentMethods,
   selectedPaymentMethod,
   onSelect,
-}: PaymentMethodSelectorProps) => (
-  <Animated.View entering={FadeInDown.delay(210).duration(500).springify()} style={styles.paymentMethodWrap}>
-    <View style={styles.paymentMethodRow}>
-      {paymentMethods.map((method) => {
-        const isSelected = selectedPaymentMethod === method.id;
-        const logoUrl = getPaymentMethodLogoUrl(method.logo);
+}: PaymentMethodSelectorProps) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
-        return (
-          <Pressable
-            disabled={disabled}
-            key={method.id}
-            onPress={() => onSelect(method.id)}
-            style={[
-              styles.paymentMethodButton,
-              isSelected && styles.paymentMethodButtonSelected,
-              disabled && styles.paymentMethodButtonDisabled,
-            ]}
-          >
-            {logoUrl ? (
-              <Image
-                resizeMode="contain"
-                source={{ uri: logoUrl }}
-                style={styles.paymentMethodLogo}
-              />
-            ) : (
-              <View style={styles.paymentMethodLogoFallback}>
-                <Text style={styles.paymentMethodLogoFallbackText}>{method.name.charAt(0).toUpperCase()}</Text>
-              </View>
-            )}
-            <Text style={[styles.paymentMethodText, isSelected && styles.paymentMethodTextSelected]}>
-              {method.name}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  </Animated.View>
-);
+  return (
+    <Animated.View entering={FadeInDown.delay(210).duration(500).springify()} style={styles.paymentMethodWrap}>
+      <View style={styles.paymentMethodRow}>
+        {paymentMethods.map((method) => {
+          const isSelected = selectedPaymentMethod === method.id;
+          const logoUrl = getPaymentMethodLogoUrl(method.logo);
+
+          return (
+            <Pressable
+              disabled={disabled}
+              key={method.id}
+              onPress={() => onSelect(method.id)}
+              style={[
+                styles.paymentMethodButton,
+                isSelected && styles.paymentMethodButtonSelected,
+                disabled && styles.paymentMethodButtonDisabled,
+              ]}
+            >
+              {logoUrl ? (
+                <Image
+                  resizeMode="contain"
+                  source={{ uri: logoUrl }}
+                  style={styles.paymentMethodLogo}
+                />
+              ) : (
+                <View style={styles.paymentMethodLogoFallback}>
+                  <Text style={styles.paymentMethodLogoFallbackText}>{method.name.charAt(0).toUpperCase()}</Text>
+                </View>
+              )}
+              <Text style={[styles.paymentMethodText, isSelected && styles.paymentMethodTextSelected]}>
+                {method.name}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </Animated.View>
+  );
+};
 
 type PaymentMethodSheetProps = {
   isLoading: boolean;
@@ -661,62 +675,60 @@ const PaymentMethodSheet = ({
   onConfirm,
   onRetryPaymentMethods,
   onSelect,
-}: PaymentMethodSheetProps) => (
-  <View style={styles.paymentSheetContent}>
-    <View style={styles.paymentSheetHeader}>
-      <View>
-        <Text style={styles.paymentSheetTitle}>Moyen de paiement</Text>
-        <Text style={styles.paymentSheetSubtitle}>
-          {selectedPlan?.name ?? "Plan"} · {formatXOF(Number(selectedPlan?.price ?? 0))}
-        </Text>
-      </View>
+}: PaymentMethodSheetProps) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
-      <Pressable
-        disabled={isLoading || isPending}
-        onPress={onClose}
-        style={styles.paymentSheetCloseButton}
-      >
-        <MaterialCommunityIcons name="close" size={Rs(18)} color={TEXT} />
-      </Pressable>
-    </View>
+  return (
+    <View style={styles.paymentSheetContent}>
+      <View style={styles.paymentSheetHeader}>
+        <View>
+          <Text style={styles.paymentSheetTitle}>Moyen de paiement</Text>
+          <Text style={styles.paymentSheetSubtitle}>
+            {selectedPlan?.name ?? "Plan"} · {formatXOF(Number(selectedPlan?.price ?? 0))}
+          </Text>
+        </View>
 
-    {isPaymentMethodsLoading ? (
-      <Text style={styles.paymentMethodStateText}>Chargement des moyens de paiement...</Text>
-    ) : isPaymentMethodsError ? (
-      <View style={styles.paymentMethodStateWrap}>
-        <Text style={styles.paymentMethodStateText}>Impossible de charger les moyens de paiement.</Text>
-        <Pressable onPress={onRetryPaymentMethods} style={styles.paymentMethodRetryButton}>
-          <Text style={styles.paymentMethodRetryText}>Réessayer</Text>
+        <Pressable
+          disabled={isLoading || isPending}
+          onPress={onClose}
+          style={styles.paymentSheetCloseButton}
+        >
+          <MaterialCommunityIcons name="close" size={Rs(18)} color={theme.text} />
         </Pressable>
       </View>
-    ) : paymentMethods.length === 0 ? (
-      <Text style={styles.paymentMethodStateText}>Aucun moyen de paiement disponible.</Text>
-    ) : (
-      <PaymentMethodSelector
-        disabled={isLoading || isPending}
-        paymentMethods={paymentMethods}
-        selectedPaymentMethod={selectedPaymentMethod}
-        onSelect={onSelect}
-      />
-    )}
 
-    {paymentError && <Text style={styles.paymentSheetErrorText}>{paymentError}</Text>}
+      {isPaymentMethodsLoading ? (
+        <Text style={styles.paymentMethodStateText}>Chargement des moyens de paiement...</Text>
+      ) : isPaymentMethodsError ? (
+        <View style={styles.paymentMethodStateWrap}>
+          <Text style={styles.paymentMethodStateText}>Impossible de charger les moyens de paiement.</Text>
+          <Pressable onPress={onRetryPaymentMethods} style={styles.paymentMethodRetryButton}>
+            <Text style={styles.paymentMethodRetryText}>Réessayer</Text>
+          </Pressable>
+        </View>
+      ) : paymentMethods.length === 0 ? (
+        <Text style={styles.paymentMethodStateText}>Aucun moyen de paiement disponible.</Text>
+      ) : (
+        <PaymentMethodSelector
+          disabled={isLoading || isPending}
+          paymentMethods={paymentMethods}
+          selectedPaymentMethod={selectedPaymentMethod}
+          onSelect={onSelect}
+        />
+      )}
 
-    <Pressable
-      disabled={!selectedPlan || paymentMethods.length === 0 || isLoading || isPending || isPaymentMethodsLoading}
-      onPress={onConfirm}
-      style={[
-        styles.paymentSheetConfirmButton,
-        (!selectedPlan || paymentMethods.length === 0 || isLoading || isPending || isPaymentMethodsLoading)
-          && styles.continueButtonDisabled,
-      ]}
-    >
-      <Text style={styles.paymentSheetConfirmText}>
-        {isLoading ? "Chargement..." : isPending ? "Vérification..." : "Payer maintenant"}
-      </Text>
-    </Pressable>
-  </View>
-);
+      {paymentError && <Text style={styles.paymentSheetErrorText}>{paymentError}</Text>}
+
+      
+      <CustomButton
+       action={onConfirm}
+        disabled={true}
+       label={isLoading ? "Chargement..." : isPending ? "Vérification..." : "Payer maintenant"}
+ />
+    </View>
+  );
+};
 
 type PlanCardProps = {
   index: number;
@@ -727,6 +739,8 @@ type PlanCardProps = {
 };
 
 const PlanCard = ({ index, plan, isSelected, width, onSelect }: PlanCardProps) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const scale = useSharedValue(isSelected ? 1.02 : 1);
   const kind = getPlanKind(plan);
   const isPro = kind === "pro";
@@ -755,7 +769,7 @@ const PlanCard = ({ index, plan, isSelected, width, onSelect }: PlanCardProps) =
       {/* {isPro && <PopularBadge />} */}
       {isSelected && (
         <View style={styles.selectedBadge}>
-          <MaterialCommunityIcons name="check" size={Rs(13)} color={GOLD} />
+          <MaterialCommunityIcons name="check" size={Rs(13)} color={theme.gold} />
           <Text style={styles.selectedBadgeText}>Sélectionné</Text>
         </View>
       )}
@@ -769,7 +783,7 @@ const PlanCard = ({ index, plan, isSelected, width, onSelect }: PlanCardProps) =
             style={styles.planSewingMachine}
           />
         ) : (
-          <MaterialCommunityIcons name={icon} size={Rs(12)} color={GOLD} />
+          <MaterialCommunityIcons name={icon} size={Rs(12)} color={theme.gold} />
         )}
       </View>
 
@@ -793,6 +807,8 @@ type FeatureCardProps = {
 };
 
 const FeatureCard = ({ selectedPlan }: FeatureCardProps) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const planKind = getPlanKind(selectedPlan);
   const valueForPlan = getPlanItemValue(selectedPlan, planKind);
 
@@ -822,6 +838,8 @@ type TableValueProps = {
 };
 
 const TableValue = ({ value }: TableValueProps) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const formattedValue = formatFeatureValue(value);
   const isCheck = formattedValue === "✓";
   const isDash = formattedValue === "—";
@@ -851,63 +869,73 @@ const SelectedPlanFooter = ({
   onContinue,
   onPressIn,
   onPressOut,
-}: SelectedPlanFooterProps) => (
-  <Animated.View entering={FadeInDown.delay(360).duration(500)} style={styles.footerWrap}>
-    <View style={styles.footerCard}>
-      <View style={styles.footerLeft}>
-        <View style={styles.footerIconCircle}>
-          <Image
-            resizeMode="contain"
-            source={require("@/assets/souscription/sewing-machine.png")}
-            style={styles.footerSewingMachine}
-          />
+}: SelectedPlanFooterProps) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  return (
+    <Animated.View entering={FadeInDown.delay(360).duration(500)} style={styles.footerWrap}>
+      <View style={styles.footerCard}>
+        <View style={styles.footerLeft}>
+          <View style={styles.footerIconCircle}>
+            <Image
+              resizeMode="contain"
+              source={require("@/assets/souscription/sewing-machine.png")}
+              style={styles.footerSewingMachine}
+            />
+          </View>
+
+          <View style={styles.footerTextWrap}>
+            <Text style={styles.footerEyebrow}>Forfait sélectionné</Text>
+            <Text numberOfLines={1} style={styles.footerPlanName}>{selectedPlan?.name ?? "Aucun plan"}</Text>
+            <Text style={styles.footerPlanPrice}>{formatXOF(Number(selectedPlan?.price ?? 0))}</Text>
+          </View>
         </View>
 
-        <View style={styles.footerTextWrap}>
-          <Text style={styles.footerEyebrow}>Forfait sélectionné</Text>
-          <Text numberOfLines={1} style={styles.footerPlanName}>{selectedPlan?.name ?? "Aucun plan"}</Text>
-          <Text style={styles.footerPlanPrice}>{formatXOF(Number(selectedPlan?.price ?? 0))} / mois</Text>
-        </View>
+        <AnimatedPressable
+          disabled={!selectedPlan || isLoading || isPending}
+          onPress={onContinue}
+          onPressIn={onPressIn}
+          onPressOut={onPressOut}
+          style={[
+            styles.continueButton,
+            (!selectedPlan || isLoading || isPending) && styles.continueButtonDisabled,
+            animatedStyle,
+          ]}
+        >
+          <Text style={styles.continueButtonText}>
+            {isLoading ? "Chargement..." : isPending ? "Vérification..." : "Continuer →"}
+          </Text>
+        </AnimatedPressable>
       </View>
 
-      <AnimatedPressable
-        disabled={!selectedPlan || isLoading || isPending}
-        onPress={onContinue}
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
-        style={[
-          styles.continueButton,
-          (!selectedPlan || isLoading || isPending) && styles.continueButtonDisabled,
-          animatedStyle,
-        ]}
-      >
-        <Text style={styles.continueButtonText}>
-          {isLoading ? "Chargement..." : isPending ? "Vérification..." : "Continuer →"}
-        </Text>
-      </AnimatedPressable>
-    </View>
-
-  </Animated.View>
-);
+    </Animated.View>
+  );
+};
 
 type PatternProps = {
   source: "top" | "bottom";
   style: StyleProp<ViewStyle>;
 };
 
-const Pattern = ({ source, style }: PatternProps) => (
-  <View pointerEvents="none" style={[styles.patternBase, style]}>
-    <Image
-      resizeMode="contain"
-      source={
-        source === "top"
-          ? require("@/assets/images/measure/top-sheet.png")
-          : require("@/assets/images/measure/down-sheet.png")
-      }
-      style={styles.patternImage}
-    />
-  </View>
-);
+const Pattern = ({ source, style }: PatternProps) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  return (
+    <View pointerEvents="none" style={[styles.patternBase, style]}>
+      <Image
+        resizeMode="contain"
+        source={
+          source === "top"
+            ? require("@/assets/images/measure/top-sheet.png")
+            : require("@/assets/images/measure/down-sheet.png")
+        }
+        style={styles.patternImage}
+      />
+    </View>
+  );
+};
 
 const premiumFont = Platform.select({
   ios: "Georgia",
@@ -915,10 +943,10 @@ const premiumFont = Platform.select({
   default: undefined,
 });
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: theme.background,
     overflow: "hidden",
   },
   header: {
@@ -936,7 +964,7 @@ const styles = StyleSheet.create({
     width: Rs(42),
   },
   headerTitle: {
-    color: TEXT,
+    color: theme.text,
     fontFamily: premiumFont,
     fontSize: Rs(22),
     fontWeight: "800",
@@ -951,8 +979,8 @@ const styles = StyleSheet.create({
     gap: Rs(4),
   },
   notificationBadge: {
-    backgroundColor: GOLD,
-    borderColor: BG,
+    backgroundColor: theme.gold,
+    borderColor: theme.background,
     borderRadius: Rs(5),
     borderWidth: 2,
     height: Rs(10),
@@ -981,27 +1009,27 @@ const styles = StyleSheet.create({
     marginBottom: Rs(5),
   },
   heroLabel: {
-    color: GOLD,
+    color: theme.gold,
     fontSize: Rs(9),
     fontWeight: "900",
     letterSpacing: 1.2,
   },
   heroDiamond: {
-    color: GOLD,
+    color: theme.gold,
     fontSize: Rs(12),
   },
   heroTitle: {
-    color: TEXT,
+    color: theme.text,
     fontFamily: premiumFont,
     fontSize: Rs(21),
     fontWeight: "800",
     lineHeight: Rs(26),
   },
   heroTitleGold: {
-    color: GOLD,
+    color: theme.gold,
   },
   heroSubtitle: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: Rs(10),
     lineHeight: Rs(16),
     marginTop: Rs(6),
@@ -1015,7 +1043,7 @@ const styles = StyleSheet.create({
   },
   heroSewingMachine: {
     height: Rs(48),
-    tintColor: GOLD,
+    tintColor: theme.gold,
     width: Rs(48),
   },
   threadIcon: {
@@ -1031,8 +1059,8 @@ const styles = StyleSheet.create({
     paddingTop: Rs(4),
   },
   planCard: {
-    backgroundColor: CARD,
-    borderColor: BORDER,
+    backgroundColor: theme.card,
+    borderColor: theme.border,
     borderRadius: Rs(10),
     borderWidth: 1,
     minHeight: Rs(150),
@@ -1040,19 +1068,19 @@ const styles = StyleSheet.create({
     padding: Rs(7),
   },
   proPlanCard: {
-    borderColor: GOLD,
+    borderColor: theme.gold,
     borderWidth: 1.5,
     height: Rs(150),
     paddingTop: Rs(8),
   },
   selectedPlanCard: {
-    backgroundColor: "#FFFCF4",
-    borderColor: GOLD,
+    backgroundColor: theme.goldLight,
+    borderColor: theme.gold,
   },
   selectedBadge: {
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderColor: BORDER,
+    backgroundColor: theme.card,
+    borderColor: theme.border,
     borderRadius: Rs(999),
     borderWidth: 1,
     flexDirection: "row",
@@ -1065,14 +1093,14 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   selectedBadgeText: {
-    color: GOLD,
+    color: theme.gold,
     fontSize: Rs(7),
     fontWeight: "900",
   },
   popularBadge: {
     alignSelf: "flex-start",
-    backgroundColor: GOLD_LIGHT,
-    borderColor: BORDER,
+    backgroundColor: theme.goldLight,
+    borderColor: theme.border,
     borderRadius: Rs(999),
     borderWidth: 1,
     marginBottom: Rs(4),
@@ -1080,14 +1108,14 @@ const styles = StyleSheet.create({
     paddingVertical: Rs(3),
   },
   popularBadgeText: {
-    color: GOLD,
+    color: theme.gold,
     fontSize: Rs(6),
     fontWeight: "900",
     letterSpacing: 0,
   },
   planIconCircle: {
     alignItems: "center",
-    backgroundColor: GOLD_LIGHT,
+    backgroundColor: theme.goldLight,
     borderRadius: Rs(18),
     height: Rs(28),
     justifyContent: "center",
@@ -1096,30 +1124,30 @@ const styles = StyleSheet.create({
   },
   planSewingMachine: {
     height: Rs(23),
-    tintColor: GOLD,
+    tintColor: theme.gold,
     width: Rs(23),
   },
   planName: {
-    color: TEXT,
+    color: theme.text,
     fontSize: Rs(12),
     fontWeight: "900",
     letterSpacing: 0,
     marginBottom: Rs(3),
   },
   planPrice: {
-    color: TEXT,
+    color: theme.text,
     fontFamily: premiumFont,
     fontSize: Rs(13),
     fontWeight: "800",
     lineHeight: Rs(16),
   },
   planPeriod: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: Rs(10),
     marginTop: Rs(2),
   },
   planDivider: {
-    backgroundColor: BORDER,
+    backgroundColor: theme.border,
     height: 1,
     marginVertical: Rs(5),
     width: "100%",
@@ -1133,13 +1161,13 @@ const styles = StyleSheet.create({
     gap: Rs(4),
   },
   featureCheck: {
-    color: SUCCESS,
+    color: theme.success,
     fontSize: Rs(9),
     fontWeight: "900",
     lineHeight: Rs(10),
   },
   featureText: {
-    color: MUTED,
+    color: theme.muted,
     flex: 1,
     fontSize: Rs(7),
     lineHeight: Rs(10),
@@ -1155,26 +1183,26 @@ const styles = StyleSheet.create({
   },
   planButtonOutline: {
     backgroundColor: "transparent",
-    borderColor: GOLD,
+    borderColor: theme.gold,
   },
   planButtonFilled: {
-    backgroundColor: GOLD,
-    borderColor: GOLD,
+    backgroundColor: theme.gold,
+    borderColor: theme.gold,
   },
   planButtonText: {
-    color: GOLD,
+    color: theme.gold,
     fontSize: Rs(9),
     fontWeight: "600",
     textAlign: "center",
   },
   planButtonTextFilled: {
-    color: CARD,
+    color: "#FFFFFF",
   },
   paymentMethodWrap: {
     marginBottom: Rs(8),
   },
   paymentMethodTitle: {
-    color: TEXT,
+    color: theme.text,
     fontSize: Rs(10),
     fontWeight: "900",
     marginBottom: Rs(6),
@@ -1186,8 +1214,8 @@ const styles = StyleSheet.create({
   },
   paymentMethodButton: {
     alignItems: "center",
-    backgroundColor: CARD,
-    borderColor: BORDER,
+    backgroundColor: theme.card,
+    borderColor: theme.border,
     borderRadius: Rs(5),
     borderWidth: StyleSheet.hairlineWidth,
     flexBasis: "48%",
@@ -1199,8 +1227,8 @@ const styles = StyleSheet.create({
     paddingVertical: Rs(5),
   },
   paymentMethodButtonSelected: {
-    backgroundColor: GOLD_LIGHT,
-    borderColor: GOLD,
+    backgroundColor: theme.goldLight,
+    borderColor: theme.gold,
   },
   paymentMethodButtonDisabled: {
     opacity: 0.65,
@@ -1212,33 +1240,34 @@ const styles = StyleSheet.create({
   },
   paymentMethodLogoFallback: {
     alignItems: "center",
-    backgroundColor: GOLD_LIGHT,
+    backgroundColor: theme.goldLight,
     borderRadius: Rs(8),
     height: Rs(16),
     justifyContent: "center",
     width: Rs(16),
   },
   paymentMethodLogoFallbackText: {
-    color: GOLD,
+    color: theme.gold,
     fontSize: Rs(8),
     fontWeight: "900",
   },
   paymentMethodText: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: Rs(10),
     fontWeight: "600",
   },
   paymentMethodTextSelected: {
-    color: GOLD,
+    color: theme.gold,
   },
   paymentErrorText: {
-    color: "#B42318",
+    color: theme.danger,
     fontSize: Rs(10),
     fontWeight: "800",
     lineHeight: Rs(14),
     marginBottom: Rs(8),
   },
   paymentSheetContent: {
+    backgroundColor: theme.card,
     paddingHorizontal: Rs(16),
     paddingTop: Rs(8),
   },
@@ -1249,21 +1278,21 @@ const styles = StyleSheet.create({
     marginBottom: Rs(14),
   },
   paymentSheetTitle: {
-    color: TEXT,
+    color: theme.text,
     fontFamily: premiumFont,
     fontSize: Rs(17),
     fontWeight: "800",
   },
   paymentSheetSubtitle: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: Rs(11),
     fontWeight: "800",
     marginTop: Rs(4),
   },
   paymentSheetCloseButton: {
     alignItems: "center",
-    backgroundColor: GOLD_LIGHT,
-    borderColor: BORDER,
+    backgroundColor: theme.goldLight,
+    borderColor: theme.border,
     borderRadius: Rs(17),
     borderWidth: 1,
     height: Rs(34),
@@ -1274,7 +1303,7 @@ const styles = StyleSheet.create({
     marginBottom: Rs(8),
   },
   paymentMethodStateText: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: Rs(10),
     fontWeight: "800",
     lineHeight: Rs(14),
@@ -1283,7 +1312,7 @@ const styles = StyleSheet.create({
   paymentMethodRetryButton: {
     alignItems: "center",
     alignSelf: "flex-start",
-    borderColor: GOLD,
+    borderColor: theme.gold,
     borderRadius: Rs(999),
     borderWidth: 1,
     minHeight: Rs(28),
@@ -1291,12 +1320,12 @@ const styles = StyleSheet.create({
     paddingVertical: Rs(5),
   },
   paymentMethodRetryText: {
-    color: GOLD,
+    color: theme.gold,
     fontSize: Rs(9),
     fontWeight: "900",
   },
   paymentSheetErrorText: {
-    color: "#B42318",
+    color: theme.danger,
     fontSize: Rs(10),
     fontWeight: "800",
     lineHeight: Rs(14),
@@ -1304,22 +1333,22 @@ const styles = StyleSheet.create({
   },
   paymentSheetConfirmButton: {
     alignItems: "center",
-    backgroundColor: GOLD,
+    backgroundColor: theme.gold,
     borderRadius: Rs(10),
     height: Rs(42),
     justifyContent: "center",
     marginTop: Rs(4),
   },
   paymentSheetConfirmText: {
-    color: CARD,
+    color: "#FFFFFF",
     fontSize: Rs(11),
     fontWeight: "900",
     letterSpacing: 0.2,
     textTransform: "uppercase",
   },
   comparisonCard: {
-    backgroundColor: CARD,
-    borderColor: BORDER,
+    backgroundColor: theme.card,
+    borderColor: theme.border,
     borderRadius: Rs(10),
     borderWidth: 1,
     marginBottom: Rs(12),
@@ -1328,7 +1357,7 @@ const styles = StyleSheet.create({
     padding: Rs(10),
   },
   comparisonTitle: {
-    color: TEXT,
+    color: theme.text,
     fontFamily: premiumFont,
     fontSize: Rs(15),
     fontWeight: "800",
@@ -1340,11 +1369,11 @@ const styles = StyleSheet.create({
     marginBottom: Rs(8),
   },
   selectedPlanPill: {
-    backgroundColor: GOLD_LIGHT,
-    borderColor: BORDER,
+    backgroundColor: theme.goldLight,
+    borderColor: theme.border,
     borderRadius: Rs(999),
     borderWidth: 1,
-    color: GOLD,
+    color: theme.gold,
     fontSize: Rs(9),
     fontWeight: "900",
     maxWidth: Rs(120),
@@ -1353,20 +1382,20 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     alignItems: "center",
-    backgroundColor: "#FFF8EC",
+    backgroundColor: theme.goldLight,
     borderRadius: Rs(14),
     flexDirection: "row",
     paddingHorizontal: Rs(8),
     paddingVertical: Rs(10),
   },
   tableFeatureHeader: {
-    color: TEXT,
+    color: theme.text,
     flex: 1.45,
     fontSize: Rs(9),
     fontWeight: "900",
   },
   tablePlanHeader: {
-    color: TEXT,
+    color: theme.text,
     flex: 0.74,
     fontSize: Rs(9),
     fontWeight: "900",
@@ -1374,7 +1403,7 @@ const styles = StyleSheet.create({
   },
   tableRow: {
     alignItems: "center",
-    borderBottomColor: BORDER,
+    borderBottomColor: theme.border,
     borderBottomWidth: 1,
     flexDirection: "row",
     minHeight: Rs(36),
@@ -1388,29 +1417,29 @@ const styles = StyleSheet.create({
     paddingRight: Rs(6),
   },
   tableFeatureText: {
-    color: TEXT,
+    color: theme.text,
     flex: 1,
     fontSize: Rs(10),
     lineHeight: Rs(12),
   },
   tableValue: {
-    color: MUTED,
+    color: theme.muted,
     flex: 0.74,
     fontSize: Rs(12),
     fontWeight: "800",
     textAlign: "center",
   },
   tableValueCheck: {
-    color: GOLD,
+    color: theme.gold,
     fontSize: Rs(12),
   },
   tableValueDash: {
-    color: MUTED,
+    color: theme.muted,
     fontWeight: "700",
   },
   footerWrap: {
-    backgroundColor: BG,
-    borderTopColor: BORDER,
+    backgroundColor: theme.background,
+    borderTopColor: theme.border,
     borderTopWidth: 1,
     bottom: Rs(50),
     left: 0,
@@ -1421,8 +1450,8 @@ const styles = StyleSheet.create({
   },
   footerCard: {
     alignItems: "center",
-    backgroundColor: CARD,
-    borderColor: BORDER,
+    backgroundColor: theme.card,
+    borderColor: theme.border,
     borderRadius: Rs(10),
     borderWidth: 1,
     flexDirection: "row",
@@ -1439,53 +1468,53 @@ const styles = StyleSheet.create({
   },
   footerIconCircle: {
     alignItems: "center",
-    backgroundColor: GOLD_LIGHT,
+    backgroundColor: theme.goldLight,
     borderRadius: Rs(19),
     height: Rs(30),
     justifyContent: "center",
     width: Rs(30),
   },
   footerSewingMachine: {
-    height: Rs(18),
-    tintColor: GOLD,
-    width: Rs(18),
+    height: Rs(40),
+    tintColor: theme.gold,
+    width: Rs(40),
   },
   footerTextWrap: {
     flex: 1,
     minWidth: 0,
   },
   footerEyebrow: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: Rs(10),
     fontWeight: "800",
   },
   footerPlanName: {
-    color: TEXT,
+    color: theme.text,
     fontSize: Rs(13),
     fontWeight: "900",
     marginTop: Rs(3),
   },
   footerPlanPrice: {
-    color: GOLD,
+    color: theme.gold,
     fontSize: Rs(12),
     fontWeight: "900",
     marginTop: Rs(2),
   },
   continueButton: {
     alignItems: "center",
-    backgroundColor: GOLD,
-    borderRadius: Rs(9),
+    backgroundColor: theme.gold,
+    borderRadius: Rs(5),
     flexBasis: "50%",
-    height: Rs(36),
+    height: Rs(50),
     justifyContent: "center",
   },
   continueButtonDisabled: {
     opacity: 0.55,
   },
   continueButtonText: {
-    color: CARD,
+    color: "#FFFFFF",
     fontSize: Rs(10),
-    fontWeight: "900",
+    fontWeight: "500",
     letterSpacing: 0.2,
     textTransform: "uppercase",
   },

@@ -1,8 +1,7 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React from 'react';
-import { Colors } from '@/constants/Colors';
-import { SIZES } from '@/util/comon';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import { Feather } from '@expo/vector-icons'
+import React, { useMemo } from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
 type Props = {
  backAction: () => void,
@@ -10,10 +9,13 @@ type Props = {
 }
 
 const BackButton = ({backAction, icon}: Props) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   return (
     <View>
       <TouchableOpacity style={[styles.button, {zIndex: icon? 0 : 100}]} onPress={backAction}>
-       {icon? icon : <Feather name='arrow-left' size={20} color={Colors.app.black} />}
+       {icon? icon : <Feather name='arrow-left' size={20} color={theme.text} />}
       </TouchableOpacity>
     </View>
   )
@@ -21,11 +23,11 @@ const BackButton = ({backAction, icon}: Props) => {
 
 export default BackButton
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
  button:{
-   backgroundColor: Colors.app.secondary,
+   backgroundColor: theme.card,
    borderWidth: StyleSheet.hairlineWidth,
-   borderColor: Colors.app.texteLight,
+   borderColor: theme.border,
    borderRadius: 10,
    height: 35,
    width: 35,

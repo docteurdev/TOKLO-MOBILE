@@ -1,8 +1,8 @@
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
 import { MagnifyingGlassIcon, XMarkIcon  } from "react-native-heroicons/solid";
-import { Colors } from "@/constants/Colors";
-import { Rs, size, SIZES } from "@/util/comon";
+import { AppTheme, useAppTheme } from "@/hooks/useAppTheme";
+import { Rs, SIZES } from "@/util/comon";
 import OtherInput from "./form/OtherInput";
 
 
@@ -13,26 +13,29 @@ type Props = {
 };
 
 const ListModal = ({isShowModal, children, closeModal}: Props) => {
+  const theme = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
+
   return (
     <Modal style={{flex: 1}}  presentationStyle="pageSheet" transparent visible={isShowModal}>
       <View style={styles.modalContainer}>
-        <View style={[styles.listDisplay, {height: Rs(50), flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "transparent", gap: 6}]}>
-          <View style={{flex: 1, marginTop: Rs(7), }}>
+        <View style={styles.searchRow}>
+          <View style={styles.searchInputWrap}>
 
-            <OtherInput icon={<MagnifyingGlassIcon color={Colors.app.primary} />} placeholder="Nom du client" value="John" onChangeText={() => {}} />
+            <OtherInput icon={<MagnifyingGlassIcon color={theme.primary} />} placeholder="Nom du client" value="John" setValue={() => {}} />
           </View>
-         <TouchableOpacity onPress={() => closeModal()} style={{width: 40, height: 50, backgroundColor: "white", justifyContent: "center", alignItems: "center", borderRadius: Rs(4), }} >
+         <TouchableOpacity onPress={() => closeModal()} style={styles.closeButton} >
 
-           <XMarkIcon fill={Colors.app.primary} size={27} />
+           <XMarkIcon fill={theme.primary} size={27} />
          </TouchableOpacity>
          
         </View>
-        <View style={[styles.listDisplay, {marginTop: Rs(20),  padding: Rs(10)}]}>
+        <View style={styles.listDisplay}>
 
-          <View style={{flexDirection: "row", alignItems: "center", gap: 20}}>
+          <View style={styles.listHeader}>
             
-            <Text style={[styles.listTitle, ]} >Liste des clients</Text>
-            <Text style={[styles.listTitle, {fontSize: SIZES.xs}]} > 23</Text>
+            <Text style={styles.listTitle}>Liste des clients</Text>
+            <Text style={styles.listCount}> 23</Text>
           </View>
           {children}
 
@@ -44,23 +47,61 @@ const ListModal = ({isShowModal, children, closeModal}: Props) => {
 
 export default ListModal;
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   modalContainer: {
    flex: 1,
-   backgroundColor: "rgba(0,0,0,0.5)",
+   backgroundColor: theme.background === "#FFFDF8" ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.72)",
    padding: Rs(20),
    
   },
+  searchRow: {
+    alignItems: "center",
+    backgroundColor: "transparent",
+    flexDirection: "row",
+    gap: 6,
+    height: Rs(50),
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  searchInputWrap: {
+    flex: 1,
+    marginTop: Rs(7),
+  },
+  closeButton: {
+    alignItems: "center",
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderRadius: Rs(4),
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 50,
+    justifyContent: "center",
+    width: 40,
+  },
   listDisplay: {
-   backgroundColor: "white",
+   backgroundColor: theme.card,
+   borderColor: theme.border,
+   borderWidth: StyleSheet.hairlineWidth,
    width: "100%",
    height: "50%",
    borderRadius: 8,
+   marginTop: Rs(20),
+   padding: Rs(10),
    
   //  padding: Rs(20),
   },
+  listHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 20,
+  },
   listTitle:{
+    color: theme.text,
     fontSize: SIZES.sm,
+    fontWeight: "bold",
+  },
+  listCount: {
+    color: theme.muted,
+    fontSize: SIZES.xs,
     fontWeight: "bold",
   }
 });

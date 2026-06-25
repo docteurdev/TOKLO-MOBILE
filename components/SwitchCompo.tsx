@@ -1,14 +1,12 @@
-
-import { Pressable, StyleProp, StyleSheet, Text } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
+import { useCallback } from 'react';
+import { Pressable, StyleProp, StyleSheet, Text, ViewStyle } from 'react-native';
 import Animated, {
   interpolateColor,
   useAnimatedStyle,
   useDerivedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { useCallback } from 'react';
-import { Colors } from '@/constants/Colors';
-import { ViewStyle } from 'react-native-size-matters';
 
 interface SwitchProps {
   value: boolean;
@@ -24,21 +22,25 @@ interface SwitchProps {
 export const SwitchCompo = ({
   value,
   onValueChange,
-  activeColor = Colors.app.available.av_txt ,//'#34C759',
-  inactiveColor = '#E9E9EA',
-  thumbColor = '#FFFFFF',
+  activeColor,
+  inactiveColor,
+  thumbColor,
   disabled = false,
   style = {},
   label,
 }: SwitchProps) => {
+  const theme = useAppTheme();
+  const resolvedActiveColor = activeColor ?? theme.success;
+  const resolvedInactiveColor = inactiveColor ?? theme.border;
+  const resolvedThumbColor = thumbColor ?? theme.card;
+
   const progress = useDerivedValue(() => {
     return withSpring(value ? 1 : 0, {
       mass: 1,
       damping: 15,
       stiffness: 150,
       overshootClamping: false,
-      restSpeedThreshold: 0.001,
-      restDisplacementThreshold: 0.001,
+      energyThreshold: 0.001,
     });
   }, [value]);
 
@@ -46,7 +48,7 @@ export const SwitchCompo = ({
     const backgroundColor = interpolateColor(
       progress.value,
       [0, 1],
-      [inactiveColor, activeColor]
+      [resolvedInactiveColor, resolvedActiveColor]
     );
 
     return {
@@ -84,12 +86,12 @@ export const SwitchCompo = ({
         style,
       ]}
     >
-      <Text>{label}</Text>
+      <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
       <Animated.View style={[styles.track, backgroundColorStyle]}>
         <Animated.View
           style={[
             styles.thumb,
-            { backgroundColor: thumbColor },
+            { backgroundColor: resolvedThumbColor },
             thumbStyle,
           ]}
         />
@@ -105,6 +107,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flex: 1,
     paddingHorizontal: 16,
+  },
+  label: {
+    flex: 1,
+    fontWeight: '600',
+    paddingRight: 12,
   },
   disabled: {
     opacity: 0.4,

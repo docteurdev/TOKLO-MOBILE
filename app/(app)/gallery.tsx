@@ -5,8 +5,8 @@ import CustomButton from "@/components/form/CustomButton";
 import FullScreenImgScrolling from "@/components/gallery/FullScreenImgScrolling";
 import UploadGallery from "@/components/gallery/UploadGallery";
 import SubscriptionCompo from "@/components/SubscriptionCompo";
-import { Colors } from "@/constants/Colors";
 import useDeleteGalery from "@/hooks/mutations/useDeleteGalery";
+import { AppTheme, useAppTheme } from "@/hooks/useAppTheme";
 import { QueryKeys } from "@/interfaces/queries-key";
 import { ICatalogue } from "@/interfaces/type";
 import { useUserStore } from "@/stores/user";
@@ -15,7 +15,7 @@ import { Rs, SIZES } from "@/util/comon";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -28,11 +28,6 @@ import {
   View,
 } from "react-native";
 import { XMarkIcon } from "react-native-heroicons/solid";
-import {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
 
 // Get device width for responsive layout
 const { width } = Dimensions.get("window");
@@ -40,10 +35,11 @@ const itemWidth = (width - 32) / 2;
 
 
 export default function Page() {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const statusBarStyle = theme.background === "#FFFDF8" ? "dark-content" : "light-content";
   const [selectedItem, setSelectedItem] = useState<ICatalogue | null>(null);
   const [showFullScreen, setShowFullScreen] = useState(false);
-
-  const scale = useSharedValue(1);
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   const subscribeBottomSheet = useRef<BottomSheetModal>(null);
@@ -52,10 +48,10 @@ export default function Page() {
   const { user } = useUserStore();
   const [visible, setVisible] = useState(false);
 
-    const {mutate, isPending, isSuccess} = useDeleteGalery(() => setVisible(false));
+    const {mutate} = useDeleteGalery(() => setVisible(false));
   
 
-  const { data, isLoading, error, refetch } = useQuery<ICatalogue[], Error>({
+  const { data, isLoading, refetch } = useQuery<ICatalogue[], Error>({
     queryKey: QueryKeys.gallery.all,
     queryFn: async (): Promise<ICatalogue[]> => {
       try {
@@ -69,19 +65,7 @@ export default function Page() {
     },
   });
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: scale.value }],
-    };
-  });
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.95, { damping: 10 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 10 });
-  };
+  const galleryItems = data ?? [];
 
   const onImagePress = (item: ICatalogue) => {
     setSelectedItem(item);
@@ -136,13 +120,13 @@ export default function Page() {
   );
 
   const initialIndex = selectedItem 
-  ? Math.max(0, data.findIndex(item => item.id === selectedItem.id))
+  ? Math.max(0, galleryItems.findIndex(item => item.id === selectedItem.id))
   : 0;
 
   return (
     <>
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" />
+        <StatusBar barStyle={statusBarStyle} backgroundColor={theme.background} />
 
         {/* Header */}
         {/* <View style={styles.header}>
@@ -164,15 +148,15 @@ export default function Page() {
 
         {/* Categories Grid using FlatList */}
         <FlatList
-          data={data}
+          data={galleryItems}
           renderItem={renderCategoryItem}
           keyExtractor={(item) => item.id.toString()}
           numColumns={2}
           contentContainerStyle={styles.gridContainer}
-          refreshControl={ <RefreshControl refreshing={isLoading} onRefresh={refetch} /> }
+          refreshControl={ <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={theme.gold} /> }
            ListEmptyComponent={() => (
-                    <View style={{ flex: 1, marginTop: Rs(100) , justifyContent: "center", alignItems: "center", }} >
-                      <Text style={{ fontSize: SIZES.md, color: Colors.app.texteLight }}>Pas de modèle enregistré</Text>
+                    <View style={styles.emptyContainer} >
+                      <Text style={styles.emptyText}>Pas de modèle enregistré</Text>
                     </View>
                   )}
         />
@@ -191,11 +175,8 @@ export default function Page() {
 
         {/* Full Screen Image Modal */}
         {showFullScreen && selectedItem && (
-          // <FullScreenImageView
-          //   imageUri={selectedItem.image}
-          //   onClose={handleCloseFullScreen}
-          // />
-          <FullScreenImgScrolling initialIndex={initialIndex} visible={visible} items={data} onDelete={() => handleDelete()} onSelect={() => {}} onClose={() => setVisible(false)} />
+         
+          <FullScreenImgScrolling initialIndex={initialIndex} visible={visible} items={galleryItems} onDelete={() => handleDelete()} onSelect={() => {}} onClose={() => setVisible(false)} />
         )}
       </View>
       <BottomSheetCompo
@@ -213,7 +194,7 @@ export default function Page() {
         bottomSheetModalRef={subscribeBottomSheet}
         snapPoints={["100%"]}
       >
-        <View style={{ padding: Rs(20), gap: Rs(20) }}>
+        <View style={styles.subscribeIntro}>
           <View
             style={{
               flexDirection: "row",
@@ -222,20 +203,16 @@ export default function Page() {
             }}
           >
             <Text
-              style={{
-                color: Colors.app.texte,
-                fontSize: SIZES.lg,
-                fontWeight: "bold",
-              }}
+              style={styles.subscribeTitle}
             >
               Votre abonnement a expiré.
             </Text>
             <BackButton
               backAction={() => subscribeBottomSheet.current?.dismiss()}
-              icon={<XMarkIcon fill={Colors.app.texte} size={Rs(20)} />}
+              icon={<XMarkIcon fill={theme.text} size={Rs(20)} />}
             />
           </View>
-          <Text style={{ color: Colors.app.available.unav_txt }}>
+          <Text style={styles.subscribeText}>
             Pour continuer à profiter de tous nos services et fonctionnalités,
             veuillez renouveler votre abonnement.
           </Text>
@@ -260,10 +237,10 @@ export default function Page() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: theme.background,
   },
   saveButton: {
     flexDirection: "row",
@@ -274,7 +251,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 24,
     elevation: 4,
-    shadowColor: "#7367F0",
+    shadowColor: theme.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -297,7 +274,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   signIn: {
-    color: "#0066CC",
+    color: theme.primary,
     fontWeight: "500",
   },
   titleContainer: {
@@ -306,6 +283,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
+    color: theme.text,
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 8,
@@ -313,12 +291,13 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: SIZES.sm,
-    color: "#333",
+    color: theme.muted,
     textAlign: "center",
     marginBottom: 8,
   },
   gridContainer: {
     paddingHorizontal: 12,
+    paddingBottom: Rs(16),
   },
   gridItem: {
     width: itemWidth,
@@ -354,8 +333,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   bottomContainer: {
+    backgroundColor: theme.background,
     padding: 16,
     marginBottom: Rs(50),
+  },
+  emptyContainer: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    marginTop: Rs(100),
+  },
+  emptyText: {
+    color: theme.muted,
+    fontSize: SIZES.md,
+  },
+  subscribeIntro: {
+    backgroundColor: theme.card,
+    gap: Rs(20),
+    padding: Rs(20),
+  },
+  subscribeTitle: {
+    color: theme.text,
+    fontSize: SIZES.lg,
+    fontWeight: "bold",
+  },
+  subscribeText: {
+    color: theme.danger,
   },
   button: {
     // backgroundColor: Colors.app.primary,
@@ -370,7 +373,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
    
-      color: 'white',
+      color: '#FFFFFF',
       fontSize: 16,
       fontWeight: '600',
 

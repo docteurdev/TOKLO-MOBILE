@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import ExpoCheckbox from 'expo-checkbox';
 import { Formik } from "formik";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { AppState, Keyboard, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import BackButton from "@/components/form/BackButton";
@@ -10,8 +10,8 @@ import CustomInput from "@/components/form/CustomInput";
 import FormBanner from "@/components/form/FormBanner";
 import FormWrapper, { useFormScroll } from "@/components/form/FormWrapper";
 import PhoneInput from "@/components/form/PhoneInput";
-import { Colors } from "@/constants/Colors";
 import { signUpSchema } from "@/constants/formSchemas";
+import { AppTheme, useAppTheme } from "@/hooks/useAppTheme";
 import useNotif from "@/hooks/useNotification";
 import { baseURL } from "@/util/axios";
 import { Rs, SIZES } from "@/util/comon";
@@ -45,9 +45,9 @@ const steps: {
 ];
 
 const normalizeSignUpValues = (values: TypeValues): TypeValues => ({
-  name: values.name.trim(),
-  lastname: values.lastname.trim(),
-  phone: values?.phone?.trim(),
+  name: values.name?.trim() ?? "",
+  lastname: values.lastname?.trim() ?? "",
+  phone: values.phone?.trim() ?? "",
   password: values.password.trim(),
 });
 
@@ -94,6 +94,8 @@ type SignUpOtpInputProps = {
 };
 
 const SignUpOtpInput = ({ error, touched, onBlur, onChange, onFilled }: SignUpOtpInputProps) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const otpContainerRef = React.useRef<View>(null);
   const formScroll = useFormScroll();
 
@@ -106,7 +108,7 @@ const SignUpOtpInput = ({ error, touched, onBlur, onChange, onFilled }: SignUpOt
         onTextChange={(text) => {
           onChange(text.replace(/\D/g, ""));
         }}
-        focusColor={Colors.app.primary}
+        focusColor={theme.primary}
         focusStickBlinkingDuration={500}
         onFocus={() => {
           formScroll?.scrollToInput(otpContainerRef);
@@ -122,15 +124,15 @@ const SignUpOtpInput = ({ error, touched, onBlur, onChange, onFilled }: SignUpOt
         }}
         theme={{
           pinCodeContainerStyle: {
-            backgroundColor: Colors.light.background,
-            borderColor: Colors.app.texteLight,
+            backgroundColor: theme.card,
+            borderColor: error && touched ? theme.danger : theme.border,
             borderWidth: 0.4,
             borderRadius: 10,
             height: 58,
             width: 58,
           },
           pinCodeTextStyle: {
-            color: Colors.app.primary,
+            color: theme.primary,
           },
         }}
       />
@@ -150,6 +152,8 @@ AppState.addEventListener("change", (state) => {
 });
 
 export default function Page () {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [isChecked, setChecked] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [stepDirection, setStepDirection] = useState<"forward" | "backward">("forward");
@@ -350,7 +354,7 @@ export default function Page () {
                     <ExpoCheckbox
                       value={isChecked}
                       onValueChange={setChecked}
-                      color={isChecked ? Colors.app.primary : undefined}
+                      color={isChecked ? theme.primary : undefined}
                     />
                     <Link href="/cgu" style={styles.termsLink}>
                       <Text style={styles.termsText}>J&apos;accepte les conditions d&apos;utilisation</Text>
@@ -369,7 +373,7 @@ export default function Page () {
                     }}
                     style={styles.secondaryButton}
                   >
-                    <Feather name="arrow-left" size={Rs(18)} color={Colors.app.primary} />
+                    <Feather name="arrow-left" size={Rs(18)} color={theme.primary} />
                     <Text style={styles.secondaryButtonText}>Retour</Text>
                   </TouchableOpacity>
                 )}
@@ -430,7 +434,7 @@ export default function Page () {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     marginTop: 40,
     padding: 12,
@@ -445,12 +449,12 @@ const styles = StyleSheet.create({
   },
   otpLabel: {
     fontSize: SIZES.sm,
-    color: Colors.app.texteLight,
+    color: theme.muted,
     marginBottom: 10,
     fontWeight: 'bold',
   },
   errorText: {
-    color: Colors.app.error,
+    color: theme.danger,
     fontSize: SIZES.xs,
     marginTop: 6,
   },
@@ -462,19 +466,19 @@ const styles = StyleSheet.create({
     marginBottom: Rs(8),
   },
   heroKicker: {
-    color: Colors.app.primary,
+    color: theme.primary,
     fontSize: SIZES.xs,
     fontWeight: "800",
     textTransform: "uppercase",
     marginBottom: Rs(6),
   },
   heroTitle: {
-    color: Colors.app.texte,
+    color: theme.text,
     fontSize: SIZES.xl + 5,
     fontWeight: "900",
   },
   heroSubtitle: {
-    color: Colors.app.texteLight,
+    color: theme.muted,
     fontSize: SIZES.sm,
     lineHeight: Rs(22),
     marginTop: Rs(8),
@@ -490,44 +494,44 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   progressEyebrow: {
-    color: Colors.app.texteLight,
+    color: theme.muted,
     fontSize: SIZES.xs,
     fontWeight: "700",
     textTransform: "uppercase",
   },
   progressTitle: {
-    color: Colors.app.texte,
+    color: theme.text,
     fontSize: SIZES.lg,
     fontWeight: "800",
     marginTop: Rs(3),
   },
   progressPercent: {
-    color: Colors.app.primary,
+    color: theme.primary,
     fontSize: SIZES.sm,
     fontWeight: "800",
   },
   progressTrack: {
     height: Rs(6),
     borderRadius: Rs(6),
-    backgroundColor: Colors.app.disabled,
+    backgroundColor: theme.border,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
     borderRadius: Rs(6),
-    backgroundColor: Colors.app.primary,
+    backgroundColor: theme.primary,
   },
   progressLabels: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
   progressLabel: {
-    color: Colors.app.texteLight,
+    color: theme.muted,
     fontSize: SIZES.xs,
     fontWeight: "600",
   },
   progressLabelActive: {
-    color: Colors.app.primary,
+    color: theme.primary,
   },
   stepContent: {
     gap: Rs(8),
@@ -536,7 +540,7 @@ const styles = StyleSheet.create({
     gap: Rs(8),
   },
   otpHint: {
-    color: Colors.app.texteLight,
+    color: theme.muted,
     fontSize: SIZES.xs,
     marginBottom: Rs(4),
   },
@@ -550,7 +554,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   termsText: {
-    color: Colors.app.texteLight,
+    color: theme.muted,
     fontSize: SIZES.sm,
   },
   actions: {
@@ -564,14 +568,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: Rs(14),
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.app.primary,
+    borderColor: theme.primary,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: Rs(8),
   },
   secondaryButtonText: {
-    color: Colors.app.primary,
+    color: theme.primary,
     fontSize: SIZES.sm,
     fontWeight: "700",
   },

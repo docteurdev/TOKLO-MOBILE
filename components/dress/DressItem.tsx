@@ -4,6 +4,7 @@ import { BanknotesIcon, CalendarDaysIcon, CalendarIcon, MinusCircleIcon, PhoneIc
 
 
 import { Colors } from '@/constants/Colors';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import { EDressStatus, IOrder } from '@/interfaces/type';
 import { base } from '@/util/axios';
 import { formatXOF, Rs, SIZES } from '@/util/comon';
@@ -32,8 +33,11 @@ const DressItem = ({type, item, handleChangeStatus, handlePrint}: Props) => {
   const { id, description, status, quantite, amount, paiement, date_depote, date_remise, client_lastname, client_name, client_phone } = item
 
   const normalizedStatus = normalizeDressStatus(status);
+  const theme = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
   
-  
+
+
   const route = useRouter()
 
   return (
@@ -51,7 +55,7 @@ const DressItem = ({type, item, handleChangeStatus, handlePrint}: Props) => {
        <View style={styles.dressInfo} >
           <Text style={styles.dressType}> {description} </Text>
           <View style={{flexDirection: "row", justifyContent: "space-between", marginTop: 10}} >
-             <ItemChild label={quantite} icon={<Square3Stack3DIcon fill={Colors.app.primary} size={Rs(23)} />} />
+             <ItemChild label={quantite} icon={<Square3Stack3DIcon fill={theme.primary} size={Rs(23)} />} />
              {/* <ItemChild label='Pattern 2' icon={<ShieldCheckIcon fill={Colors.app.primary} size={18}/>} /> */}
             <DressStatus status={normalizedStatus} />
           </View>
@@ -62,8 +66,8 @@ const DressItem = ({type, item, handleChangeStatus, handlePrint}: Props) => {
        
        <View style={[styles.dressInfo, {gap: 10, flexDirection: "row", justifyContent: "space-between"}]} >
           {/* <Text style={styles.dressType}> Dress type </Text> */}
-             <ItemChild label={`Prix: ${formatXOF(Number(amount))}`} icon={<BanknotesIcon fill={Colors.app.primary} size={Rs(23)} />} />
-             <ItemChild label={`Avance: ${formatXOF(Number(paiement))}`} icon={<MinusCircleIcon fill={Colors.app.primary} size={Rs(23)} />} />
+             <ItemChild label={`Prix: ${formatXOF(Number(amount))}`} icon={<BanknotesIcon fill={theme.primary} size={Rs(23)} />} />
+             <ItemChild label={`Avance: ${formatXOF(Number(paiement))}`} icon={<MinusCircleIcon fill={theme.primary} size={Rs(23)} />} />
              {/* <ItemChild label='Rest: 0€' icon={<Bars2Icon fill={Colors.app.primary} size={18} />} /> */}
           
        </View>
@@ -72,8 +76,8 @@ const DressItem = ({type, item, handleChangeStatus, handlePrint}: Props) => {
        
        <View style={[styles.dressInfo, {flexDirection: "row", alignItems: "center", justifyContent: "space-between"}]} >
           
-             <ItemChild label={`${client_lastname} ${client_name}`} icon={<UserIcon fill={Colors.app.primary} size={Rs(23)} />} />
-             <ItemChild label={client_phone} icon={<PhoneIcon fill={Colors.app.primary} size={Rs(18)} />} />
+             <ItemChild label={`${client_lastname} ${client_name}`} icon={<UserIcon fill={theme.primary} size={Rs(23)} />} />
+             <ItemChild label={client_phone} icon={<PhoneIcon fill={theme.primary} size={Rs(18)} />} />
           
        </View>
        
@@ -83,8 +87,8 @@ const DressItem = ({type, item, handleChangeStatus, handlePrint}: Props) => {
        
        <View style={[styles.dressInfo, {gap: 10}]} >
           
-       <ItemChild label={`Date d'enregistrement: ${date_depote}`} icon={<CalendarDaysIcon fill={Colors.app.primary} size={Rs(23)} />} />
-       <ItemChild label={`Date de livraison: ${date_remise}`} icon={<CalendarIcon fill={Colors.app.primary} size={Rs(23)} />} />
+       <ItemChild label={`Date d'enregistrement: ${date_depote}`} icon={<CalendarDaysIcon fill={theme.primary} size={Rs(23)} />} />
+       <ItemChild label={`Date de livraison: ${date_remise}`} icon={<CalendarIcon fill={theme.primary} size={Rs(23)} />} />
           
        </View>
        
@@ -98,7 +102,7 @@ const DressItem = ({type, item, handleChangeStatus, handlePrint}: Props) => {
         <TouchableOpacity style={styles.bottomBtn} onPress={() => route.push({pathname: "/OrderDetail", params: {id}}) } >
         <Text style={styles.bottomBtnText} > Voir les détails </Text>
         </TouchableOpacity>
-        <View style={{width: 1, height: "100%", backgroundColor: Colors.app.disabled}}  />
+        <View style={{width: 1, height: "100%", backgroundColor: theme.border}}  />
        {normalizedStatus !== EDressStatus.DELIVERED &&
         <TouchableOpacity onPress={handleChangeStatus} style={styles.bottomBtn} >
             <Text style={[styles.bottomBtnText, {fontWeight: "bold", color: normalizedStatus === EDressStatus.ONGOING ? Colors.app.available.unav_txt: normalizedStatus === EDressStatus.FINISHED? Colors.app.dashitem.t_2 : Colors.app.available.av_txt}]} > {normalizedStatus === EDressStatus.ONGOING ? "Terminer " : "Livrer"} </Text>
@@ -107,7 +111,7 @@ const DressItem = ({type, item, handleChangeStatus, handlePrint}: Props) => {
 
       {normalizedStatus === EDressStatus.DELIVERED &&
         <TouchableOpacity onPress={handlePrint} style={styles.bottomBtn} >
-            <Text style={[styles.bottomBtnText, {fontWeight: "bold", color: Colors.app.texteLight}]} > Géner la facture </Text>
+            <Text style={[styles.bottomBtnText, {fontWeight: "bold", color: theme.muted}]} > Géner la facture </Text>
         </TouchableOpacity>
         }
 
@@ -119,15 +123,16 @@ const DressItem = ({type, item, handleChangeStatus, handlePrint}: Props) => {
 
 export default DressItem
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   item:{
+    backgroundColor: theme.card,
     height: "auto",
     width: "100%",
     // boxShadow: Colors.shadow.card,
     borderRadius: 10,
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth, 
-    borderColor: Colors.app.disabled,
+    borderColor: theme.border,
     marginBottom: Rs(10),
     position: "relative"
   },
@@ -135,19 +140,24 @@ const styles = StyleSheet.create({
     height: 400, 
     width: 60,
     position: "absolute",
-    left: -50
+    left: -50,
+    opacity: theme.background === "#FFFDF8" ? 1 : 0.2,
   },
   africanTouchSheet: {
     height: 150, 
     width: 150,
     position: "absolute",
     right: -30,
-    top: -10
+    top: -10,
+    opacity: theme.background === "#FFFDF8" ? 1 : 0.16,
   },
   imgBox:{
     width: Rs(80),
     height: Rs(80),
     borderRadius: Rs(10),
+    backgroundColor: theme.primaryLight,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden"
   },
   dressInfo:{
@@ -159,7 +169,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center", 
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.app.disabled,
+    borderColor: theme.border,
     paddingVertical: 10,
     paddingHorizontal: 18,
     // height: 150
@@ -168,7 +178,7 @@ const styles = StyleSheet.create({
 
   dressType:{
     fontWeight: "700",
-    color: Colors.app.texte,
+    color: theme.text,
     fontSize: SIZES.sm
    },
   bottomItem:{
@@ -180,11 +190,11 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: Colors.app.secondary,
+    backgroundColor: theme.primaryLight,
    
   },
   bottomBtnText:{
     fontSize: SIZES.sm,
-    color: Colors.app.primary
+    color: theme.primary
   }
 })

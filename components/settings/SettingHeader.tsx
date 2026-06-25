@@ -1,16 +1,16 @@
-import { Colors } from '@/constants/Colors'
 import useActiveStore from '@/hooks/mutations/useActiveStore'
 import useLocation from '@/hooks/useLocation'
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme'
 import { QueryKeys } from '@/interfaces/queries-key'
 import { Toklomen } from '@/interfaces/user'
 import { useUserStore } from '@/stores/user'
 import { base, baseURL } from '@/util/axios'
-import { colors, Rs, SIZES } from '@/util/comon'
+import { Rs, SIZES } from '@/util/comon'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { BottomSheetModal } from '@gorhom/bottom-sheet'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { XMarkIcon } from 'react-native-heroicons/solid'
 import BottomSheetCompo from '../BottomSheetCompo'
@@ -18,9 +18,9 @@ import BackButton from '../form/BackButton'
 import SubscriptionCompo from '../SubscriptionCompo'
 import { SwitchCompo } from '../SwitchCompo'
 
-type Props = {}
-
-const SettingHeader = (props: Props) => {
+const SettingHeader = () => {
+    const theme = useAppTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
 
     const {user} = useUserStore();
 
@@ -30,7 +30,7 @@ const SettingHeader = (props: Props) => {
     
     const {mutate, isPending,} = useActiveStore();
 
-     const {data, isLoading, error, refetch} = useQuery<Toklomen, Error>({
+     const {data, isLoading, refetch} = useQuery<Toklomen, Error>({
       queryKey: QueryKeys.tokloman.byToklomanStore,
       queryFn: async (): Promise<Toklomen> => {  // Explicit return type
         try {
@@ -43,18 +43,36 @@ const SettingHeader = (props: Props) => {
       },
      });
 
-    const [isSwitch, setIsSwitch] = useState(data?.isActiveStore);
+    const [isSwitch, setIsSwitch] = useState(false);
 
 
      useEffect(() => {
-      const locationJson = JSON.parse(data?.location || '{}');
+      const rawLocation = data?.location as unknown;
+      let locationJson: { x?: unknown; y?: unknown } = {};
+
+      try {
+        locationJson = typeof rawLocation === 'string'
+          ? JSON.parse(rawLocation)
+          : rawLocation && typeof rawLocation === 'object'
+            ? rawLocation as { x?: unknown; y?: unknown }
+            : {};
+      } catch (error) {
+        console.error('Invalid store location JSON', error);
+      }
+
+      const latitude = Number(locationJson?.x);
+      const longitude = Number(locationJson?.y);
       
-      if(locationJson?.x && locationJson?.y){
-        getAddressFromCoordinates(locationJson?.x, locationJson?.y);
+      if(Number.isFinite(latitude) && Number.isFinite(longitude)){
+        getAddressFromCoordinates(latitude, longitude);
         
       }
       
-    }, [data?.location]);
+    }, [data?.location, getAddressFromCoordinates]);
+
+    useEffect(() => {
+      setIsSwitch(Boolean(data?.isActiveStore));
+    }, [data?.isActiveStore]);
 
 
 
@@ -62,18 +80,18 @@ const SettingHeader = (props: Props) => {
    <>
      <View style={styles.storeCardContainer}>
        {isPending && <View style={styles.loading}>
-         <ActivityIndicator size="small" color={Colors.app.primary} />
+         <ActivityIndicator size="small" color={theme.primary} />
        </View>}
         <View style={styles.storeCard}>
           <View style={styles.storeCardHeader}>
             <View style={styles.storeIconContainer}>
               { data?.store_logo? <Image source={{uri: base +'uploads/'+ data?.store_logo}} resizeMode='cover' style={{width: "100%", height: "100%", }} /> :
-               <MaterialCommunityIcons name="storefront" size={28} color="white" /> }
+               <MaterialCommunityIcons name="storefront" size={28} color="#FFFFFF" /> }
             </View>
             <View style={styles.storeInfoContainer}>
               <Text numberOfLines={1} style={styles.storeName}>{data?.store_name}</Text>
               {data?.location && <Text style={styles.storeAddress}>{address}</Text>}
-              {isLoading && <ActivityIndicator size="small" color={Colors.app.primary} />}
+              {isLoading && <ActivityIndicator size="small" color={theme.primary} />}
             </View>
             <View style={[styles.statusIndicator]}>
               <Text style={styles.statusText}>
@@ -84,9 +102,9 @@ const SettingHeader = (props: Props) => {
           
             <TouchableOpacity style={[styles.quickActionButton, styles.quickActionsRow]}>
               <SwitchCompo label='Affichez ma boutique en ligne'
-                style={{justifyContent: "space-between", backgroundColor: "none"}}
+                style={{justifyContent: "space-between", backgroundColor: "transparent"}}
                 value={isSwitch}
-                activeColor={colors.orange}
+                activeColor={theme.gold}
                 onValueChange={()=> {
                 setIsSwitch(!isSwitch)
                 mutate(isSwitch? false : true, {
@@ -102,14 +120,14 @@ const SettingHeader = (props: Props) => {
                {/* payement bottomsheet */}
      
                <BottomSheetCompo bottomSheetModalRef={subscribeBottomSheet} snapPoints={["100%"]} >
-                     <View style={{padding: Rs(20), gap: Rs(20)}} >
+                     <View style={styles.subscribeIntro} >
                        <View style={{flexDirection: "row", alignItems: "center", justifyContent: "space-between"}} >
-                       <Text style={{color: Colors.app.texte, fontSize: SIZES.lg, fontWeight: "bold"}} >
+                       <Text style={styles.subscribeTitle} >
                          Votre abonnement a expiré.
                        </Text>
-                       <BackButton backAction={() => subscribeBottomSheet?.current?.dismiss() } icon={<XMarkIcon fill={Colors.app.texte} size={Rs(20)} />} />
+                       <BackButton backAction={() => subscribeBottomSheet?.current?.dismiss() } icon={<XMarkIcon fill={theme.text} size={Rs(20)} />} />
                        </View>
-                       <Text style={{color: Colors.app.available.unav_txt}}> 
+                       <Text style={styles.subscribeText}> 
                          Pour continuer à profiter de tous nos services et fonctionnalités, veuillez renouveler votre abonnement.
                        </Text>
                      </View>
@@ -124,14 +142,15 @@ const SettingHeader = (props: Props) => {
 
 export default SettingHeader
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   storeCardContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    // backgroundColor: 
   },
   storeCard: {
-    backgroundColor: "white",
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
     overflow: "hidden",
   },
@@ -139,13 +158,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 16,
     alignItems: "center",
-    backgroundColor: "white",
+    backgroundColor: theme.card,
   },
   storeIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.orange,
+    backgroundColor: theme.gold,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -157,11 +176,11 @@ const styles = StyleSheet.create({
   storeName: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#333",
+    color: theme.text,
   },
   storeAddress: {
     fontSize: 14,
-    color: "#777",
+    color: theme.muted,
     marginTop: 2,
   },
   statusIndicator: {
@@ -170,20 +189,20 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: colors.available.av_txt,
+    backgroundColor: theme.success,
   },
   statusText: {
-    color: "white",
+    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "700",
   },
   quickActionsRow: {
     flexDirection: "row",
-    backgroundColor: colors.lightOrange,
+    backgroundColor: theme.primaryLight,
     justifyContent: "space-evenly",
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: "#ffffff",
+    borderTopColor: theme.border,
   },
   quickActionButton: {
     flexDirection: "row",
@@ -203,5 +222,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     zIndex: 100,
+  },
+  subscribeIntro: {
+    backgroundColor: theme.card,
+    gap: Rs(20),
+    padding: Rs(20),
+  },
+  subscribeTitle: {
+    color: theme.text,
+    fontSize: SIZES.lg,
+    fontWeight: "bold",
+  },
+  subscribeText: {
+    color: theme.danger,
   },
 });

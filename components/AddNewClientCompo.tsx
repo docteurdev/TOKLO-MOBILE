@@ -8,19 +8,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as Animatable from 'react-native-animatable';
 import { Formik } from 'formik';
-import * as Yup from 'yup';
 import CustomButton from './form/CustomButton';
 import CustomInput from './form/CustomInput';
-import BackButton from './form/BackButton';
 import { Rs } from '@/util/comon';
 import { newClientSchema, newClientValuesType } from '@/constants/formSchemas';
 import useNewClient from '@/hooks/mutations/useNewClient';
-import axios from 'axios';
-import { baseURL } from '@/util/axios';
-import useNotif from '@/hooks/useNotification';
-import { Colors } from '@/constants/Colors';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 
 // Validation schema
 
@@ -30,9 +24,10 @@ type Props = {
 
 const AddNewClientCompo = ({ handleShowAddClient }: Props) => {
 
+  const theme = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
+  const statusBarStyle = theme.background === '#FFFDF8' ? 'dark-content' : 'light-content';
   const {mutate, isPending} = useNewClient(handleShowAddClient);
-
-  const { handleNotification } = useNotif()
 
   const handleAddClient = (values: newClientValuesType) => {
     mutate(values)
@@ -41,7 +36,7 @@ const AddNewClientCompo = ({ handleShowAddClient }: Props) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.app.disabled} />
+      <StatusBar barStyle={statusBarStyle} backgroundColor={theme.card} />
       
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -73,7 +68,7 @@ const AddNewClientCompo = ({ handleShowAddClient }: Props) => {
                     placeholder=''
                     handleChange={handleChange('name')}
                     handleOnBlur={handleBlur('name')}
-                    error={touched.name && errors.name  }
+                    error={touched.name ? errors.name : undefined}
                   />
 
                   <CustomInput 
@@ -82,7 +77,7 @@ const AddNewClientCompo = ({ handleShowAddClient }: Props) => {
                     placeholder=''
                     handleChange={handleChange('lastname')}
                     handleOnBlur= {handleBlur('lastname')}
-                    error={touched.lastname && errors.lastname  }
+                    error={touched.lastname ? errors.lastname : undefined}
                   />
 
                   <CustomInput 
@@ -92,7 +87,7 @@ const AddNewClientCompo = ({ handleShowAddClient }: Props) => {
                     keyboardType="numeric"
                     handleChange={handleChange('telephone')}
                     handleOnBlur={handleBlur('telephone')}
-                    error={touched.telephone && errors.telephone }
+                    error={touched.telephone ? errors.telephone : undefined}
                   />
                 </View>
 
@@ -115,10 +110,10 @@ const AddNewClientCompo = ({ handleShowAddClient }: Props) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: theme.card,
   },
   keyboardAvoid: {
     flex: 1,

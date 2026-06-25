@@ -1,4 +1,5 @@
 import DrawerHeader from '@/components/CustomHeaders/DrawerHeader';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import { useUserStore } from '@/stores/user';
 import { Redirect } from 'expo-router';
 import { Drawer } from "expo-router/drawer";
@@ -6,13 +7,15 @@ import React from 'react';
 import { StatusBar, StyleSheet, View } from 'react-native';
 
 import CustomDrawer from '@/components/CustomHeaders/CustomDrawer';
-import { Colors } from '@/constants/Colors';
 import { ChartBarSquareIcon, Cog6ToothIcon, HomeIcon, UserGroupIcon } from "react-native-heroicons/solid";
 
 
 const AppLayout = () => {
 
   const { token } = useUserStore();
+  const theme = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
+  const statusBarStyle = theme.background === "#FFFDF8" ? "dark-content" : "light-content";
 
 
   if (!token) {
@@ -21,14 +24,35 @@ const AppLayout = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+      <StatusBar barStyle={statusBarStyle} backgroundColor={theme.background} />
      
       <Drawer
-          drawerContent={CustomDrawer}
+        drawerContent={(props) => <CustomDrawer {...props} />}
         initialRouteName='(tab)'
         screenOptions={{
+          drawerActiveBackgroundColor: theme.primaryLight,
+          drawerActiveTintColor: theme.primary,
+          drawerInactiveTintColor: theme.muted,
+          drawerContentStyle: {
+            backgroundColor: theme.card,
+          },
+          drawerItemStyle: {
+            borderRadius: 8,
+          },
+          drawerLabelStyle: {
+            color: theme.text,
+            fontWeight: "700",
+          },
+          drawerStyle: {
+            backgroundColor: theme.card,
+            borderRightColor: theme.border,
+            borderRightWidth: StyleSheet.hairlineWidth,
+          },
+          sceneStyle: {
+            backgroundColor: theme.background,
+          },
           headerTitle: "", 
-          header: () => <DrawerHeader/>,
+          header: () => <DrawerHeader />,
         }}
         >
           
@@ -39,7 +63,7 @@ const AppLayout = () => {
               drawerLabelStyle:{
                   paddingLeft: -50
               },
-                drawerIcon: () => <HomeIcon fill={Colors.app.texteLight} size={27} /> ,
+                drawerIcon: ({ color }) => <HomeIcon fill={color} size={27} /> ,
           }}
           />
 
@@ -50,7 +74,7 @@ const AppLayout = () => {
             options={{
               drawerLabel: "Statistiques",
               drawerItemStyle: null ,
-              drawerIcon: () => <ChartBarSquareIcon fill={Colors.app.texteLight} size={27}/>,
+              drawerIcon: ({ color }) => <ChartBarSquareIcon fill={color} size={27}/>,
             }}
           />
 
@@ -58,14 +82,14 @@ const AppLayout = () => {
             options={{
               drawerLabel: "Clients",
               drawerItemStyle: null ,
-              drawerIcon: () => <UserGroupIcon fill={Colors.app.texteLight} size={27}/>,
+              drawerIcon: ({ color }) => <UserGroupIcon fill={color} size={27}/>,
             }}
           />
 
           <Drawer.Screen name="setting"
             options={{
               drawerLabel: "Paramètres",
-              drawerIcon: () => <Cog6ToothIcon fill={Colors.app.texteLight} size={27}/>,
+              drawerIcon: ({ color }) => <Cog6ToothIcon fill={color} size={27}/>,
             }}
           />
 
@@ -73,7 +97,7 @@ const AppLayout = () => {
             options={{
               drawerLabel: "Clien",
               drawerItemStyle: {display: "none"} ,
-              drawerIcon: () => <UserGroupIcon fill={Colors.app.texteLight} size={27}/>,
+              drawerIcon: ({ color }) => <UserGroupIcon fill={color} size={27}/>,
             }}
           />
           
@@ -85,8 +109,9 @@ const AppLayout = () => {
 
 export default AppLayout
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
+    backgroundColor: theme.background,
     flex: 1,
   },
   decorationsLayer: {

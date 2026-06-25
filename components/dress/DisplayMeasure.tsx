@@ -1,6 +1,7 @@
-import { Colors } from "@/constants/Colors";
+import { AppTheme, useAppTheme } from "@/hooks/useAppTheme";
 import { base } from "@/util/axios";
-import { colors, Rs, SIZES } from "@/util/comon";
+import { Rs, SIZES } from "@/util/comon";
+import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
 const resolveImageUrl = (url?: string) => {
@@ -22,6 +23,8 @@ const resolveImageUrl = (url?: string) => {
 };
 
 export const DisplayMeasure = ({ image, title, value }:{image?: string, title: string, value: string}) => {
+ const theme = useAppTheme();
+ const styles = React.useMemo(() => createStyles(theme), [theme]);
  const imageUrl = resolveImageUrl(image);
 
  return (
@@ -57,12 +60,14 @@ export const DisplayMeasure = ({ image, title, value }:{image?: string, title: s
  );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     justifyContent: "center",
     alignItems: "center",
     flexDirection: "row",
-    backgroundColor: colors.lightOrange,
+    backgroundColor: theme.primaryLight,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     margin: Rs(2),
     borderRadius: Rs(6),
     padding: Rs(6),
@@ -91,7 +96,7 @@ const styles = StyleSheet.create({
   imageFallback: {
     width: Rs(15),
     height: Rs(15),
-    backgroundColor: Colors.app.warning,
+    backgroundColor: theme.gold,
     borderRadius: Rs(10),
   },
   content: {
@@ -100,12 +105,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    color: Colors.app.black,
+    color: theme.text,
     fontSize: SIZES.xs,
   },
   value: {
     fontWeight: "bold",
     fontSize: SIZES.sm,
-    color: Colors.app.texteLight,
+    color: theme.muted,
   },
 });

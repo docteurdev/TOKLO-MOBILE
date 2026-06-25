@@ -1,8 +1,8 @@
 import BackButton from '@/components/form/BackButton';
 import CustomButton from '@/components/form/CustomButton';
 import { SwitchCompo } from '@/components/SwitchCompo';
-import { Colors } from '@/constants/Colors';
 import useTokloman from '@/hooks/mutations/useTokloman';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import { QueryKeys } from '@/interfaces/queries-key';
 import { Toklomen } from '@/interfaces/user';
 import { useUserStore } from '@/stores/user';
@@ -13,7 +13,7 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Platform,
@@ -82,6 +82,8 @@ const resolveNotificationTime = (
 ) => normalizeTime(preferred) || normalizeTime(fallback);
 
 const Page = () => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   // Animation References
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -294,8 +296,9 @@ const Page = () => {
               ? handleTimeSwitchChange(timeSlot, setValue, nextValue)
               : setValue(nextValue)
           }
-          activeColor={"#f4f3f4"}
-          thumbColor={value ? iconColor : '#f4f3f4'}
+          activeColor={iconColor}
+          inactiveColor={theme.border}
+          thumbColor={value ? '#FFFFFF' : theme.card}
         />
       </Animated.View>
 
@@ -320,7 +323,7 @@ const Page = () => {
   };
 
   return (
-    <SafeAreaView style={{flex: 1}} >
+    <SafeAreaView style={styles.safeArea} >
 
       <View
         // colors={['#f9f9ff', '#e8f0ff']}
@@ -331,7 +334,7 @@ const Page = () => {
             <BackButton backAction={() => router.back()} />
             <View style={styles.header}>
               <Text style={styles.title}>Mes Notifications</Text>
-              <MaterialIcons name="notifications-active" size={32} color={Colors.app.primary} />
+              <MaterialIcons name="notifications-active" size={32} color={theme.primary} />
             </View>
           </Animated.View>
 
@@ -342,7 +345,7 @@ const Page = () => {
             ]}
           >
             <View style={styles.sectionHeader}>
-              <MaterialIcons name="access-time" size={22} color="#5A67D8" />
+              <MaterialIcons name="access-time" size={22} color={theme.primary} />
               <Text style={styles.sectionTitle}>{"Rappels avant l'événement"}</Text>
             </View>
             
@@ -386,7 +389,7 @@ const Page = () => {
             ]}
           >
             <View style={styles.sectionHeader}>
-              <Ionicons name="time-outline" size={22} color={Colors.app.available.av_txt} />
+              <Ionicons name="time-outline" size={22} color={theme.success} />
               <Text style={styles.sectionTitle}>Moment</Text>
             </View>
             
@@ -446,11 +449,15 @@ const Page = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.background,
+  },
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "white"
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -462,14 +469,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.lg,
     fontWeight: '600',
-    color: '#333',
+    color: theme.text,
   },
   card: {
-    backgroundColor: 'white',
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
-   boxShadow: Colors.shadow.card,
+    shadowColor: theme.text,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -477,13 +490,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: theme.border,
   },
   sectionTitle: {
     fontSize: SIZES.lg,
     fontWeight: '600',
     marginLeft: 10,
-    color: '#333',
+    color: theme.text,
   },
   option: {
     flexDirection: 'row',
@@ -491,7 +504,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f8f8f8',
+    borderBottomColor: theme.border,
   },
   optionLeft: {
     flexDirection: 'row',
@@ -507,7 +520,7 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: SIZES.md,
-    color: '#333',
+    color: theme.text,
   },
   timePickerContainer: {
     paddingTop: 12,
@@ -519,7 +532,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: theme.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -534,7 +547,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 16,
     fontWeight: '600',
-    color: 'white',
+    color: '#FFFFFF',
     marginLeft: 8,
   },
   saveButton: {
@@ -546,13 +559,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 24,
     elevation: 4,
-    shadowColor: '#7367F0',
+    shadowColor: theme.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
   saveButtonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },

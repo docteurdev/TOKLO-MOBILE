@@ -1,12 +1,12 @@
 import BtnFill from '@/components/svgCompo/BtnFill';
 import Measure from '@/components/svgCompo/Measure';
 import Needle from '@/components/svgCompo/Needle';
-import { Colors } from '@/constants/Colors';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useUserStore } from '@/stores/user';
 import { baseURL } from '@/util/axios';
 import axios from 'axios';
 import { Tabs } from 'expo-router';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { View } from 'react-native';
 import { UserGroupIcon as UsersIcon } from "react-native-heroicons/solid";
 
@@ -14,19 +14,13 @@ import { UserGroupIcon as UsersIcon } from "react-native-heroicons/solid";
 export default function AppLayout() {
   // const { session, isLoading } = useSession();
   const {user, notify_token} = useUserStore();
-
-  useEffect(() => {
-    
-    if (user) {
-      handleManageToken();
-    }
-  }, []);
+  const theme = useAppTheme();
 
   // checking if the user token is exist
 
-  async function handleManageToken() {
+  const handleManageToken = useCallback(async () => {
     try {
-      const token = await axios.post(`${baseURL}/token/verify`,{
+      await axios.post(`${baseURL}/token/verify`,{
         token: notify_token,
         tokloManId: user?.id,
       });
@@ -34,7 +28,13 @@ export default function AppLayout() {
             console.warn("token-error============================", error);
 
     }
-  }
+  }, [notify_token, user?.id]);
+
+  useEffect(() => {
+    if (user) {
+      handleManageToken();
+    }
+  }, [handleManageToken, user]);
   
   return (
         // <ConfettiProvider>
@@ -44,8 +44,15 @@ export default function AppLayout() {
           screenOptions={{
             tabBarShowLabel: true,
             headerShown: false,
-            tabBarActiveTintColor: Colors.app.primary,
-            
+            tabBarActiveTintColor: theme.primary,
+            tabBarInactiveTintColor: theme.muted,
+            tabBarStyle: {
+              backgroundColor: theme.card,
+              borderTopColor: theme.border,
+            },
+            sceneStyle: {
+              backgroundColor: theme.background,
+            },
           }}
           
           >
@@ -65,14 +72,20 @@ export default function AppLayout() {
               tabBarIcon: ({color}) => 
               <View
               style={{
-                backgroundColor: "white",
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+                borderWidth: 1,
                 position: "absolute",
                 top: -30,
                 width: 50,
                 height: 50,
                 justifyContent: "center",
                 alignItems: "center",
-                boxShadow: Colors.shadow.card,
+                shadowColor: theme.background === "#FFFDF8" ? "#000000" : "#000000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: theme.background === "#FFFDF8" ? 0.12 : 0.35,
+                shadowRadius: 8,
+                elevation: 6,
                 zIndex: 10,
                 borderRadius: 25,
               }}
