@@ -1,3 +1,4 @@
+import { useAppTheme } from '@/hooks/useAppTheme';
 import React, { useEffect } from 'react';
 import {
   Image,
@@ -70,10 +71,14 @@ interface LoadingScreenProps {
  * A simple loading overlay component using Modal and Swing animation
  */
 const LoadingScreen: React.FC<LoadingScreenProps> = ({
-  backgroundColor = 'white',
+  visible = true,
+  backgroundColor,
   message,
-  textColor = '#FFFFFF',
+  textColor,
 }) => {
+  const theme = useAppTheme();
+  const resolvedBackgroundColor = backgroundColor ?? theme.background;
+  const resolvedTextColor = textColor ?? theme.text;
   const pulseProgress = useSharedValue(0);
 
   useEffect(() => {
@@ -96,8 +101,10 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
     };
   });
 
+  if (!visible) return null;
+
   return (
-    <View style={[styles.container, { backgroundColor }]}>
+    <View style={[styles.container, { backgroundColor: resolvedBackgroundColor }]}>
         {/* <Swing 
           size={indicatorSize} 
           color={Colors.app.primary}
@@ -116,7 +123,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
         </Animated.View>
         
         {message && (
-          <Text style={[styles.message, { color: textColor }]}>
+          <Text style={[styles.message, { color: resolvedTextColor }]}>
             {message}
           </Text>
         )}

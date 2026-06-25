@@ -1,6 +1,6 @@
-import { Colors } from "@/constants/Colors";
 import useChangeOrderStatus from "@/hooks/mutations/useChangeOrderStatus";
 import usePayOrderSold from "@/hooks/mutations/usePayOrderSold";
+import { AppTheme, useAppTheme } from "@/hooks/useAppTheme";
 import { QueryKeys } from "@/interfaces/queries-key";
 import { EDressStatus, IOrder } from "@/interfaces/type";
 import { useOrderStore } from "@/stores/order";
@@ -22,6 +22,9 @@ const FinishedList = () => {
     const {setFinishedOrderLength} = useOrderStore()
   
    const {user} = useUserStore()
+  const theme = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
+
   const { data, isLoading, refetch } = useQuery<IOrder[], Error>({
     queryKey: QueryKeys.orders.finished,
     queryFn: async (): Promise<IOrder[]> => {
@@ -90,14 +93,6 @@ const FinishedList = () => {
 
   return (
     <>
-    {/* {data &&  <LoadingScreen 
-      visible={isPending || isPayOrderSoldPending}
-      backgroundColor="rgba(0, 0, 0, 0.7)"
-      indicatorColor="#FFFFFF"
-      indicatorSize={48}
-      message=""
-      animationType="slide"
-    />} */}
     <View style={styles.container}>
 
 
@@ -110,8 +105,8 @@ const FinishedList = () => {
         onRefresh={refetch}
         refreshing={isLoading}
          ListEmptyComponent={() => (
-                  <View style={{ flex: 1, marginTop: Rs(100) , justifyContent: "center", alignItems: "center", }} >
-                    <Text style={{ fontSize: SIZES.md, color: Colors.app.texteLight }}>Pas de commande terminée</Text>
+                  <View style={styles.emptyWrap} >
+                    <Text style={styles.emptyText}>Pas de commande terminée</Text>
                   </View>
                 )}
         removeClippedSubviews={true} // Optimisation de performance
@@ -149,12 +144,14 @@ const FinishedList = () => {
 
 export default FinishedList;
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
+    backgroundColor: theme.background,
     flex: 1,
     paddingTop: 20,
   },
   sheetContent: {
+    backgroundColor: theme.card,
     minHeight: Rs(150),
     justifyContent: "center",
     alignItems: "center",
@@ -163,12 +160,14 @@ const styles = StyleSheet.create({
     paddingVertical: Rs(16),
   },
   sheetMessage: {
-    color: Colors.app.texteLight,
+    color: theme.muted,
     fontSize: SIZES.sm,
+    lineHeight: Rs(20),
     textAlign: "center",
   },
   remainingBalance: {
-    color: Colors.app.error,
+    color: theme.danger,
+    fontWeight: "800",
   },
   sheetActions: {
     alignItems: "center",
@@ -176,5 +175,15 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: Rs(12),
     justifyContent: "center",
+  },
+  emptyWrap: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    marginTop: Rs(100),
+  },
+  emptyText: {
+    color: theme.muted,
+    fontSize: SIZES.md,
   },
 });

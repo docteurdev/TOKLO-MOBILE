@@ -1,5 +1,6 @@
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import React, { useCallback, useMemo } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import {
   BottomSheetModal,
   BottomSheetModalProps,
@@ -21,6 +22,8 @@ const BottomSheetCompo = ({
   onChange,
   ...props
 }: Props) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const snapPoints = useMemo(() => customSnapPoints || ['100%'], [customSnapPoints]);
 
   const renderBackdrop = useCallback(
@@ -29,9 +32,10 @@ const BottomSheetCompo = ({
         {...props}
         disappearsOnIndex={-1} // This ensures the backdrop disappears when the sheet is closed
         appearsOnIndex={0} // This ensures the backdrop appears when the sheet is open
+        opacity={theme.background === '#FFFDF8' ? 0.5 : 0.72}
       />
     ),
-    []
+    [theme.background]
   );
 
   return (
@@ -42,7 +46,10 @@ const BottomSheetCompo = ({
         snapPoints={snapPoints}
         onChange={onChange}
         backdropComponent={renderBackdrop}
+        backgroundStyle={styles.sheetBackground}
         enablePanDownToClose
+        handleIndicatorStyle={styles.handleIndicator}
+        handleStyle={styles.handle}
         keyboardBlurBehavior="none"
         android_keyboardInputMode="adjustPan"
         keyboardBehavior="interactive"
@@ -63,7 +70,7 @@ const BottomSheetCompo = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "transparent",
@@ -72,11 +79,24 @@ const styles = StyleSheet.create({
     left: 0,
   },
   scrollView: {
+    backgroundColor: theme.card,
     flex: 1,
   },
   contentContainer: {
+    backgroundColor: theme.card,
     flexGrow: 1,
     paddingBottom: 100 ,
+  },
+  sheetBackground: {
+    backgroundColor: theme.card,
+  },
+  handle: {
+    backgroundColor: theme.card,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  handleIndicator: {
+    backgroundColor: theme.muted,
   },
 });
 

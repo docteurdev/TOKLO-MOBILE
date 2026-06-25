@@ -26,10 +26,9 @@ import {
 } from "react-native-heroicons/solid";
 
 import CameraComponent from "@/components/CameraCompo";
-import { ThemedText } from "@/components/ThemedText";
 import CustomButton from "@/components/form/CustomButton";
 import FileSheet from "@/components/takeOrder/FileSheet";
-import { Colors } from "@/constants/Colors";
+import { AppTheme, useAppTheme } from "@/hooks/useAppTheme";
 import useDateTimePicker from "@/hooks/useDateTimePicker";
 import useUpload from "@/hooks/useUpload";
 import { IClient, IDress, TDressPart, TImage } from "@/interfaces/type";
@@ -82,12 +81,15 @@ type PatternImageCompoType = {
   img: string;
   openImagePicker: () => void;
   cleanPhoto: () => void;
+  styles: ReturnType<typeof createStyles>;
+  theme: AppTheme;
 };
 
 type SelectedCompoType = {
   placeholder: string;
   icon: React.ReactNode;
   open: () => void;
+  styles: ReturnType<typeof createStyles>;
 };
 
 type DatePickerCompoType = {
@@ -95,6 +97,8 @@ type DatePickerCompoType = {
   timeLabel: string;
   onDatePress: () => void;
   onTimePress: () => void;
+  styles: ReturnType<typeof createStyles>;
+  theme: AppTheme;
 };
 
 function PatternImageCompo({
@@ -102,6 +106,8 @@ function PatternImageCompo({
   openImagePicker,
   img,
   cleanPhoto,
+  styles,
+  theme,
 }: PatternImageCompoType) {
   return (
     <View style={styles.patternImageContainer}>
@@ -113,7 +119,7 @@ function PatternImageCompo({
           onPress={cleanPhoto}
           style={styles.trashIcon}
         >
-          <TrashIcon fill={Colors.app.warning} size={27} />
+          <TrashIcon fill={theme.gold} size={27} />
         </AnimatedTouchableOpacity>
       )}
 
@@ -122,7 +128,7 @@ function PatternImageCompo({
         style={styles.patternImage}
       >
         {!img ? (
-          <PhotoIcon fill={Colors.app.primary} size={27} />
+          <PhotoIcon fill={theme.primary} size={27} />
         ) : (
           <Image
             source={{ uri: img }}
@@ -134,7 +140,7 @@ function PatternImageCompo({
   );
 }
 
-function SelectedCompo({ placeholder, icon, open }: SelectedCompoType) {
+function SelectedCompo({ placeholder, icon, open, styles }: SelectedCompoType) {
   return (
     <TouchableOpacity
       onPress={() => open()}
@@ -166,29 +172,33 @@ function DatePickerCompo({
   timeLabel,
   onDatePress,
   onTimePress,
+  styles,
+  theme,
 }: DatePickerCompoType) {
   return (
     <View style={styles.datePickerContainer}>
       <TouchableOpacity onPress={onDatePress} style={styles.datePickerButton}>
-        <CalendarDaysIcon fill={Colors.app.primary} size={22} />
+        <CalendarDaysIcon fill={theme.primary} size={22} />
         <Text numberOfLines={1} style={styles.datePickerText}>
           {dateLabel}
         </Text>
-        <ChevronDownIcon fill={Colors.app.primary} size={18} />
+        <ChevronDownIcon fill={theme.primary} size={18} />
       </TouchableOpacity>
 
       <TouchableOpacity onPress={onTimePress} style={styles.datePickerButton}>
-        <ClockIcon fill={Colors.app.primary} size={22} />
+        <ClockIcon fill={theme.primary} size={22} />
         <Text numberOfLines={1} style={styles.datePickerText}>
           {timeLabel}
         </Text>
-        <ChevronDownIcon fill={Colors.app.primary} size={18} />
+        <ChevronDownIcon fill={theme.primary} size={18} />
       </TouchableOpacity>
     </View>
   );
 }
 
 const Page = (props: Props) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [isShowModal, setisShowModal] = useState(false);
   const [isDressTypeShowModal, setisDressTypeShowModal] = useState(false);
   const [isOpeningCamera, setIsOpeningCamera] = useState(false);
@@ -344,14 +354,14 @@ const Page = (props: Props) => {
       styles.measureStepScrollContent,
       { paddingBottom: keyboardHeight + Rs(260) },
     ],
-    [keyboardHeight],
+    [keyboardHeight, styles.measureStepScrollContent],
   );
   const billingScrollContentStyle = useMemo(
     () => [
       styles.billingStepScrollContent,
       { paddingBottom: keyboardHeight + Rs(220) },
     ],
-    [keyboardHeight],
+    [keyboardHeight, styles.billingStepScrollContent],
   );
 
   const scrollToMeasurement = useCallback(
@@ -653,7 +663,7 @@ const Page = (props: Props) => {
      
 
 
-      <Animated.View entering={FadeInDown} style={{flex: 1, backgroundColor: "white"}} >
+      <Animated.View entering={FadeInDown} style={styles.pageContainer} >
        
          {/* {!subscribe && <PaymentLottieCompo />} */}
 
@@ -684,7 +694,8 @@ const Page = (props: Props) => {
                   ? `${selectedUser.name} ${selectedUser.lastname}`
                   : "Sélectionnez le client"
               }
-              icon={<UserIcon fill={Colors.app.primary} size={27} />}
+              icon={<UserIcon fill={theme.primary} size={27} />}
+              styles={styles}
             />
 
             <SelectedCompo
@@ -694,7 +705,8 @@ const Page = (props: Props) => {
                   ? `${selectedDress.nom} (${selectedDressStructureLabel})`
                   : "Sélectionnez le modèle "
               }
-              icon={<InboxIcon fill={Colors.app.primary} size={27} />}
+              icon={<InboxIcon fill={theme.primary} size={27} />}
+              styles={styles}
             />
 
             <View
@@ -714,6 +726,8 @@ const Page = (props: Props) => {
                   setSelectePicType("FABRIC");
                   presentShooseFileSheet();
                 }}
+                styles={styles}
+                theme={theme}
               />
               <PatternImageCompo
                 label="Modèle "
@@ -723,11 +737,13 @@ const Page = (props: Props) => {
                   setSelectePicType("MODEL");
                   presentShooseFileSheet();
                 }}
+                styles={styles}
+                theme={theme}
               />
             </View>
-            <ThemedText style={{ fontSize: SIZES.sm, fontWeight: "bold" }}>
+            <Text style={styles.sectionHeading}>
               Date et heure de livraision
-            </ThemedText>
+            </Text>
             {/* Date picker */}
             <DatePickerCompo
               dateLabel={
@@ -748,6 +764,8 @@ const Page = (props: Props) => {
               }
               onDatePress={showDatepicker}
               onTimePress={showTimepicker}
+              styles={styles}
+              theme={theme}
             />
             <DatePicker />
 
@@ -788,39 +806,15 @@ const Page = (props: Props) => {
           contentContainerStyle={measureScrollContentStyle}
           scrollIndicatorInsets={{ bottom: Rs(140) }}
         >
-          <ThemedText
-            style={{
-              fontSize: SIZES.sm,
-              fontWeight: "bold",
-              // marginTop: 20,
-              textAlign: "center",
-            }}
-          >
+          <Text style={styles.stepTitle}>
             {selectedDress?.nom}
-          </ThemedText>
-          <ThemedText
-            style={{
-              fontSize: SIZES.xs,
-              fontWeight: "medium",
-              marginBottom: 20,
-              textAlign: "center",
-              color: Colors.app.primary,
-            }}
-          >
+          </Text>
+          <Text style={styles.stepSubtitle}>
             {selectedDress?.genre}
             {selectedDressStructureLabel ? ` - ${selectedDressStructureLabel}` : ""}
-          </ThemedText>
+          </Text>
           
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "white",
-              // borderColor: Colors.app.disabled,
-              // borderWidth: StyleSheet.hairlineWidth,
-              borderRadius: 20,
-              boxShadow: Colors.shadow.card,
-            }}
-          >
+          <View style={styles.stepCard}>
             <View
               style={{ flexDirection: "row", gap: 20, alignItems: "center" }}
             >
@@ -982,42 +976,19 @@ const Page = (props: Props) => {
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="interactive"
               >
-                <ThemedText
-                  style={{
-                    fontSize: SIZES.sm,
-                    fontWeight: "bold",
-                    textAlign: "center",
-                  }}
-                >
+                <Text style={styles.stepTitle}>
                   Facturation
-                </ThemedText>
-                <ThemedText
-                  style={{
-                    fontSize: SIZES.xs,
-                    fontWeight: "medium",
-                    marginBottom: 20,
-                    textAlign: "center",
-                    color: Colors.app.primary,
-                  }}
-                >
+                </Text>
+                <Text style={styles.stepSubtitle}>
                   Quantité, montant et avance
-                </ThemedText>
+                </Text>
                 <Image
                   source={require('@/assets/images/measure/double-arrow.png')}
                   resizeMode="cover"
                   style={styles.doubleArrow}
                 />
 
-                <View
-                  style={{
-                    flex: 1,
-                    backgroundColor: "white",
-                    borderRadius: 20,
-                    boxShadow: Colors.shadow.card,
-                    paddingTop: Rs(10),
-                    paddingBottom: Rs(12),
-                  }}
-                >
+                <View style={styles.billingCard}>
                   <View style={{ marginHorizontal: 20 }}>
                     <OtherInputIncrement
                       required
@@ -1033,7 +1004,7 @@ const Page = (props: Props) => {
                       required
                       label="Montant"
                       placeholder="Saisissez le montant"
-                      icon={<BanknotesIcon fill={Colors.app.primary} size={27} />}
+                      icon={<BanknotesIcon fill={theme.primary} size={27} />}
                       value={amount}
                       setValue={handleAmountChange}
                       keyboardType="numeric"
@@ -1043,13 +1014,13 @@ const Page = (props: Props) => {
                     <OtherInput
                       label="Avance"
                       placeholder="Saisissez l'avance"
-                      icon={<MinusCircleIcon fill={Colors.app.primary} size={27} />}
+                      icon={<MinusCircleIcon fill={theme.primary} size={27} />}
                       value={paiement}
                       setValue={handlePaiementChange}
                       keyboardType="numeric"
                     />
                     { Number(paiement) > Number(amount) * Number(quantity) &&                
-                      <Animated.Text entering={FadeIn} exiting={FadeOut} style={{fontSize: SIZES.xs, color: Colors.app.error}} >Le montant avancé doit être inférieur au montant de la commande</Animated.Text>
+                      <Animated.Text entering={FadeIn} exiting={FadeOut} style={styles.validationError}>Le montant avancé doit être inférieur au montant de la commande</Animated.Text>
                     }             
                   </View>
 
@@ -1070,10 +1041,10 @@ const Page = (props: Props) => {
           {/* model and image pick bottomsheet*/}
           <BottomSheetCompo bottomSheetModalRef={bottomSheetModalRef} snapPoints={[200]} >
 
-            <View style={{ height: 200, padding: 20 }}>
+            <View style={styles.fileSheetContent}>
               <FileSheet
                 label="Utiliser votre caméra"
-                icon={<CameraIcon fill={Colors.app.primary} size={27} />}
+                icon={<CameraIcon fill={theme.primary} size={27} />}
                 action={() => {
                   setIsOpeningCamera(true);
 
@@ -1086,7 +1057,7 @@ const Page = (props: Props) => {
               />
               <FileSheet
                 label="Utiliser votre galerie"
-                icon={<PhotoIcon fill={Colors.app.primary} size={27} />}
+                icon={<PhotoIcon fill={theme.primary} size={27} />}
                 action={async () => {
                   bottomSheetModalRef?.current?.dismiss();
                   const selectedImage = await pickImage();
@@ -1110,14 +1081,14 @@ const Page = (props: Props) => {
           {/* payement bottomsheet */}
 
           <BottomSheetCompo bottomSheetModalRef={subscribeBottomSheet} snapPoints={["100%"]} >
-                <View style={{padding: Rs(20), gap: Rs(20)}} >
+                <View style={styles.subscribeIntro} >
                   <View style={{flexDirection: "row", alignItems: "center", justifyContent: "space-between"}} >
-                  <Text style={{color: Colors.app.texte, fontSize: SIZES.lg, fontWeight: "bold"}} >
+                  <Text style={styles.subscribeTitle}>
                     Votre abonnement a expiré.
                   </Text>
-                  <BackButton backAction={() => subscribeBottomSheet?.current?.dismiss() } icon={<XMarkIcon fill={Colors.app.texte} size={Rs(20)} />} />
+                  <BackButton backAction={() => subscribeBottomSheet?.current?.dismiss() } icon={<XMarkIcon fill={theme.text} size={Rs(20)} />} />
                   </View>
-                  <Text style={{color: Colors.app.available.unav_txt}}> 
+                  <Text style={styles.subscribeText}> 
                     Pour continuer à profiter de tous nos services et fonctionnalités, veuillez renouveler votre abonnement.
                   </Text>
                 </View>
@@ -1138,7 +1109,73 @@ const Page = (props: Props) => {
 
 export default Page;
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
+  pageContainer: {
+    backgroundColor: theme.background,
+    flex: 1,
+  },
+  sectionHeading: {
+    color: theme.text,
+    fontSize: SIZES.sm,
+    fontWeight: "bold",
+  },
+  stepTitle: {
+    color: theme.text,
+    fontSize: SIZES.sm,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  stepSubtitle: {
+    color: theme.primary,
+    fontSize: SIZES.xs,
+    fontWeight: "500",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  stepCard: {
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    boxShadow: theme.background === "#FFFDF8"
+      ? "0px 4px 6px rgba(0, 0, 0, 0.1), 0px 1px 3px rgba(0, 0, 0, 0.06)"
+      : "0px 5px 18px rgba(0, 0, 0, 0.28)",
+    flex: 1,
+  },
+  billingCard: {
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    boxShadow: theme.background === "#FFFDF8"
+      ? "0px 4px 6px rgba(0, 0, 0, 0.1), 0px 1px 3px rgba(0, 0, 0, 0.06)"
+      : "0px 5px 18px rgba(0, 0, 0, 0.28)",
+    flex: 1,
+    paddingBottom: Rs(12),
+    paddingTop: Rs(10),
+  },
+  validationError: {
+    color: theme.danger,
+    fontSize: SIZES.xs,
+  },
+  fileSheetContent: {
+    backgroundColor: theme.card,
+    height: 200,
+    padding: 20,
+  },
+  subscribeIntro: {
+    backgroundColor: theme.card,
+    gap: Rs(20),
+    padding: Rs(20),
+  },
+  subscribeTitle: {
+    color: theme.text,
+    fontSize: SIZES.lg,
+    fontWeight: "bold",
+  },
+  subscribeText: {
+    color: theme.danger,
+  },
   selectedUserContainer: {
     position: "relative",
     flexDirection: "row",
@@ -1159,6 +1196,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   screen: {
+    backgroundColor: theme.background,
     height: SCREEN_H,
     width: "100%",
     // padding: Rs(16),
@@ -1177,19 +1215,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.app.disabled,
-    backgroundColor: "white",
+    borderColor: theme.border,
+    backgroundColor: theme.card,
     borderRadius: 6,
     paddingHorizontal: 10,
   },
   datePickerText: {
     flex: 1,
     fontSize: SIZES.sm - 2,
-    color: Colors.app.texteLight,
+    color: theme.muted,
   },
   selectedUserText: {
     fontSize: SIZES.sm - 2,
-    color: Colors.app.texteLight,
+    color: theme.muted,
   },
   selectedUserLogo: {
     width: 40,
@@ -1197,7 +1235,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: Colors.app.secondary,
+    backgroundColor: theme.primaryLight,
   },
   selectedUserCauri: {
     width: 70,
@@ -1208,21 +1246,25 @@ const styles = StyleSheet.create({
   patternImageContainer: {
     width: 170,
     height: 160,
-    backgroundColor: "white",
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 6,
     padding: 10,
-    boxShadow: Colors.shadow.card,
+    boxShadow: theme.background === "#FFFDF8"
+      ? "0px 4px 6px rgba(0, 0, 0, 0.1), 0px 1px 3px rgba(0, 0, 0, 0.06)"
+      : "0px 5px 18px rgba(0, 0, 0, 0.28)",
     position: "relative",
   },
   patternImageText: {
     fontSize: SIZES.sm - 2,
-    color: Colors.app.texteLight,
+    color: theme.muted,
     marginBottom: 6,
   },
   patternImage: {
     width: "100%",
     height: 112,
-    backgroundColor: Colors.app.secondary,
+    backgroundColor: theme.primaryLight,
     borderRadius: 6,
     justifyContent: "center",
     alignItems: "center",
@@ -1256,7 +1298,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: "100%",
     height: "100%",
-    backgroundColor: "#ffffff",
+    backgroundColor: theme.background,
   },
   measureSectionsContainer: {
     paddingHorizontal: Rs(12),
@@ -1266,7 +1308,7 @@ const styles = StyleSheet.create({
   measureTabs: {
     flexDirection: "row",
     gap: Rs(8),
-    backgroundColor: Colors.app.secondary,
+    backgroundColor: theme.primaryLight,
     borderRadius: 8,
     padding: Rs(4),
   },
@@ -1278,25 +1320,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   measureTabActive: {
-    backgroundColor: Colors.app.primary,
+    backgroundColor: theme.primary,
   },
   measureTabText: {
     fontSize: SIZES.sm - 1,
     fontWeight: "600",
-    color: Colors.app.texteLight,
+    color: theme.muted,
   },
   measureTabTextActive: {
     color: "white",
   },
   measureSection: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.app.disabled,
+    borderColor: theme.border,
     paddingBottom: Rs(12),
   },
   measureSectionTitle: {
     fontSize: SIZES.sm,
     fontWeight: "700",
-    color: Colors.app.texte,
+    color: theme.text,
     marginBottom: Rs(8),
   },
   measureCategory: {
@@ -1305,7 +1347,7 @@ const styles = StyleSheet.create({
   measureCategoryTitle: {
     fontSize: SIZES.xs,
     fontWeight: "600",
-    color: Colors.app.primary,
+    color: theme.primary,
     marginLeft: Rs(4),
     marginBottom: Rs(4),
   },
@@ -1317,7 +1359,7 @@ const styles = StyleSheet.create({
   },
   measureEmptyText: {
     fontSize: SIZES.xs,
-    color: Colors.app.texteLight,
+    color: theme.muted,
     paddingVertical: Rs(8),
     textAlign: "center",
   },

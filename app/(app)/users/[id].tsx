@@ -4,13 +4,13 @@ import PaymentDetails from '@/components/calendar/OrderDetail';
 import DressStatus from '@/components/dress/DressStatus';
 import BackButton from '@/components/form/BackButton';
 import RoundedBtn from '@/components/form/RoundedBtn';
-import { Colors } from '@/constants/Colors';
 import useInvoice from '@/hooks/useInvoice';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import { QueryKeys } from '@/interfaces/queries-key';
 import { clientOrderStat, EDressStatus, IClient, IOrder, TInvoice } from '@/interfaces/type';
 import { useUserStore } from '@/stores/user';
 import { base, baseURL } from '@/util/axios';
-import { colors, formatXOF, generateInvoiceNumber, Rs, SCREEN_H, SIZES } from '@/util/comon';
+import { formatXOF, generateInvoiceNumber, Rs, SCREEN_H, SIZES } from '@/util/comon';
 import {
   FontAwesome,
   Ionicons,
@@ -21,7 +21,7 @@ import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -57,6 +57,9 @@ const getOrderStatus = (status: OrderStatusValue): EDressStatus | undefined => {
 };
 
 const UserOrderList = () => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const statusBarStyle = theme.background === '#FFFDF8' ? 'dark-content' : 'light-content';
   const [activeTab, setActiveTab] = useState('orders');
 
   const [selectOrder, setSelectOrder] = useState<IOrder | undefined>(undefined);
@@ -179,7 +182,7 @@ const UserOrderList = () => {
       
       <View style={styles.infoSection}>
         <View style={styles.infoIconContainer}>
-          <MaterialIcons name="person" size={24} color={colors.orange} />
+          <MaterialIcons name="person" size={24} color={theme.gold} />
         </View>
         <View style={styles.infoDetails}>
           <Text style={styles.infoLabel}> Nom complet  </Text>
@@ -190,7 +193,7 @@ const UserOrderList = () => {
       
       <View style={styles.infoSection}>
         <View style={styles.infoIconContainer}>
-          <MaterialIcons name="phone" size={24} color={colors.orange} />
+          <MaterialIcons name="phone" size={24} color={theme.gold} />
         </View>
         <View style={styles.infoDetails}>
           <Text style={styles.infoLabel}>Téléphone</Text>
@@ -200,7 +203,7 @@ const UserOrderList = () => {
       
       <View style={styles.infoSection}>
         <View style={styles.infoIconContainer}>
-          <MaterialIcons name="location-on" size={24} color={colors.orange} />
+          <MaterialIcons name="location-on" size={24} color={theme.gold} />
         </View>
         <View style={styles.infoDetails}>
           <Text style={styles.infoLabel}>Address</Text>
@@ -210,7 +213,7 @@ const UserOrderList = () => {
       
       <View style={styles.infoSection}>
         <View style={styles.infoIconContainer}>
-          <MaterialCommunityIcons name="account-check" size={24} color={colors.orange} />
+          <MaterialCommunityIcons name="account-check" size={24} color={theme.gold} />
         </View>
         <View style={styles.infoDetails}>
           <Text style={styles.infoLabel}> Membre depuis </Text>
@@ -259,7 +262,7 @@ const UserOrderList = () => {
         <MaterialIcons
           name="info-outline"
           size={20}
-          color={activeTab === 'info' ? Colors.app.primary : '#757575'}
+          color={activeTab === 'info' ? theme.primary : theme.muted}
         />
         <Text style={[
           styles.tabText,
@@ -276,7 +279,7 @@ const UserOrderList = () => {
         <MaterialIcons
           name="shopping-bag"
           size={20}
-          color={activeTab === 'orders' ? Colors.app.primary : '#757575'}
+          color={activeTab === 'orders' ? theme.primary : theme.muted}
         />
         <Text style={[
           styles.tabText,
@@ -288,7 +291,7 @@ const UserOrderList = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle={statusBarStyle} backgroundColor={theme.background} />
 
       <ScrollView
         ref={scrollViewRef}
@@ -329,11 +332,11 @@ const UserOrderList = () => {
         >
           <View style={styles.summaryCard}>
             <View style={styles.summaryItem}>
-              <View style={[styles.iconCircle, { backgroundColor: "#FFF3E0" }]}>
-                <Ionicons name="shirt" size={22} color={colors.orange} />
+              <View style={styles.iconCircle}>
+                <Ionicons name="shirt" size={22} color={theme.gold} />
               </View>
               <View>
-                {clientordersStat ? <Text style={styles.summaryValue}>{clientordersStat?.totalOrders}</Text> : <ActivityIndicator size="small" color={Colors.app.primary} />}
+                {clientordersStat ? <Text style={styles.summaryValue}>{clientordersStat?.totalOrders}</Text> : <ActivityIndicator size="small" color={theme.primary} />}
                 <Text style={styles.summaryLabel}>Vêtement</Text>
               </View>
             </View>
@@ -341,11 +344,11 @@ const UserOrderList = () => {
             <View style={styles.summarySeparator} />
 
             <View style={styles.summaryItem}>
-              <View style={[styles.iconCircle, { backgroundColor: '#E8F5E9' }]}>
-                <FontAwesome name="dollar" size={22} color="#4CAF50" />
+              <View style={styles.iconCircleSuccess}>
+                <FontAwesome name="dollar" size={22} color={theme.success} />
               </View>
               <View>
-               {clientordersStat ? <Text style={styles.summaryValue}>{formatXOF(Number(clientordersStat?.totalAmount))}</Text> : <ActivityIndicator size="small" color={Colors.app.primary} />}
+               {clientordersStat ? <Text style={styles.summaryValue}>{formatXOF(Number(clientordersStat?.totalAmount))}</Text> : <ActivityIndicator size="small" color={theme.primary} />}
                 <Text style={styles.summaryLabel}>Montant</Text>
               </View>
             </View>
@@ -353,11 +356,11 @@ const UserOrderList = () => {
             <View style={styles.summarySeparator} />
 
             <View style={styles.summaryItem}>
-              <View style={[styles.iconCircle, { backgroundColor: '#FFF3E0' }]}>
-                <MaterialIcons name="done-all" size={22} color={colors.orange} />
+              <View style={styles.iconCircle}>
+                <MaterialIcons name="done-all" size={22} color={theme.gold} />
               </View>
               <View>
-                {clientordersStat ? <Text style={styles.summaryValue}>{clientordersStat?.ordersCompleted}</Text> : <ActivityIndicator size="small" color={Colors.app.primary} />}
+                {clientordersStat ? <Text style={styles.summaryValue}>{clientordersStat?.ordersCompleted}</Text> : <ActivityIndicator size="small" color={theme.primary} />}
                 <Text style={styles.summaryLabel}>Livrés</Text>
               </View>
             </View>
@@ -394,12 +397,12 @@ const UserOrderList = () => {
 
       <BottomSheetCompo bottomSheetModalRef={bottomSheetModal} snapPoints={['90%']} >
         <View style={styles.header}>
-          <BackButton backAction={() => bottomSheetModal?.current?.close() } icon={<XMarkIcon fill={Colors.app.texteLight} size={Rs(20)} />} />
+          <BackButton backAction={() => bottomSheetModal?.current?.close() } icon={<XMarkIcon fill={theme.muted} size={Rs(20)} />} />
         </View>
 
-         <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: Rs(50), }}>
+         <ScrollView style={styles.container} contentContainerStyle={styles.sheetScrollContent}>
         
-            <View style={{padding: 20, gap: 20, }} >
+            <View style={styles.sheetContent}>
         
                 
                 {selectOrder &&
@@ -431,7 +434,7 @@ const UserOrderList = () => {
                   deliveryHour={selectOrder.deliveryHour}
                  />}
                 </View>
-              {getOrderStatus(selectOrder?.status) === EDressStatus.DELIVERED && <View style={{paddingHorizontal: 20, marginBottom: Rs(50), flexDirection: "row", alignItems: "center", gap: 20}} >
+              {getOrderStatus(selectOrder?.status) === EDressStatus.DELIVERED && <View style={styles.invoiceActionContainer}>
                
                 <View style={{flex: 1}} >
        
@@ -449,20 +452,20 @@ const UserOrderList = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: theme.background,
   },
   screenScrollContent: {
     paddingBottom: Rs(24),
   },
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.card,
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eeeeee',
+    borderBottomColor: theme.border,
     flexDirection: "row",
     alignItems: "center",
     gap: Rs(10)
@@ -470,18 +473,20 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: SIZES.sm,
     fontWeight: '700',
-    color: Colors.app.texte,
+    color: theme.text,
   },
   summaryContainer: {
     padding: 15,
   },
   summaryCard: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
     padding: 15,
     flexDirection: 'row',
     alignItems: "stretch",
-    shadowColor: '#000',
+    shadowColor: theme.background === '#FFFDF8' ? '#000' : theme.gold,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -497,30 +502,39 @@ const styles = StyleSheet.create({
   summarySeparator: {
     width: StyleSheet.hairlineWidth,
     alignSelf: "stretch",
-    backgroundColor: "#E5E7EB",
+    backgroundColor: theme.border,
   },
   iconCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
+    backgroundColor: theme.goldLight,
     justifyContent: 'center',
     alignItems: 'center',
     // marginRight: 12,
   },
+  iconCircleSuccess: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: `${theme.success}22`,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   summaryValue: {
     fontSize: SIZES.sm,
     fontWeight: '700',
-    color: Colors.app.texte,
+    color: theme.text,
     textAlign: "center"
   },
   summaryLabel: {
     fontSize: SIZES.xs,
-    color: '#757575',
+    color: theme.muted,
     marginTop: 3,
     textAlign: "center"
   },
   tabWrapper: {
-    backgroundColor: "white",
+    backgroundColor: theme.background,
     paddingTop: Rs(8),
     paddingBottom: Rs(8),
   },
@@ -529,7 +543,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: "white",
+    backgroundColor: theme.background,
     paddingTop: Rs(8),
     paddingBottom: Rs(8),
     zIndex: 50,
@@ -537,10 +551,14 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 8,
     marginHorizontal: 15,
-    boxShadow: Colors.shadow.card,
+    boxShadow: theme.background === '#FFFDF8'
+      ? '0px 4px 6px rgba(0, 0, 0, 0.1), 0px 1px 3px rgba(0, 0, 0, 0.06)'
+      : '0px 5px 18px rgba(0, 0, 0, 0.28)',
     overflow: "hidden",
   },
   pinnedTabContainer: {
@@ -556,20 +574,20 @@ const styles = StyleSheet.create({
   tabSeparator: {
     width: StyleSheet.hairlineWidth,
     alignSelf: "stretch",
-    backgroundColor: "#E5E7EB",
+    backgroundColor: theme.border,
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: Colors.app.primary,
+    borderBottomColor: theme.primary,
   },
   tabText: {
     fontSize: SIZES.md,
     fontWeight: '600',
-    color: '#757575',
+    color: theme.muted,
     marginLeft: 6,
   },
   activeTabText: {
-    color: Colors.app.primary,
+    color: theme.primary,
   },
   content: {
     marginTop: 15,
@@ -580,12 +598,14 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   orderItem: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
     padding: 15,
     marginBottom: 12,
     flexDirection: 'row',
-    shadowColor: '#000',
+    shadowColor: theme.background === '#FFFDF8' ? '#000' : theme.gold,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -595,7 +615,7 @@ const styles = StyleSheet.create({
     width: Rs(80),
     height: Rs(80),
     borderRadius: 8,
-    backgroundColor: colors.inputborderColor,
+    backgroundColor: theme.primaryLight,
     
     
   },
@@ -607,11 +627,11 @@ const styles = StyleSheet.create({
   dressName: {
     fontSize: SIZES.sm,
     fontWeight: '600',
-    color: Colors.app.texte,
+    color: theme.text,
   },
   date: {
     fontSize: SIZES.xs,
-    color: '#757575',
+    color: theme.muted,
     marginTop: 4,
   },
   priceStatusContainer: {
@@ -623,7 +643,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: SIZES.sm,
     fontWeight: '600',
-    color: Colors.app.texte,
+    color: theme.text,
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -633,14 +653,16 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#fff',
+    color: '#FFFFFF',
   },
   informationContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
     padding: 20,
     margin: 15,
-    shadowColor: '#000',
+    shadowColor: theme.background === '#FFFDF8' ? '#000' : theme.gold,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -649,7 +671,7 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: SIZES.sm,
     fontWeight: '700',
-    color: Colors.app.texte,
+    color: theme.text,
     marginBottom: 20,
   },
   infoSection: {
@@ -661,7 +683,7 @@ const styles = StyleSheet.create({
     width: Rs(42),
     height: Rs(42),
     borderRadius: Rs(21),
-    backgroundColor: colors.lightOrange,
+    backgroundColor: theme.goldLight,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -671,12 +693,26 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 13,
-    color: '#757575',
+    color: theme.muted,
   },
   infoValue: {
     fontSize: SIZES.xs,
-    color: Colors.app.texte,
+    color: theme.text,
     marginTop: 2,
+  },
+  sheetScrollContent: {
+    paddingBottom: Rs(50),
+  },
+  sheetContent: {
+    gap: 20,
+    padding: 20,
+  },
+  invoiceActionContainer: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 20,
+    marginBottom: Rs(50),
+    paddingHorizontal: 20,
   },
 });
 

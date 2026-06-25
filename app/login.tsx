@@ -1,14 +1,14 @@
 import { supabase } from "@/lib/supabase";
 import { Formik } from "formik";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { AppState, Keyboard, StyleSheet, Text, View } from "react-native";
 
 import CustomButton from "@/components/form/CustomButton";
 import FormBanner from "@/components/form/FormBanner";
 import FormWrapper, { useFormScroll } from "@/components/form/FormWrapper";
 import PhoneInput from "@/components/form/PhoneInput";
-import { Colors } from "@/constants/Colors";
 import { loginSchema } from "@/constants/formSchemas";
+import { AppTheme, useAppTheme } from "@/hooks/useAppTheme";
 import useNotif from "@/hooks/useNotification";
 import { ITokloUser, Ttoklo_men } from "@/interfaces/user";
 import { useUserStore } from "@/stores/user";
@@ -25,7 +25,7 @@ type TypeValues = InferType<typeof loginSchema>;
 const OTP_LENGTH = 5;
 
 const normalizeLoginValues = (values: TypeValues): TypeValues => ({
-  phone: values.phone.trim(),
+  phone: values.phone?.trim() ?? "",
   password: values.password.replace(/\D/g, "").slice(0, OTP_LENGTH),
 });
 
@@ -38,13 +38,15 @@ type LoginOtpInputProps = {
 };
 
 const LoginOtpInput = ({ error, touched, onBlur, onChange, onFilled }: LoginOtpInputProps) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const otpContainerRef = React.useRef<View>(null);
   const formScroll = useFormScroll();
 
   return (
     <View ref={otpContainerRef} collapsable={false} style={styles.otpCard}>
       <Text style={styles.otpLabel}>
-        Code secret <Text style={{ color: Colors.app.error }}>*</Text>
+        Code secret <Text style={styles.required}>*</Text>
       </Text>
       <Text style={styles.otpHint}>Entrez votre code numérique à 5 chiffres.</Text>
       <OtpInput
@@ -52,7 +54,7 @@ const LoginOtpInput = ({ error, touched, onBlur, onChange, onFilled }: LoginOtpI
         onTextChange={(text) => {
           onChange(text.replace(/\D/g, "").slice(0, OTP_LENGTH));
         }}
-        focusColor={Colors.app.primary}
+        focusColor={theme.primary}
         focusStickBlinkingDuration={500}
         onFocus={() => {
           formScroll?.scrollToInput(otpContainerRef);
@@ -70,15 +72,15 @@ const LoginOtpInput = ({ error, touched, onBlur, onChange, onFilled }: LoginOtpI
         }}
         theme={{
           pinCodeContainerStyle: {
-            backgroundColor: Colors.light.background,
-            borderColor: error && touched ? Colors.app.error : Colors.app.texteLight,
+            backgroundColor: theme.card,
+            borderColor: error && touched ? theme.danger : theme.border,
             borderWidth: 0.4,
             borderRadius: 10,
             height: 54,
             width: 54,
           },
           pinCodeTextStyle: {
-            color: Colors.app.primary,
+            color: theme.primary,
           },
         }}
       />
@@ -96,6 +98,8 @@ AppState.addEventListener("change", (state) => {
 });
 
 export default function Auth() {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [selectedSegment] = useState<"admin" | "user">("admin");
 
   const { setUser, setToken, setSubscribe, setTokloUser } = useUserStore();
@@ -250,7 +254,7 @@ export default function Auth() {
              
               <Link href="/pw-forgot">
                 <Text
-                  style={{ color: Colors.app.error, fontSize: SIZES.sm }}
+                  style={styles.forgotText}
                 >
                   Code oublié ?
                 </Text>
@@ -275,10 +279,10 @@ export default function Auth() {
             >
             
                 <Text
-                  style={{ color: Colors.app.texteLight, fontSize: SIZES.sm, lineHeight: Rs(20)}}
+                  style={styles.signUpHint}
                 >
                   Vous n&apos;avez pas de compte ?  
-               <Link style={{color: Colors.app.primary, }} href="/sign-up">
+               <Link style={styles.signUpLink} href="/sign-up">
                   Inscrivez-vous
               </Link>
                 </Text>
@@ -291,25 +295,40 @@ export default function Auth() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   otpCard: {
     gap: Rs(8),
     marginBottom: Rs(10),
   },
   otpLabel: {
     fontSize: SIZES.sm,
-    color: Colors.app.texteLight,
+    color: theme.muted,
     marginBottom: Rs(2),
     fontWeight: "bold",
   },
+  required: {
+    color: theme.danger,
+  },
   otpHint: {
-    color: Colors.app.texteLight,
+    color: theme.muted,
     fontSize: SIZES.xs,
     marginBottom: Rs(4),
   },
   errorText: {
-    color: Colors.app.error,
+    color: theme.danger,
     fontSize: SIZES.xs,
     marginTop: Rs(6),
+  },
+  forgotText: {
+    color: theme.danger,
+    fontSize: SIZES.sm,
+  },
+  signUpHint: {
+    color: theme.muted,
+    fontSize: SIZES.sm,
+    lineHeight: Rs(20),
+  },
+  signUpLink: {
+    color: theme.primary,
   },
 });

@@ -12,17 +12,11 @@ import {
 } from 'react-native-heroicons/solid'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme'
 import { useUserStore } from '@/stores/user'
-import { colors, formatIvoryCoastPhoneNumber, Rs, SIZES } from '@/util/comon'
+import { Rs, SIZES } from '@/util/comon'
 import CustomButton from '../form/CustomButton'
 import ProfileShower from './drawer/ProfileShower'
-
-const DRAWER_BG = '#FFF8EC'
-const TEXT_MAIN = '#2B1A0E'
-const TEXT_SECONDARY = '#6F6254'
-const GOLD = '#DFA32C'
-const RICH_GOLD = '#B8860B'
-const ACTIVE_BG = '#F7E5BC'
 
 type MenuIconProps = {
   color: string
@@ -34,14 +28,18 @@ type MenuItemProps = {
   icon: (props: MenuIconProps) => React.ReactNode
   label: string
   onPress: () => void
+  styles: ReturnType<typeof createStyles>
+  theme: AppTheme
 }
 
 const CustomDrawer = (props: any) => {
   const currentRouteName = props.state.routes[props.state.index].name
   const router = useRouter()
   const pathname = usePathname()
+  const theme = useAppTheme()
+  const styles = React.useMemo(() => createStyles(theme), [theme])
 
-  const { user, clearToken, setSubscribe, clearTokloUser } = useUserStore()
+  const { clearToken, setSubscribe, clearTokloUser } = useUserStore()
 
   const linkList = [
     {
@@ -87,10 +85,6 @@ const CustomDrawer = (props: any) => {
     router.push(joinPath as any)
   }
 
-  const phoneNumber = user?.phone ? formatIvoryCoastPhoneNumber(user.phone) : ''
-  const userName = user?.store_name || `${user?.name || ''} ${user?.lastname || ''}`.trim() || 'Atelier Toklo'
-  const userDescription = user?.store_slogan || 'Atelier de couture premium'
-
   return (
     <SafeAreaView style={styles.container}>
       {/* <RightPatternBand /> */}
@@ -112,10 +106,12 @@ const CustomDrawer = (props: any) => {
         contentContainerStyle={styles.scrollContent}
       >
         <DrawerMenuItem
-          focused={currentRouteName == '(tab)' || pathname.includes('/(tab)')}
+          focused={currentRouteName === '(tab)' || pathname.includes('/(tab)')}
           icon={({ color }) => <HomeIcon fill={color} size={24} />}
           label="Accueil"
           onPress={() => router.push('/(app)/(tab)')}
+          styles={styles}
+          theme={theme}
         />
 
         {linkList.map((item) => (
@@ -125,6 +121,8 @@ const CustomDrawer = (props: any) => {
             icon={item.icon}
             label={item.label}
             onPress={() => handleNav(item.link)}
+            styles={styles}
+            theme={theme}
           />
         ))}
       </DrawerContentScrollView>
@@ -146,7 +144,7 @@ const CustomDrawer = (props: any) => {
   )
 }
 
-const DrawerMenuItem = ({ focused, icon, label, onPress }: MenuItemProps) => {
+const DrawerMenuItem = ({ focused, icon, label, onPress, styles, theme }: MenuItemProps) => {
   return (
     <Pressable
       onPress={onPress}
@@ -156,9 +154,9 @@ const DrawerMenuItem = ({ focused, icon, label, onPress }: MenuItemProps) => {
         pressed && styles.menuItemPressed,
       ]}
     >
-      {focused && <ActiveItemPattern />}
-      <View style={[styles.iconCircle, {    backgroundColor: focused? 'white': colors.lightOrange,}]}>
-        {icon({ color: GOLD, focused })}
+      {focused && <ActiveItemPattern styles={styles} />}
+      <View style={[styles.iconCircle, { backgroundColor: focused ? theme.card : theme.goldLight }]}>
+        {icon({ color: focused ? theme.gold : theme.primary, focused })}
         </View>
       <Text numberOfLines={1} style={[styles.menuLabel, focused && styles.menuLabelActive]}>
         {label}
@@ -168,29 +166,18 @@ const DrawerMenuItem = ({ focused, icon, label, onPress }: MenuItemProps) => {
 }
 
 
-const ActiveItemPattern = () => (
+const ActiveItemPattern = ({ styles }: { styles: ReturnType<typeof createStyles> }) => (
   <View pointerEvents="none" style={styles.activePattern}>
     <Image style={styles.activePattern} width={100} height={100} source={require("@/assets/images/measure/top-sheet.png")} />
   </View>
 )
 
-const RightPatternBand = () => (
-  <View pointerEvents="none" style={styles.rightBand}>
-    <Image
-      source={require('@/assets/images/measure/cauri.png')}
-      resizeMode="repeat"
-      style={styles.rightBandImage}
-    />
-  </View>
-)
-
-
 export default CustomDrawer
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: theme.card,
     overflow: 'hidden',
   },
   header: {
@@ -216,7 +203,7 @@ const styles = StyleSheet.create({
     borderRadius: Rs(44),
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.card,
     overflow: 'hidden',
   },
   avatarOuterImage: {
@@ -232,9 +219,9 @@ const styles = StyleSheet.create({
     borderRadius: Rs(27),
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.card,
     borderWidth: 1,
-    borderColor: 'rgba(184, 134, 11, 0.28)',
+    borderColor: theme.border,
   },
   avatarNeedle: {
     position: 'absolute',
@@ -257,14 +244,14 @@ const styles = StyleSheet.create({
     width: Rs(8),
     height: Rs(8),
     borderWidth: 1,
-    borderColor: RICH_GOLD,
+    borderColor: theme.gold,
     transform: [{ rotate: '45deg' }],
   },
   avatarPatternDot: {
     width: Rs(4),
     height: Rs(4),
     borderRadius: Rs(2),
-    backgroundColor: RICH_GOLD,
+    backgroundColor: theme.gold,
   },
   userTextWrap: {
     flex: 1,
@@ -272,17 +259,17 @@ const styles = StyleSheet.create({
     gap: Rs(4),
   },
   userName: {
-    color: TEXT_MAIN,
+    color: theme.text,
     fontSize: SIZES.lg,
     fontWeight: '800',
   },
   userDescription: {
-    color: TEXT_SECONDARY,
+    color: theme.muted,
     fontSize: SIZES.sm,
     lineHeight: Rs(18),
   },
   userPhone: {
-    color: GOLD,
+    color: theme.gold,
     fontSize: SIZES.sm,
     fontWeight: '800',
   },
@@ -305,7 +292,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   menuItemActive: {
-    backgroundColor: ACTIVE_BG,
+    backgroundColor: theme.primaryLight,
     borderBottomColor: 'transparent',
     marginVertical: Rs(3),
   },
@@ -321,12 +308,12 @@ const styles = StyleSheet.create({
   },
   menuLabel: {
     flex: 1,
-    color: TEXT_MAIN,
+    color: theme.text,
     fontSize: SIZES.lg,
     fontWeight: '700',
   },
   menuLabelActive: {
-    color: colors.DARK_BROWN,
+    color: theme.primary,
     fontWeight: '800',
   },
   menuSeparator: {
@@ -337,10 +324,10 @@ const styles = StyleSheet.create({
     height: Rs(16),
     opacity: 1,
     zIndex: 5,
-    tintColor: RICH_GOLD,
+    tintColor: theme.gold,
   },
   menuSeparatorActive: {
-    tintColor: colors.DARK_BROWN,
+    tintColor: theme.primary,
   },
   activePattern: {
     position: 'absolute',
@@ -348,6 +335,7 @@ const styles = StyleSheet.create({
     top: Rs(-2),
     // bottom: Rs(8),
     justifyContent: 'space-around',
+    opacity: theme.background === '#FFFDF8' ? 1 : 0.35,
     
   },
   activePatternRow: {
@@ -358,7 +346,7 @@ const styles = StyleSheet.create({
     width: Rs(10),
     height: Rs(10),
     borderWidth: 1,
-    borderColor: RICH_GOLD,
+    borderColor: theme.gold,
     transform: [{ rotate: '45deg' }],
   },
   rightBand: {
@@ -367,7 +355,7 @@ const styles = StyleSheet.create({
     right: -12,
     bottom: 0,
     width: Rs(40),
-    backgroundColor: 'none',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     opacity: 1,
@@ -387,13 +375,13 @@ const styles = StyleSheet.create({
     width: Rs(8),
     height: Rs(8),
     borderWidth: 1,
-    borderColor: 'rgba(184, 134, 11, 0.42)',
+    borderColor: theme.gold,
     transform: [{ rotate: '45deg' }],
   },
   bandLine: {
     width: 1,
     height: Rs(18),
-    backgroundColor: 'rgba(184, 134, 11, 0.28)',
+    backgroundColor: theme.gold,
   },
   logoutWrap: {
     position: 'absolute',
@@ -405,18 +393,18 @@ const styles = StyleSheet.create({
     paddingBottom: Rs(18),
     borderTopWidth: 0.5,
     marginRight: Rs(20),
-    borderTopColor: 'rgba(232, 216, 184, 0.65)',
+    borderTopColor: theme.border,
   },
   logoutButton: {
     minHeight: Rs(54),
     borderRadius: Rs(30),
-    backgroundColor: GOLD,
+    backgroundColor: theme.gold,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Rs(11),
     overflow: 'hidden',
-    shadowColor: '#7A4B0A',
+    shadowColor: theme.gold,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.18,
     shadowRadius: 14,

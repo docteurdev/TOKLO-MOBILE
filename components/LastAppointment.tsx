@@ -1,9 +1,9 @@
-import { Colors } from '@/constants/Colors';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import { QueryKeys } from '@/interfaces/queries-key';
 import { IOrder } from '@/interfaces/type';
 import { useUserStore } from '@/stores/user';
 import { baseURL } from '@/util/axios';
-import { colors, Rs, SIZES } from '@/util/comon';
+import { Rs, SIZES } from '@/util/comon';
 import { formatHour } from '@/utils';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
@@ -22,6 +22,8 @@ type LastAppointmentData = {
 };
 
 const LastAppointment = () => {
+  const theme = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
   const { user } = useUserStore();
   const userId = user?.id;
 
@@ -45,6 +47,8 @@ const LastAppointment = () => {
     return null;
   }
 
+  const statusColor = getStatusColor(order.status, theme);
+
   return (
     <Animated.View
       entering={FadeInUp.delay(300)}
@@ -54,23 +58,23 @@ const LastAppointment = () => {
         <View style={styles.header}>
           <Text style={styles.title}>Prochain rendez-vous</Text>
           <View style={styles.statusContainer}>
-            <View style={[styles.statusDot, { backgroundColor: getStatusColor(order.status) }]} />
-            <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>{getStatusLabel(order.status)}</Text>
+            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+            <Text style={[styles.statusText, { color: statusColor }]}>{getStatusLabel(order.status)}</Text>
           </View>
         </View>
         
         <View style={styles.infoRow}>
           <View style={styles.infoItem}>
-            <CalendarDaysIcon size={27} color={Colors.app.dashitem.t_1} />
+            <CalendarDaysIcon size={27} color={theme.gold} />
             <Text style={styles.infoText}>{order.date_remise ?? ""}</Text>
           </View>
           <View style={styles.infoItem}>
-            <MaterialIcons name="access-time" size={27} color={Colors.app.dashitem.t_1} />
+            <MaterialIcons name="access-time" size={27} color={theme.gold} />
             <Text style={styles.infoText}>{formatHour(order.deliveryHour) ?? ""}</Text>
           </View>
         </View>
-           <Image style={{position: "absolute", bottom: 0, left: -12}} height={100} width={40} source={require("@/assets/images/measure/tradition.png")} />      
-           <Image style={{position: "absolute", bottom: 0, right: -16}} height={100} width={40} source={require("@/assets/images/measure/tradition.png")} />      
+           <Image style={styles.leftPattern} height={100} width={40} source={require("@/assets/images/measure/tradition.png")} />      
+           <Image style={styles.rightPattern} height={100} width={40} source={require("@/assets/images/measure/tradition.png")} />      
       </View>
     </Animated.View>
   );
@@ -106,8 +110,8 @@ const statusLabels: Record<string, string> = {
   DELIVERED: 'Livré',
 };
 
-const getStatusColor = (status: LastAppointmentStatus) => {
-  return statusColors[normalizeStatus(status)] || '#9e9e9e';
+const getStatusColor = (status: LastAppointmentStatus, theme: AppTheme) => {
+  return statusColors[normalizeStatus(status)] || theme.muted;
 };
 
 const getStatusLabel = (status: LastAppointmentStatus) => {
@@ -116,19 +120,22 @@ const getStatusLabel = (status: LastAppointmentStatus) => {
   return statusLabels[normalizedStatus] || normalizedStatus;
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     position: 'relative',
     padding: Rs(16),
     zIndex: 100,
-    backgroundColor: colors.lightOrange,
+    backgroundColor: theme.background,
   },
   card: {
     position:"relative",
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     padding: 16,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
+    boxShadow: theme.background === '#FFFDF8'
+      ? '0px 2px 8px rgba(0, 0, 0, 0.08)'
+      : '0px 5px 18px rgba(0, 0, 0, 0.28)',
     width: "100%",
     justifyContent: "center",
     gap: Rs(8),
@@ -143,12 +150,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.sm,
     fontWeight: 'bold',
-    color: '#212121',
+    color: theme.text,
   },
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -162,7 +169,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: SIZES.md,
     fontWeight: '600',
-    color: '#424242',
+    color: theme.text,
   },
   infoRow: {
     flexDirection: 'row',
@@ -176,8 +183,20 @@ const styles = StyleSheet.create({
   infoText: {
     marginLeft: 6,
     fontSize: SIZES.sm -3,
-    color: Colors.app.dashitem.t_1,
+    color: theme.gold,
     fontWeight: '500',
+  },
+  leftPattern: {
+    bottom: 0,
+    left: -12,
+    opacity: theme.background === '#FFFDF8' ? 1 : 0.35,
+    position: 'absolute',
+  },
+  rightPattern: {
+    bottom: 0,
+    opacity: theme.background === '#FFFDF8' ? 1 : 0.35,
+    position: 'absolute',
+    right: -16,
   },
 });
 

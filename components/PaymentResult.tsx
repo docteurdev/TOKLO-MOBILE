@@ -1,6 +1,7 @@
+import { AppTheme, useAppTheme } from "@/hooks/useAppTheme";
 import { formatXOF, Rs, SIZES } from "@/util/comon";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React, { ComponentProps } from "react";
+import React, { ComponentProps, useMemo } from "react";
 import {
     Image,
     Platform,
@@ -13,18 +14,6 @@ import {
 import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CustomButton from "./form/CustomButton";
-
-const colors = {
-  background: "#FFFDF8",
-  card: "#FFFFFF",
-  primary: "#4F7A65",
-  primaryLight: "#EDF4F0",
-  gold: "#D8A032",
-  goldLight: "#FFF7E8",
-  border: "#F0E3CC",
-  text: "#1F2937",
-  muted: "#6B7280",
-};
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -78,6 +67,9 @@ const PaymentResult = ({
   onPrimaryPress,
   onSecondaryPress,
 }: PaymentResultProps) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const statusBarStyle = theme.background === "#FFFDF8" ? "dark-content" : "light-content";
   const safePlanName = planName?.trim() || "Toklo Pro";
   const safePaymentMethod = paymentMethod?.trim() || "Jeko";
   const safeTransactionId = transactionId?.trim() || "En cours de synchronisation";
@@ -92,7 +84,7 @@ const PaymentResult = ({
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      <StatusBar barStyle={statusBarStyle} backgroundColor={theme.background} />
       <ScrollView
         bounces={false}
         contentContainerStyle={styles.content}
@@ -119,7 +111,7 @@ const PaymentResult = ({
               >
                 <View style={styles.detailLabelWrap}>
                   <View style={styles.detailIconCircle}>
-                    <MaterialCommunityIcons name={item.icon} size={Rs(17)} color={colors.primary} />
+                    <MaterialCommunityIcons name={item.icon} size={Rs(17)} color={theme.primary} />
                   </View>
                   <Text style={styles.detailLabel}>{item.label}</Text>
                 </View>
@@ -136,7 +128,7 @@ const PaymentResult = ({
 
         <Animated.View entering={FadeInDown.delay(400).duration(500).springify()} style={styles.secureCard}>
           <View style={styles.secureIcon}>
-            <MaterialCommunityIcons name="shield-check-outline" size={Rs(23)} color={colors.primary} />
+            <MaterialCommunityIcons name="shield-check-outline" size={Rs(23)} color={theme.primary} />
           </View>
           <View style={styles.secureTextWrap}>
             <Text style={styles.secureTitle}>Paiement sécurisé</Text>
@@ -156,9 +148,9 @@ const PaymentResult = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   safeArea: {
-    backgroundColor: colors.background,
+    backgroundColor: theme.background,
     flex: 1,
   },
   content: {
@@ -176,13 +168,13 @@ const styles = StyleSheet.create({
   },
   checkCircle: {
     alignItems: "center",
-    backgroundColor: colors.primary,
-    borderColor: colors.gold,
+    backgroundColor: theme.primary,
+    borderColor: theme.gold,
     borderRadius: Rs(52),
     borderWidth: 2,
     height: Rs(104),
     justifyContent: "center",
-    shadowColor: colors.primary,
+    shadowColor: theme.primary,
     shadowOffset: { height: 10, width: 0 },
     shadowOpacity: 0.16,
     shadowRadius: 18,
@@ -199,32 +191,32 @@ const styles = StyleSheet.create({
     position: "absolute",
   },
   title: {
-    color: colors.text,
+    color: theme.text,
     fontFamily: premiumFont,
     fontSize: SIZES.lg + 8,
     fontWeight: "700",
     textAlign: "center",
   },
   titleAccent: {
-    color: colors.primary,
+    color: theme.primary,
   },
   subtitle: {
-    color: colors.muted,
+    color: theme.muted,
     fontSize: SIZES.md,
     lineHeight: Rs(24),
     marginTop: Rs(10),
     textAlign: "center",
   },
   detailsCard: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
+    backgroundColor: theme.card,
+    borderColor: theme.border,
     borderRadius: Rs(10),
     borderWidth: 1,
     marginTop: Rs(32),
     padding: Rs(20),
   },
   cardTitle: {
-    color: colors.text,
+    color: theme.text,
     fontSize: SIZES.lg,
     fontWeight: "700",
   },
@@ -233,7 +225,7 @@ const styles = StyleSheet.create({
   },
   detailRow: {
     alignItems: "center",
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.border,
     borderBottomWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -251,32 +243,32 @@ const styles = StyleSheet.create({
   },
   detailIconCircle: {
     alignItems: "center",
-    backgroundColor: colors.primaryLight,
+    backgroundColor: theme.primaryLight,
     borderRadius: Rs(17),
     height: Rs(30),
     justifyContent: "center",
     width: Rs(30),
   },
   detailLabel: {
-    color: colors.muted,
+    color: theme.muted,
     flex: 1,
     fontSize: SIZES.xs + 2,
     fontWeight: "500",
   },
   detailValue: {
-    color: colors.text,
+    color: theme.text,
     flex: 1,
     fontSize: Rs(12),
     fontWeight: "500",
     textAlign: "right",
   },
   detailValueStrong: {
-    color: colors.primary,
+    color: theme.primary,
   },
   secureCard: {
     alignItems: "center",
-    backgroundColor: colors.card,
-    borderColor: colors.border,
+    backgroundColor: theme.card,
+    borderColor: theme.border,
     borderRadius: Rs(10),
     borderWidth: 1,
     flexDirection: "row",
@@ -286,7 +278,7 @@ const styles = StyleSheet.create({
   },
   secureIcon: {
     alignItems: "center",
-    backgroundColor: colors.primaryLight,
+    backgroundColor: theme.primaryLight,
     borderRadius: Rs(21),
     height: Rs(30),
     justifyContent: "center",
@@ -296,12 +288,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   secureTitle: {
-    color: colors.text,
+    color: theme.text,
     fontSize: Rs(14),
     fontWeight: "800",
   },
   secureSubtitle: {
-    color: colors.muted,
+    color: theme.muted,
     fontSize: Rs(11),
     lineHeight: Rs(16),
     marginTop: Rs(3),
@@ -311,13 +303,13 @@ const styles = StyleSheet.create({
     gap: Rs(4),
   },
   providerText: {
-    color: colors.gold,
+    color: theme.gold,
     fontSize: Rs(11),
     fontWeight: "900",
   },
   welcomeCard: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.gold,
+    backgroundColor: theme.primaryLight,
+    borderColor: theme.gold,
     borderRadius: Rs(10),
     borderWidth: 1,
     marginTop: Rs(18),
@@ -334,13 +326,13 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "-12deg" }],
   },
   patternText: {
-    color: colors.gold,
+    color: theme.gold,
     fontSize: Rs(42),
     fontWeight: "900",
   },
   welcomeIconCircle: {
     alignItems: "center",
-    backgroundColor: colors.goldLight,
+    backgroundColor: theme.goldLight,
     borderRadius: Rs(21),
     height: Rs(42),
     justifyContent: "center",
@@ -348,13 +340,13 @@ const styles = StyleSheet.create({
     width: Rs(42),
   },
   welcomeTitle: {
-    color: colors.text,
+    color: theme.text,
     fontFamily: premiumFont,
     fontSize: SIZES.lg,
     fontWeight: "800",
   },
   welcomeSubtitle: {
-    color: colors.muted,
+    color: theme.muted,
     fontSize: Rs(13),
     lineHeight: Rs(20),
   },
@@ -363,22 +355,22 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignItems: "center",
-    backgroundColor: colors.primary,
-    borderColor: colors.gold,
+    backgroundColor: theme.primary,
+    borderColor: theme.gold,
     borderRadius: Rs(16),
     borderWidth: 1,
     height: Rs(56),
     justifyContent: "center",
   },
   primaryButtonText: {
-    color: colors.card,
+    color: "#FFFFFF",
     fontSize: Rs(16),
     fontWeight: "700",
   },
   secondaryButton: {
     alignItems: "center",
-    backgroundColor: colors.card,
-    borderColor: colors.gold,
+    backgroundColor: theme.card,
+    borderColor: theme.gold,
     borderRadius: Rs(16),
     borderWidth: 1,
     height: Rs(54),
@@ -386,7 +378,7 @@ const styles = StyleSheet.create({
     marginTop: Rs(12),
   },
   secondaryButtonText: {
-    color: colors.gold,
+    color: theme.gold,
     fontSize: Rs(13),
     fontWeight: "700",
   },

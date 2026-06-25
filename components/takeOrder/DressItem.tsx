@@ -1,10 +1,10 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react';
 import { ArrowRightIcon, SparklesIcon } from "react-native-heroicons/solid";
-import { Colors } from '@/constants/Colors';
 import { Rs, SIZES } from '@/util/comon';
 import { IDress } from '@/interfaces/type';
 import { getDressStructureLabel } from '@/utils/dressMeasurements';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 
 
 type Props = {
@@ -15,6 +15,8 @@ type Props = {
 
 const DressItem = ({isListed, dress, action}: Props) => {
 
+  const theme = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
   const structureLabel = getDressStructureLabel(dress);
 
   return (
@@ -24,7 +26,7 @@ const DressItem = ({isListed, dress, action}: Props) => {
          {/* {!isListed && <View style={styles.pill} >
             <Text style={styles.pillText} > {user?._count?.orders} </Text>
           </View>} */}
-          <SparklesIcon fill={Colors.app.primary} size={Rs(27)} />
+          <SparklesIcon fill={theme.primary} size={Rs(27)} />
         </View>
         <View style={styles.userBloc} >
           <View style={{flex: 1}} >
@@ -34,8 +36,8 @@ const DressItem = ({isListed, dress, action}: Props) => {
            </Text>
            {/* <Text style={styles.userPhone} > 01 42 26 90 19 </Text> */}
           </View>
-          {!isListed && <View style={{width: 40, height: 40, justifyContent: "center", alignItems: "center", }} >
-            <ArrowRightIcon fill={Colors.app.primary} size={Rs(18)} />
+          {!isListed && <View style={styles.arrowBox}>
+            <ArrowRightIcon fill={theme.primary} size={Rs(18)} />
           </View>}
         </View>
       </TouchableOpacity>
@@ -45,7 +47,7 @@ const DressItem = ({isListed, dress, action}: Props) => {
 
 export default DressItem
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   item: {
     height: 100,
     flexDirection: "row",
@@ -55,17 +57,18 @@ const styles = StyleSheet.create({
   iconBox: {
     height: Rs(40),
     width: Rs(40),
-    backgroundColor: Colors.app.light,
+    backgroundColor: theme.primaryLight,
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
   userName: {
-    fontWeight: "semibold",
+    color: theme.text,
+    fontWeight: "600",
     fontSize: SIZES.md ,
   },
   userPhone: {
-    color: Colors.app.texteLight,
+    color: theme.muted,
     fontSize: SIZES.sm - 2,
     marginTop: 8,
   },
@@ -76,25 +79,31 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.app.disabled,
+    borderColor: theme.border,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 15,
-    backgroundColor: "white",
+    backgroundColor: theme.card,
     zIndex: 100,
   },
   pillText: {
     fontSize: SIZES.xs,
-    color: Colors.app.primary,
+    color: theme.primary,
     // textAlign: "center",
 
   },
   userBloc: {
     flex: 1,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.app.disabled,
+    borderColor: theme.border,
     paddingBottom: 10,
     flexDirection: "row",
     alignItems: "center"
+  },
+  arrowBox: {
+    alignItems: "center",
+    height: 40,
+    justifyContent: "center",
+    width: 40,
   },
 });

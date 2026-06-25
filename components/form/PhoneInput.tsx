@@ -1,5 +1,5 @@
-import { Colors } from '@/constants/Colors';
 import { getPhoneCountryByValue, PhoneCountry, setPhoneCountries } from '@/constants/phoneCountries';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import { baseURL } from '@/util/axios';
 import { Rs, SIZES } from '@/util/comon';
 import { Feather } from '@expo/vector-icons';
@@ -39,6 +39,8 @@ const normalizeCountriesResponse = (data: unknown): PhoneCountry[] => {
 };
 
 const PhoneInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, touched, keyboardType, isPassword, placeholder, onFocus }: Props) => {
+  const theme = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
   const [isPw, setIsPw] = React.useState(isPassword);
   const [isFocused, setIsFocused] = React.useState(false);
   const [isCountryModalVisible, setIsCountryModalVisible] = React.useState(false);
@@ -99,7 +101,7 @@ const PhoneInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, 
 
   return (
     <View style={{ position: 'relative', width: "100%", height: 83, marginBottom: 10 }}>
-      <Text style={styles.label}>{label} <Text style={{ color: Colors.app.error }}>*</Text></Text>
+      <Text style={styles.label}>{label} <Text style={styles.required}>*</Text></Text>
       <View
         style={[
           styles.inputContainer,
@@ -115,9 +117,9 @@ const PhoneInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, 
           {selectedCountry ? (
             <Image source={{ uri: selectedCountry.flag }} style={styles.flag} />
           ) : (
-            <ActivityIndicator size="small" color={Colors.app.primary} />
+            <ActivityIndicator size="small" color={theme.primary} />
           )}
-          <Feather name="chevron-down" size={16} color={Colors.app.texteLight} />
+          <Feather name="chevron-down" size={16} color={theme.muted} />
         </Pressable>
         <TextInput
           ref={inputRef}
@@ -125,7 +127,7 @@ const PhoneInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, 
           secureTextEntry={isPw}
           multiline={isDescr ? true : false}
           placeholder={placeholder ?? "Entrez ..."}
-          placeholderTextColor={Colors.app.texteLight}
+          placeholderTextColor={theme.muted}
           value={phoneWithoutDialCode}
           editable={Boolean(selectedCountry) && !isCountriesLoading}
           maxLength={selectedCountry?.phoneLength}
@@ -144,15 +146,15 @@ const PhoneInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, 
       </View>
       {isPassword && (
         <TouchableOpacity style={{ position: 'absolute', right: Rs(10), top: Rs(40), zIndex: 50 }} onPress={() => { setIsPw(!isPw) }}>
-          <Feather name='eye' size={20} color={Colors.app.texteLight} />
+          <Feather name='eye' size={20} color={theme.muted} />
         </TouchableOpacity>
       )}
       {isCountriesError && (
-        <Text style={{ color: Colors.app.error, fontSize: SIZES.xs }}>
+        <Text style={styles.errorText}>
           Impossible de charger les pays
         </Text>
       )}
-      {error && touched && <Text style={{ color: Colors.app.error, fontSize: SIZES.xs }}>{error}</Text>}
+      {error && touched && <Text style={styles.errorText}>{error}</Text>}
       <Modal
         animationType="fade"
         transparent
@@ -185,19 +187,27 @@ const PhoneInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, 
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   label: {
     fontSize: SIZES.sm,
-    color: Colors.app.texteLight,
+    color: theme.muted,
     marginBottom: 10,
     fontWeight: 'bold',
+  },
+  required: {
+    color: theme.danger,
+  },
+  errorText: {
+    color: theme.danger,
+    fontSize: SIZES.xs,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.app.disabled,
+    borderColor: theme.border,
     borderRadius: SIZES.xs,
+    backgroundColor: theme.card,
     height: 50,
     overflow: 'hidden',
   },
@@ -208,8 +218,8 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 10,
     borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: Colors.app.disabled,
-    backgroundColor: Colors.app.secondary,
+    borderRightColor: theme.border,
+    backgroundColor: theme.primaryLight,
   },
   flag: {
     width: 24,
@@ -218,22 +228,22 @@ const styles = StyleSheet.create({
   },
   dialCode: {
     fontSize: SIZES.sm,
-    color: Colors.app.texteLight,
+    color: theme.muted,
     fontWeight: '600',
   },
   input: {
     flex: 1,
     height: '100%',
     paddingHorizontal: 10,
-    color: Colors.app.texteLight,
+    color: theme.text,
     fontSize: SIZES.sm,
   },
   inputFocused: {
-    borderColor: Colors.app.primary,
+    borderColor: theme.primary,
     borderWidth: 1,
   },
   inputError: {
-    borderColor: Colors.app.error,
+    borderColor: theme.danger,
     borderWidth: 1,
   },
   modalBackdrop: {
@@ -244,14 +254,16 @@ const styles = StyleSheet.create({
   },
   countryModal: {
     maxHeight: '70%',
-    backgroundColor: 'white',
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
     padding: Rs(12),
   },
   modalTitle: {
     fontSize: SIZES.sm,
     fontWeight: '700',
-    color: Colors.app.texteLight,
+    color: theme.text,
     marginBottom: Rs(10),
   },
   countryItem: {
@@ -259,7 +271,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Rs(12),
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.app.disabled,
+    borderBottomColor: theme.border,
   },
   countryFlag: {
     width: 32,
@@ -269,11 +281,11 @@ const styles = StyleSheet.create({
   },
   countryName: {
     flex: 1,
-    color: Colors.app.texteLight,
+    color: theme.text,
     fontSize: SIZES.sm,
   },
   countryDialCode: {
-    color: Colors.app.primary,
+    color: theme.primary,
     fontWeight: '700',
     fontSize: SIZES.sm,
   },

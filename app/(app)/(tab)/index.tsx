@@ -3,17 +3,17 @@ import PaymentInterface from '@/components/calendar/CardDetails';
 import PaymentDetails from '@/components/calendar/OrderDetail';
 import LoadingScreen from '@/components/Loading';
 import ScreenWrapper from '@/components/ScreenWrapper';
-import { Colors } from '@/constants/Colors';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import { QueryKeys } from '@/interfaces/queries-key';
 import { EDressStatus, IOrder } from '@/interfaces/type';
 import { useOrderStore } from '@/stores/order';
 import { base, baseURL } from '@/util/axios';
-import { colors, formatPhoneNumber, formatXOF, Rs, SIZES } from '@/util/comon';
+import { formatPhoneNumber, formatXOF, Rs, SIZES } from '@/util/comon';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AgendaList, Calendar, LocaleConfig } from 'react-native-calendars';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -55,6 +55,8 @@ type CalendarAgendaItem = {
 type AgendaOrderItemProps = {
   item: CalendarAgendaItem;
   onPress: (order: IOrder) => void;
+  styles: ReturnType<typeof createStyles>;
+  theme: AppTheme;
 };
 
 type MaterialIconName = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -119,26 +121,26 @@ const getStatusLabel = (order: IOrder) => {
   return 'EN COURS';
 };
 
-const getStatusColors = (order: IOrder) => {
+const getStatusColors = (order: IOrder, theme: AppTheme) => {
   const status = getOrderStatus(order);
 
   if (status === EDressStatus.DELIVERED) {
     return {
-      backgroundColor: Colors.app.available.av_bg,
-      textColor: Colors.app.available.av_txt,
+      backgroundColor: `${theme.success}22`,
+      textColor: theme.success,
     };
   }
 
   if (status === EDressStatus.FINISHED) {
     return {
-      backgroundColor: '#EAF5FF',
-      textColor: Colors.app.dashitem.t_2,
+      backgroundColor: `${theme.primary}22`,
+      textColor: theme.primary,
     };
   }
 
   return {
-    backgroundColor: '#FFF4DB',
-    textColor: Colors.app.primary,
+    backgroundColor: `${theme.gold}22`,
+    textColor: theme.gold,
   };
 };
 
@@ -164,25 +166,63 @@ const getGarmentIcon = (title: string): MaterialIconName => {
   return 'hanger';
 };
 
-const compactCalendarTheme = {
-  calendarBackground: '#fff',
+const createCompactCalendarTheme = (theme: AppTheme) => ({
+  backgroundColor: theme.background,
+  calendarBackground: theme.background,
   textDayFontSize: Rs(12),
   textMonthFontSize: Rs(14),
   textDayHeaderFontSize: Rs(10),
   textDayFontWeight: '500',
   textMonthFontWeight: '700',
-  textSectionTitleColor: Colors.app.texteLight,
-  monthTextColor: Colors.app.texte,
-  dayTextColor: Colors.app.texte,
-  arrowColor: Colors.app.primary,
-  todayTextColor: Colors.app.primary,
-  selectedDayBackgroundColor: Colors.app.primary,
+  textSectionTitleColor: theme.muted,
+  textSectionTitleDisabledColor: theme.border,
+  monthTextColor: theme.text,
+  dayTextColor: theme.text,
+  textDisabledColor: theme.muted,
+  arrowColor: theme.primary,
+  disabledArrowColor: theme.border,
+  todayTextColor: theme.gold,
+  selectedDayBackgroundColor: theme.primary,
+  selectedDayTextColor: '#FFFFFF',
+  dotColor: theme.gold,
+  selectedDotColor: '#FFFFFF',
+  indicatorColor: theme.primary,
   weekVerticalMargin: 0,
   'stylesheet.calendar.main': {
+    container: {
+      backgroundColor: theme.background,
+    },
     week: {
       marginVertical: 0,
       flexDirection: 'row',
       justifyContent: 'space-around',
+    },
+  },
+  'stylesheet.calendar.header': {
+    header: {
+      backgroundColor: theme.background,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingLeft: Rs(10),
+      paddingRight: Rs(10),
+      marginTop: Rs(6),
+    },
+    monthText: {
+      color: theme.text,
+      fontSize: Rs(14),
+      fontWeight: '700',
+    },
+    week: {
+      marginTop: Rs(4),
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      backgroundColor: theme.background,
+    },
+    dayHeader: {
+      color: theme.muted,
+      fontSize: Rs(10),
+      fontWeight: '700',
     },
   },
   'stylesheet.day.basic': {
@@ -199,15 +239,28 @@ const compactCalendarTheme = {
       borderRadius: Rs(13),
     },
     text: {
+      color: theme.text,
       marginTop: 0,
       fontSize: Rs(12),
     },
+    selectedText: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+    },
+    todayText: {
+      color: theme.gold,
+      fontWeight: '700',
+    },
+    disabledText: {
+      color: theme.muted,
+      opacity: 0.55,
+    },
   },
-} as const;
+} as const);
 
-const OrderCard = ({ item, onPress }: AgendaOrderItemProps) => {
+const OrderCard = ({ item, onPress, styles, theme }: AgendaOrderItemProps) => {
   const title = getOrderTitle(item);
-  const statusColors = getStatusColors(item.data);
+  const statusColors = getStatusColors(item.data, theme);
 
   return (
     <AnimatedTouchableOpacity
@@ -235,7 +288,7 @@ const OrderCard = ({ item, onPress }: AgendaOrderItemProps) => {
             <MaterialCommunityIcons
               name={getGarmentIcon(title)}
               size={Rs(36)}
-              color={Colors.app.primary}
+              color={theme.primary}
             />
           )}
         </View>
@@ -245,17 +298,17 @@ const OrderCard = ({ item, onPress }: AgendaOrderItemProps) => {
             {title}
           </Text>
           <View style={styles.orderInfoRow}>
-            <Feather name="user" size={Rs(14)} color="#4E4A43" />
+            <Feather name="user" size={Rs(14)} color={theme.muted} />
             <Text style={styles.orderInfoText} numberOfLines={1}>{getClientName(item.data)}</Text>
           </View>
           <View style={styles.orderInfoRow}>
-            <Feather name="phone" size={Rs(14)} color="#4E4A43" />
+            <Feather name="phone" size={Rs(14)} color={theme.muted} />
             <Text style={styles.orderInfoText} numberOfLines={1}>{formatPhoneNumber(item.data.client_phone)}</Text>
           </View>
           <View style={styles.orderMetaRow}>
             <View style={styles.orderMetaItem}>
-              <Feather name="calendar" size={Rs(13)} color="#666" />
-              <Text style={[styles.orderDateText, {color: colors.orange}]} numberOfLines={1}>{formatDisplayDate(item.originalDate)}</Text>
+              <Feather name="calendar" size={Rs(13)} color={theme.muted} />
+              <Text style={styles.orderDateText} numberOfLines={1}>{formatDisplayDate(item.originalDate)}</Text>
             </View>
             
           </View>
@@ -270,12 +323,12 @@ const OrderCard = ({ item, onPress }: AgendaOrderItemProps) => {
         </View>
 
         <View style={styles.sideAmount}>
-          <Feather name="credit-card" size={Rs(15)} color={Colors.app.primary} />
+          <Feather name="credit-card" size={Rs(15)} color={theme.primary} />
           <Text style={styles.sideAmountText} numberOfLines={1}>{getOrderAmount(item.data)}</Text>
         </View>
 
        <View style={styles.orderMetaItem}>
-              <Feather name="clock" size={Rs(13)} color="#FF3B30" />
+              <Feather name="clock" size={Rs(13)} color={theme.danger} />
               <Text style={styles.orderTimeText}>{formatHour(item.time)}</Text>
         </View>
 
@@ -285,6 +338,9 @@ const OrderCard = ({ item, onPress }: AgendaOrderItemProps) => {
 };
 
 const DeliveredList = () => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const compactCalendarTheme = useMemo(() => createCompactCalendarTheme(theme), [theme]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Default to today's date
   const { setDeliveredOrderLength } = useOrderStore();
 
@@ -358,9 +414,9 @@ const DeliveredList = () => {
   const hasAgendaItems = agendaItems.length > 0;
 
   const markedDates = Object.keys(transformedData).reduce((acc, date) => {
-    acc[date] = { selected: true, selectedColor: Colors.app.primary,  };
+    acc[date] = { selected: true, selectedColor: theme.primary };
     return acc;
-  }, {} as { [key: string]: { selected: boolean; selectedColor: string } });
+  }, {} as { [key: string]: { selected: boolean; selectedColor: string; disableTouchEvent?: boolean } });
 
   const sections = hasAgendaItems
     ? [
@@ -374,7 +430,7 @@ const DeliveredList = () => {
   if (isLoading) {
     return  <LoadingScreen 
             visible={isLoading}
-            indicatorColor="#FFFFFF"
+            indicatorColor={theme.gold}
             indicatorSize={48}
             message=""
             animationType="slide"
@@ -394,19 +450,21 @@ const DeliveredList = () => {
           sections={sections}
           ListHeaderComponent={
             <Calendar
+              key={`calendar-${theme.background}`}
               style={styles.calendar}
               theme={compactCalendarTheme}
+              hideExtraDays
               onDayPress={(day) => {
                 setSelectedDate(day.dateString);
               }}
               markedDates={{
                 ...markedDates,
-                [selectedDate]: { selected: true, disableTouchEvent: true, selectedColor: "black" }
+                [selectedDate]: { selected: true, disableTouchEvent: true, selectedColor: theme.primary }
               }}
             />
           }
           renderItem={({ item }) => (
-            <OrderCard item={item} onPress={handleOpenSheet} />
+            <OrderCard item={item} onPress={handleOpenSheet} styles={styles} theme={theme} />
           )}
           ListEmptyComponent={
             <Animated.View
@@ -428,7 +486,7 @@ const DeliveredList = () => {
 
       <BottomSheetCompo bottomSheetModalRef={bottomSheetModalRef} snapPoints={[Rs(750)]}>
         
-        <View style={{padding: 20, gap: 20}} >
+        <View style={styles.sheetContent}>
 
          <PaymentDetails
           totalPrice={Number(selectedOrder?.solde_cal)}
@@ -464,34 +522,41 @@ const DeliveredList = () => {
 
 export default DeliveredList;
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: theme.background,
   },
   agendaContainer: {
     flex: 1,
+    backgroundColor: theme.background,
   },
   agendaListContent: {
     flexGrow: 1,
     paddingBottom: Rs(24),
+    backgroundColor: theme.background,
   },
   calendar: {
+    backgroundColor: theme.background,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EEE',
+    borderBottomColor: theme.border,
     paddingBottom: Rs(4),
   },
   orderCard: {
     width: '100%',
     height: Rs(120),
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Rs(1),
     marginBottom: Rs(12),
     padding: Rs(14),
     flexDirection: 'row',
     overflow: 'hidden',
     position: 'relative',
-    boxShadow: '0px 5px 16px rgba(33, 26, 19, 0.05)',
+    boxShadow: theme.background === '#FFFDF8'
+      ? '0px 5px 16px rgba(33, 26, 19, 0.05)'
+      : '0px 5px 18px rgba(0, 0, 0, 0.28)',
   },
   orderMain: {
     flex: 1,
@@ -503,7 +568,7 @@ const styles = StyleSheet.create({
     width: Rs(50),
     height: Rs(50),
     borderRadius: Rs(18),
-    backgroundColor: '#FFF8EF',
+    backgroundColor: theme.goldLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Rs(12),
@@ -518,7 +583,7 @@ const styles = StyleSheet.create({
     paddingTop: Rs(2),
   },
   orderTitle: {
-    color: '#222222',
+    color: theme.text,
     fontSize: SIZES.md,
     fontWeight: '700',
     letterSpacing: 0,
@@ -532,7 +597,7 @@ const styles = StyleSheet.create({
   },
   orderInfoText: {
     flex: 1,
-    color: '#4E4A43',
+    color: theme.muted,
     fontSize: SIZES.xs,
     fontWeight: '500',
   },
@@ -549,19 +614,19 @@ const styles = StyleSheet.create({
     gap: Rs(5),
   },
   orderDateText: {
-    color: '#666666',
+    color: theme.gold,
     fontSize: Rs(12),
     fontWeight: '600',
   },
   orderTimeText: {
-    color: '#FF3B30',
+    color: theme.danger,
     fontSize: Rs(12),
     fontWeight: '700',
   },
   orderSide: {
     width: Rs(116),
     borderLeftWidth: 1,
-    borderLeftColor: '#EFE7D8',
+    borderLeftColor: theme.border,
     paddingLeft: Rs(12),
     justifyContent: 'space-between',
     alignItems: 'flex-start',
@@ -583,13 +648,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   sideMetricValue: {
-    color: '#222222',
+    color: theme.text,
     fontSize: Rs(22),
     fontWeight: '800',
     marginTop: Rs(2),
   },
   sideMetricLabel: {
-    color: '#756B5C',
+    color: theme.muted,
     fontSize: SIZES.xs,
     fontWeight: '600',
   },
@@ -601,12 +666,12 @@ const styles = StyleSheet.create({
   },
   sideAmountText: {
     flex: 1,
-    color: '#222222',
+    color: theme.text,
     fontSize: 10,
     fontWeight: '800',
   },
   detailsLink: {
-    color: Colors.app.primary,
+    color: theme.primary,
     fontSize: Rs(11),
     fontWeight: '700',
   },
@@ -617,6 +682,7 @@ const styles = StyleSheet.create({
     width: Rs(40),
     height: Rs(42),
     transform: [{ rotate: '45deg' }],
+    opacity: theme.background === '#FFFDF8' ? 1 : 0.35,
   },
   orderPatternBottom: {
     position: 'absolute',
@@ -625,6 +691,7 @@ const styles = StyleSheet.create({
     width: Rs(40),
     height: Rs(42),
     transform: [{ rotate: '45deg' }],
+    opacity: theme.background === '#FFFDF8' ? 1 : 0.35,
   },
   orderPatternDiamond: {
     position: 'absolute',
@@ -633,7 +700,7 @@ const styles = StyleSheet.create({
     width: Rs(12),
     height: Rs(12),
     borderWidth: 1,
-    borderColor: Colors.app.primary,
+    borderColor: theme.primary,
     transform: [{ rotate: '45deg' }],
   },
   orderPatternDiamondSmall: {
@@ -648,7 +715,7 @@ const styles = StyleSheet.create({
     bottom: Rs(5),
     width: Rs(30),
     height: 1,
-    backgroundColor: Colors.app.primary,
+    backgroundColor: theme.primary,
   },
   emptyContainer: {
     flex: 1,
@@ -664,11 +731,16 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: Rs(14),
-    color: '#666',
+    color: theme.muted,
   },
   errorText: {
-    color: 'red',
+    color: theme.danger,
     textAlign: 'center',
     marginTop: Rs(20),
+  },
+  sheetContent: {
+    backgroundColor: theme.card,
+    gap: Rs(20),
+    padding: Rs(20),
   },
 });

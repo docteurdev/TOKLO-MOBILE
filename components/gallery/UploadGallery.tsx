@@ -1,11 +1,12 @@
+import { AppTheme, useAppTheme } from "@/hooks/useAppTheme";
 import useGalery from "@/hooks/mutations/useGalery";
 import useUpload from "@/hooks/useUpload";
 import { useUserStore } from "@/stores/user";
-import { colors, Rs, SIZES } from "@/util/comon";
+import { Rs, SIZES } from "@/util/comon";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -28,7 +29,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import CustomButton from "../form/CustomButton";
 
 const { width } = Dimensions.get("window");
-const ITEM_WIDTH = (width - 48) / 2;
 const ANIMATION_DURATION = 300;
 
 type UploadGalleryProps = {
@@ -42,6 +42,8 @@ const UploadGallery = ({
   subscribeBottomSheet,
   claimActiveFreeTime,
 }: UploadGalleryProps) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -82,7 +84,7 @@ const UploadGallery = ({
         easing: Easing.out(Easing.cubic),
       });
     }
-  }, [singleImage]);
+  }, [singleImage, imageEnter, opacity, pulse]);
 
   const pickImg = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -137,11 +139,11 @@ const UploadGallery = ({
         uri: singleImage.uri,
         name: "image.png", // Ensure the name is unique
         type: "image/png", // Ensure the type matches the file
-      });
+      } as unknown as Blob);
      }
-      formatData.append("name", '' ),
-      formatData.append("toklo_menid", user?.id?.toString() || '' ),
-      formatData.append("description", '' ),
+      formatData.append("name", "");
+      formatData.append("toklo_menid", user?.id?.toString() || "");
+      formatData.append("description", "");
      mutate(formatData);
      if(isSuccess){
       simulateUpload()
@@ -198,7 +200,7 @@ const UploadGallery = ({
         activeOpacity={0.8}
       >
         <LinearGradient
-          colors={[colors.orange, colors.lightOrange]}
+          colors={[theme.primary, theme.goldLight]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientBackground}
@@ -206,7 +208,7 @@ const UploadGallery = ({
           {uploading ? (
             <View style={styles.uploadingContainer}>
               <View style={styles.uploadingIconContainer}>
-                <Ionicons name="cloud-upload-outline" size={32} color={colors.DARK_BROWN} />
+                <Ionicons name="cloud-upload-outline" size={32} color={theme.text} />
                 <Text style={styles.uploadingPercentage}>
                   {uploadProgress}%
                 </Text>
@@ -225,7 +227,7 @@ const UploadGallery = ({
                 <MaterialCommunityIcons
                   name="cloud-upload-outline"
                   size={40}
-                  color={colors.DARK_BROWN}
+                  color={theme.text}
                 />
               </View>
               <Text style={styles.uploadText}>Télécharger le modèle</Text>
@@ -280,7 +282,7 @@ const UploadGallery = ({
 
   const renderEmptyState = () => (
     <View style={styles.emptyStateContainer}>
-      <Ionicons name="image-outline" size={70} color="#d1d1d1" />
+      <Ionicons name="image-outline" size={70} color={theme.muted} />
       <Text style={styles.emptyStateText}>{"Pas d'image sélectionnée"}</Text>
       <Text style={styles.emptyStateSubtext}>
         Votre image téléchargée apparaîtra ici.
@@ -317,15 +319,15 @@ const UploadGallery = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: theme.card,
     padding: 16,
   },
   uploadContainer: {
     marginBottom: 24,
-    shadowColor: "#4776E6",
+    shadowColor: theme.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -352,13 +354,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   uploadText: {
-    color: colors.DARK_BROWN,
+    color: theme.text,
     fontSize: 22,
     fontWeight: "bold",
     marginBottom: 8,
   },
   uploadSubtext: {
-    color: colors.DARK_BROWN,
+    color: theme.text,
     fontSize: 15,
   },
   uploadTipContainer: {
@@ -421,7 +423,7 @@ const styles = StyleSheet.create({
   galleryTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#333",
+    color: theme.text,
   },
   imagesContainer: {
     flex: 1,
@@ -431,8 +433,10 @@ const styles = StyleSheet.create({
     height: width * 0.8,
     borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#fff",
-    shadowColor: "#000",
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: theme.background === "#FFFDF8" ? "#000" : theme.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -496,12 +500,12 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#555",
+    color: theme.text,
     marginTop: 16,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: "#888",
+    color: theme.muted,
     marginTop: 8,
   },
 });

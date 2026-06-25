@@ -1,6 +1,6 @@
-import { Colors } from '@/constants/Colors';
 import { StoreSchema } from '@/constants/formSchemas';
 import useToklomanStore from '@/hooks/mutations/useToklomanStore';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import useLocation from '@/hooks/useLocation';
 import useUpload from '@/hooks/useUpload';
 import { QueryKeys } from '@/interfaces/queries-key';
@@ -65,6 +65,11 @@ const parseStoreLocation = (value?: string | object | null): StoreCoordinates | 
 };
 
 const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack?: boolean}) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const isDarkMode = theme.background !== '#FFFDF8';
+  const statusBarStyle = isDarkMode ? 'light-content' : 'dark-content';
+  const statusBarBackgroundColor = isDarkMode ? theme.background : theme.card;
   const [storeLogoUrl, setStoreLogoUrl] = useState(null);
   const [storeCoverUrl, setStoreCoverUrl] = useState(null);
   const [selectedCurrency, setSelectedCurrency] = useState('USD - US Dollar');
@@ -94,7 +99,6 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
     queryFn: async (): Promise<Toklomen> => {  // Explicit return type
       try {
         const resp = await axios.get(`${baseURL}/tokloMen/${Number(user?.id)}`);
-            console.log("tokloMen°°°°°°", resp.data)
         return resp.data; // Ensure `resp.data` is returned
       } catch (error) {
         console.error(error);
@@ -110,7 +114,7 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
       styles.scrollContent,
       { paddingBottom: keyboardHeight > 0 ? keyboardHeight + Rs(170) : Rs(80) },
     ],
-    [keyboardHeight],
+    [keyboardHeight, styles.scrollContent],
   );
 
   const locationLabel = useMemo(() => {
@@ -295,10 +299,10 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <StatusBar barStyle={statusBarStyle} backgroundColor={statusBarBackgroundColor} />
       
       <View style={styles.header}>
-       {!isNOtBack && <BackButton icon={ <XMarkIcon size={20} color={Colors.app.black} /> } backAction={() => router.back()} />}
+       {!isNOtBack && <BackButton icon={ <XMarkIcon size={20} color={theme.text} /> } backAction={() => router.back()} />}
         <Text style={styles.headerTitle}>Paramètre boutique</Text>
       </View>
       
@@ -427,7 +431,7 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
               </Text>
               
               <TouchableOpacity
-              style={[styles.avatarContainer, {backgroundColor: "none"}]}
+              style={[styles.avatarContainer, {backgroundColor: "transparent"}]}
               onPress={() => {
                pickBanner()
              }}
@@ -465,7 +469,7 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
                 ]}
                 onPress={handleOpenLocationSheet}
               >
-                <MapPinIcon size={24} color={Colors.app.primary} />
+                <MapPinIcon size={24} color={theme.primary} />
                <Text numberOfLines={2} ellipsizeMode="tail" style={styles.locationText}>
                 {locationLabel || 'Choisir la localisation'}
                </Text>
@@ -533,7 +537,7 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
                   onPress={() => locationBottomSheetRef.current?.dismiss()}
                   style={styles.locationSheetClose}
                 >
-                  <XMarkIcon color={Colors.app.black} size={18} />
+                  <XMarkIcon color={theme.text} size={18} />
                 </TouchableOpacity>
               </View>
 
@@ -546,7 +550,7 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
                 ]}
               >
                 <View style={styles.locationOptionIcon}>
-                  <MapPinIcon size={20} color={Colors.app.primary} />
+                  <MapPinIcon size={20} color={theme.primary} />
                 </View>
                 <View style={styles.locationOptionContent}>
                   <Text style={styles.locationOptionTitle}>Utiliser ma position actuelle</Text>
@@ -588,18 +592,18 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
 };
 
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7f8fa',
+    backgroundColor: theme.background,
   },
   header: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.card,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e1e4e8',
+    borderBottomColor: theme.border,
     flexDirection: "row",
     alignItems: "center",
     gap: Rs(30)
@@ -607,14 +611,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#202020',
+    color: theme.text,
     marginBottom: 12,
   },
   inputError: {
-   borderColor: '#e41919',
+   borderColor: theme.danger,
  },
   errorText: {
-   color: '#e41919',
+   color: theme.danger,
    fontSize: 12,
    marginTop: 4,
  },
@@ -630,7 +634,7 @@ const styles = StyleSheet.create({
   selectedTabText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#333',
+    color: theme.text,
   },
   scrollContainer: {
     flex: 1,
@@ -648,17 +652,17 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.card,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e1e4e8',
+    borderColor: theme.border,
     paddingHorizontal: 12,
     height: 38,
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#333',
+    color: theme.text,
     marginLeft: 8,
   },
   section: {
@@ -668,20 +672,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.text,
     marginBottom: 4,
   },
   sectionDescription: {
     fontSize: 14,
-    color: '#666',
+    color: theme.muted,
     marginBottom: 8,
   },
   formGroup: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.card,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e1e4e8',
+    borderBottomColor: theme.border,
   },
   labelContainer: {
     flexDirection: 'row',
@@ -690,27 +694,28 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#333',
+    color: theme.text,
   },
   required: {
-    color: '#e41919',
+    color: theme.danger,
     marginLeft: 4,
     fontSize: 16,
   },
   fieldDescription: {
     fontSize: 13,
-    color: '#666',
+    color: theme.muted,
     marginTop: 2,
     marginBottom: 8,
   },
   input: {
     height: 42,
     borderWidth: 1,
-    borderColor: '#e1e4e8',
+    borderColor: theme.border,
     borderRadius: 6,
     paddingHorizontal: 12,
     fontSize: 15,
-    color: '#333',
+    color: theme.text,
+    backgroundColor: theme.card,
   },
   locationInput: {
     minHeight: 48,
@@ -726,9 +731,10 @@ const styles = StyleSheet.create({
     minWidth: 0,
     fontSize: 14,
     lineHeight: 17,
-    color: '#333',
+    color: theme.text,
   },
   locationSheet: {
+    backgroundColor: theme.card,
     paddingHorizontal: Rs(18),
     paddingTop: Rs(6),
     paddingBottom: Rs(24),
@@ -740,7 +746,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   locationSheetTitle: {
-    color: '#202020',
+    color: theme.text,
     fontSize: 18,
     fontWeight: '700',
   },
@@ -750,7 +756,7 @@ const styles = StyleSheet.create({
     borderRadius: Rs(17),
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f7f8fa',
+    backgroundColor: theme.primaryLight,
   },
   locationOption: {
     flexDirection: 'row',
@@ -758,9 +764,9 @@ const styles = StyleSheet.create({
     gap: Rs(12),
     padding: Rs(14),
     borderWidth: 1,
-    borderColor: '#ead9b6',
+    borderColor: theme.border,
     borderRadius: Rs(16),
-    backgroundColor: '#fffaf0',
+    backgroundColor: theme.goldLight,
   },
   locationOptionDisabled: {
     opacity: 0.55,
@@ -771,19 +777,19 @@ const styles = StyleSheet.create({
     borderRadius: Rs(21),
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff3d8',
+    backgroundColor: theme.primaryLight,
   },
   locationOptionContent: {
     flex: 1,
     minWidth: 0,
   },
   locationOptionTitle: {
-    color: '#202020',
+    color: theme.text,
     fontSize: 14,
     fontWeight: '700',
   },
   locationOptionText: {
-    color: '#666',
+    color: theme.muted,
     fontSize: 13,
     lineHeight: 17,
     marginTop: Rs(2),
@@ -791,19 +797,19 @@ const styles = StyleSheet.create({
   locationPreview: {
     padding: Rs(14),
     borderRadius: Rs(14),
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.card,
     borderWidth: 1,
-    borderColor: '#edf0f2',
+    borderColor: theme.border,
   },
   locationPreviewLabel: {
-    color: '#888',
+    color: theme.muted,
     fontSize: 12,
     fontWeight: '700',
     marginBottom: Rs(5),
     textTransform: 'uppercase',
   },
   locationPreviewText: {
-    color: '#333',
+    color: theme.text,
     fontSize: 14,
     lineHeight: 18,
   },
@@ -818,10 +824,10 @@ const styles = StyleSheet.create({
     borderRadius: Rs(14),
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f2f3f5',
+    backgroundColor: theme.primaryLight,
   },
   locationCancelText: {
-    color: '#555',
+    color: theme.text,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -831,13 +837,13 @@ const styles = StyleSheet.create({
     borderRadius: Rs(14),
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.app.primary,
+    backgroundColor: theme.primary,
   },
   locationConfirmButtonDisabled: {
     opacity: 0.5,
   },
   locationConfirmText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -850,14 +856,14 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#f8d7da',
+    backgroundColor: theme.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 22,
     fontWeight: '600',
-    color: '#e83e8c',
+    color: theme.gold,
   },
   avatarActions: {
     flexDirection: 'row',
@@ -867,13 +873,13 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   updateButtonText: {
-    color: '#2563eb',
+    color: theme.primary,
     fontSize: 14,
     fontWeight: '500',
   },
   deleteButton: {},
   deleteButtonText: {
-    color: '#666',
+    color: theme.muted,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -882,7 +888,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 42,
     borderWidth: 1,
-    borderColor: '#e1e4e8',
+    borderColor: theme.border,
     borderRadius: 6,
     overflow: 'hidden',
   },
@@ -890,20 +896,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     height: '100%',
     justifyContent: 'center',
-    backgroundColor: '#f7f8fa',
+    backgroundColor: theme.primaryLight,
     borderRightWidth: 1,
-    borderRightColor: '#e1e4e8',
+    borderRightColor: theme.border,
   },
   httpPrefixText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.muted,
   },
   websiteInput: {
     flex: 1,
     height: '100%',
     paddingHorizontal: 12,
     fontSize: 15,
-    color: '#333',
+    color: theme.text,
   },
   currencySelector: {
     flexDirection: 'row',
@@ -911,22 +917,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 42,
     borderWidth: 1,
-    borderColor: '#e1e4e8',
+    borderColor: theme.border,
     borderRadius: 6,
     paddingHorizontal: 12,
   },
   currencySelectorText: {
     fontSize: 15,
-    color: '#333',
+    color: theme.text,
   },
   dropdown: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.card,
     borderWidth: 1,
-    borderColor: '#e1e4e8',
+    borderColor: theme.border,
     borderRadius: 6,
     marginTop: 4,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: theme.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -935,15 +941,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f3f5',
+    borderBottomColor: theme.border,
   },
   dropdownItemText: {
     fontSize: 15,
-    color: '#333',
+    color: theme.text,
   },
   selectedDropdownItem: {
     fontWeight: '600',
-    color: '#2563eb',
+    color: theme.primary,
   },
   spacing: {
     height: 40,

@@ -4,8 +4,8 @@ import PaymentDetails from '@/components/calendar/OrderDetail'
 import BackButton from '@/components/form/BackButton'
 import RoundedBtn from '@/components/form/RoundedBtn'
 import LoadingScreen from '@/components/Loading'
-import { Colors } from '@/constants/Colors'
 import useChangeOrderStatus from '@/hooks/mutations/useChangeOrderStatus'
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme'
 import { QueryKeys } from '@/interfaces/queries-key'
 import { EDressStatus, IOrder } from '@/interfaces/type'
 import { alertMgs } from '@/util/appText'
@@ -15,7 +15,7 @@ import { BottomSheetModal } from '@gorhom/bottom-sheet'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useRef } from 'react'
+import React, { useMemo, useRef } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 
 type OrderStatusValue = IOrder["status"] | EDressStatus | string | undefined | null;
@@ -39,6 +39,8 @@ const getOrderStatus = (status: OrderStatusValue): EDressStatus | undefined => {
 
 const DressDetail = () => {
 
+const theme = useAppTheme();
+const styles = useMemo(() => createStyles(theme), [theme]);
 const route = useRouter();
 const {id} = useLocalSearchParams <{id: string}> ();
 
@@ -91,11 +93,11 @@ function closebottomSheet(){
 
   if (!data || !currentStatus) {
     return (
-      <View style={{ flex: 1, backgroundColor: "white" }}>
+      <View style={styles.screen}>
         <LoadingScreen
           visible={isLoading}
-          backgroundColor="rgba(0, 0, 0, 0.7)"
-          indicatorColor="#FFFFFF"
+          backgroundColor={theme.background}
+          indicatorColor={theme.gold}
           indicatorSize={48}
           message=""
           animationType="slide"
@@ -111,24 +113,24 @@ function closebottomSheet(){
   const dateDepot = new Date(data.date_depote);
 
   return (
-   <View style={{flex: 1, backgroundColor: 'white'}}>
-     <View style={{position: "absolute", top: Rs(10), left: Rs(10), width: 40, height: 40, justifyContent: "center", alignItems: "center",}} >
+   <View style={styles.screen}>
+     <View style={styles.backButtonContainer} >
 	     <BackButton backAction={() => route.push({pathname: "/(app)/users/[id]", params: {id, from: "user"}})  } />
     </View>
 
     
 
-    <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: Rs(50), }}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
 
     <LoadingScreen 
                 visible={isLoading}
-                backgroundColor="rgba(0, 0, 0, 0.7)"
-                indicatorColor="#FFFFFF"
+                backgroundColor={theme.background}
+                indicatorColor={theme.gold}
                 indicatorSize={48}
                 message=""
                 animationType="slide"
               />
-    <View style={{padding: 20, gap: 20, }} >
+    <View style={styles.content} >
 
         
 		         <PaymentDetails
@@ -160,7 +162,7 @@ function closebottomSheet(){
         </View>
     
 
-	     {currentStatus !== EDressStatus.DELIVERED && <View style={{paddingHorizontal: 20, marginBottom: Rs(50), flexDirection: "row", alignItems: "center", gap: 20}} >
+	     {currentStatus !== EDressStatus.DELIVERED && <View style={styles.actionContainer} >
         
          <View style={{flex: 1}} >
 
@@ -172,8 +174,8 @@ function closebottomSheet(){
          </View>
       </View>}
 	    <BottomSheetCompo bottomSheetModalRef={bottomSheetModalRef} snapPoints={[Rs(220)]} >
-	       <View style={{height: Rs(150), justifyContent: "center", alignItems: "center", gap: Rs(20), paddingHorizontal: Rs(20)}} >
-	        <Text style={{fontSize: SIZES.sm, color: Colors.app.texteLight}}> 
+	       <View style={styles.bottomSheetContent} >
+	        <Text style={styles.bottomSheetText}> 
 	          {currentStatus === EDressStatus.ONGOING ? alertMgs.order.order.statussChanging.finish.fr : alertMgs.order.order.statussChanging.deliver.fr}
 	         </Text>
 	        <RoundedBtn label={currentStatus === EDressStatus.ONGOING ? 'Terminer' : 'Livrer'}  disabled loading={isPending} action={() => handleChangeStatus()}  />
@@ -188,15 +190,59 @@ function closebottomSheet(){
 
 export default DressDetail
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
+ screen: {
+   backgroundColor: theme.background,
+   flex: 1,
+ },
  container: {
+   backgroundColor: theme.background,
    flex: 1,
    paddingVertical: Rs(40)
    
  },
+ scrollContent: {
+   paddingBottom: Rs(50),
+ },
+ backButtonContainer: {
+   alignItems: "center",
+   height: 40,
+   justifyContent: "center",
+   left: Rs(10),
+   position: "absolute",
+   top: Rs(10),
+   width: 40,
+   zIndex: 2,
+ },
+ content: {
+   gap: 20,
+   padding: 20,
+ },
+ actionContainer: {
+   alignItems: "center",
+   flexDirection: "row",
+   gap: 20,
+   marginBottom: Rs(50),
+   paddingHorizontal: 20,
+ },
+ bottomSheetContent: {
+   alignItems: "center",
+   backgroundColor: theme.card,
+   gap: Rs(20),
+   height: Rs(150),
+   justifyContent: "center",
+   paddingHorizontal: Rs(20),
+ },
+ bottomSheetText: {
+   color: theme.muted,
+   fontSize: SIZES.sm,
+   textAlign: "center",
+ },
 	 errorText: {
-	   color: Colors.app.error,
+	   backgroundColor: theme.background,
+	   color: theme.danger,
 	   fontSize: SIZES.sm,
+	   flex: 1,
 	   padding: Rs(20),
 	   textAlign: "center",
 	 },

@@ -1,6 +1,6 @@
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme'
 import { Rs } from '@/util/comon'
 import { Ionicons } from '@expo/vector-icons'
-import { useRouter } from 'expo-router'
 import React from 'react'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
@@ -10,11 +10,12 @@ type Props = {
   bg?: string
 }
 
-const FlatBtn = ({action, bg='#4F46E5'}: Props) => {
+const FlatBtn = ({action}: Props) => {
+   const theme = useAppTheme();
+   const styles = React.useMemo(() => createStyles(theme), [theme]);
+   const buttonColor = theme.primary;
 
    const addButtonScale = useSharedValue(1);
-
-   const  router = useRouter();
 
    const addButtonAnimatedStyle = useAnimatedStyle(() => {
      return {
@@ -28,7 +29,7 @@ const FlatBtn = ({action, bg='#4F46E5'}: Props) => {
     <View>
        <Animated.View style={[styles.addButtonContainer, addButtonAnimatedStyle]}>
         <TouchableOpacity
-          style={[styles.addButton, {backgroundColor: bg}]}
+          style={[styles.addButton, {backgroundColor: buttonColor}]}
           onPress={() => {
             addButtonScale.value = withSpring(0.9, {}, () => {
               addButtonScale.value = withSpring(1);
@@ -37,7 +38,7 @@ const FlatBtn = ({action, bg='#4F46E5'}: Props) => {
 
           }}
         >
-          <Ionicons name="add" size={24} color="#fff" />
+          <Ionicons name="add" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </Animated.View>
 
@@ -47,7 +48,7 @@ const FlatBtn = ({action, bg='#4F46E5'}: Props) => {
 
 export default FlatBtn
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
    addButtonContainer: {
     position: "absolute",
     bottom: Rs(65),
@@ -57,10 +58,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#4F46E5",
+    backgroundColor: theme.primary,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: theme.background === '#FFFDF8' ? "#000" : theme.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,

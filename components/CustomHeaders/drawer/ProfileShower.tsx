@@ -1,40 +1,32 @@
 import { EmpltyProfileLogo } from '@/assets'
-import { ThemedText } from '@/components/ThemedText'
-import { Colors } from '@/constants/Colors'
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme'
 import { useUserStore } from '@/stores/user'
 import { base } from '@/util/axios'
-import { colors, formatIvoryCoastPhoneNumber, Rs, SIZES } from '@/util/comon'
+import { formatIvoryCoastPhoneNumber, Rs, SIZES } from '@/util/comon'
 import { Feather } from '@expo/vector-icons'
 import React from 'react'
 import { Image, StyleSheet, Text, View } from 'react-native'
 
-type Props = {}
-
-const ProfileShower = (props: Props) => {
+const ProfileShower = () => {
 
   const {user} = useUserStore()
+  const theme = useAppTheme()
+  const styles = React.useMemo(() => createStyles(theme), [theme])
   
   return (
-     <View style={{
-      flexDirection: "row",
-      gap: Rs(10),
-      alignItems: "center",
-      height: Rs(100),
-      width: "100%",
-      // backgroundColor: colors.inputborderColor,
-       padding: Rs(10)}} >
+     <View style={styles.container}>
         {
           user?.store_logo ? <Image source={{uri: base+ 'uploads/' + user?.store_logo}}
           style={{width: Rs(80), height: Rs(80), borderRadius: Rs(50)}} /> :
           <Image source={EmpltyProfileLogo}
-         style={{width: Rs(80), height: Rs(80), backgroundColor: colors.blackOpacity, borderRadius: Rs(50)}} />
+         style={styles.avatarPlaceholder} />
          }
         <View style={{gap: Rs(5)}} >
          <View style={styles.nameRow}>
-          <ThemedText numberOfLines={1} style={styles.nameText}>
+          <Text numberOfLines={1} style={styles.nameText}>
             {user?.store_name}
-          </ThemedText>
-          <Feather name="check-circle" size={Rs(16)} color={Colors.app.success} />
+          </Text>
+          <Feather name="check-circle" size={Rs(16)} color={theme.success} />
          </View>
          
          {/* <Text  style={{fontSize: SIZES.lg, color: Colors.app.texteLight}}>
@@ -43,9 +35,9 @@ const ProfileShower = (props: Props) => {
 
          <View style={styles.phoneRow}>
           <View style={styles.phoneIconContainer}>
-            <Feather name="phone" size={Rs(12)} color={Colors.app.primary} />
+            <Feather name="phone" size={Rs(12)} color={theme.primary} />
           </View>
-          <Text  style={{fontSize: SIZES.md, color: Colors.app.texteLight}}>
+          <Text style={styles.phoneText}>
             {formatIvoryCoastPhoneNumber(user?.phone || '')}
           </Text>
          </View>
@@ -57,7 +49,23 @@ const ProfileShower = (props: Props) => {
 
 export default ProfileShower
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
+  container: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Rs(10),
+    height: Rs(100),
+    padding: Rs(10),
+    width: "100%",
+  },
+  avatarPlaceholder: {
+    backgroundColor: theme.primaryLight,
+    borderColor: theme.border,
+    borderRadius: Rs(50),
+    borderWidth: 1,
+    height: Rs(80),
+    width: Rs(80),
+  },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -65,6 +73,7 @@ const styles = StyleSheet.create({
     maxWidth: Rs(180),
   },
   nameText: {
+    color: theme.text,
     flexShrink: 1,
     fontSize: SIZES.lg,
     fontWeight: "bold",
@@ -80,6 +89,10 @@ const styles = StyleSheet.create({
     borderRadius: Rs(11),
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.app.secondary,
+    backgroundColor: theme.primaryLight,
+  },
+  phoneText: {
+    color: theme.muted,
+    fontSize: SIZES.md,
   },
 })

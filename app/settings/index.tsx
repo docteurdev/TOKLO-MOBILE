@@ -1,7 +1,8 @@
 import BottomSheetCompo from '@/components/BottomSheetCompo';
 import BackButton from '@/components/form/BackButton';
 import StoreInfo from '@/components/settings/StoreInfo';
-import { colors, Rs } from '@/util/comon';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
+import { Rs } from '@/util/comon';
 import {
   AntDesign,
   Feather,
@@ -9,7 +10,7 @@ import {
   MaterialCommunityIcons
 } from '@expo/vector-icons';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   Image,
   ScrollView,
@@ -32,6 +33,8 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Page = () => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const bottosheetRef = useRef<BottomSheetModal>(null);
   const router = useRouter();
 
@@ -52,7 +55,7 @@ const Page = () => {
     },
   });
     
-  const { data: users, isLoading: usersIsLoading, error: usersError } = useQuery<ITokloUser[], Error>({
+  const { error: usersError } = useQuery<ITokloUser[], Error>({
     queryKey: [...QueryKeys.tokloman.byToklomanUsers, userId],
     enabled: Boolean(userId),
     queryFn: async (): Promise<ITokloUser[]> => {
@@ -100,7 +103,7 @@ const Page = () => {
       id: 'store-info',
       title: 'Infos de votre boutique',
       icon: <MaterialCommunityIcons name="store" size={24} color="#ffffff" />,
-      color: colors.available.av_txt,
+      color: theme.success,
       description: 'Nom , contact,whatsapp, logo, bannière, localisation',
       badge: null,
       count: 6
@@ -109,7 +112,7 @@ const Page = () => {
      id: 'notifications',
      title: 'Notifications',
      icon: <Ionicons name="notifications" size={24} color="#ffffff" />,
-     color: colors.available.unav_txt,
+     color: theme.danger,
      description: 'Nombre de jours avant et nombre de notification',
      badge: null,
      count: 7
@@ -130,13 +133,13 @@ const Page = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <BackButton backAction={() => router.back()} icon={<Feather name="arrow-left" size={24} color="#333" />} />
+        <BackButton backAction={() => router.back()} icon={<Feather name="arrow-left" size={24} color={theme.text} />} />
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>Paramètres</Text>
           <Text style={styles.headerSubtitle}>Gérer vos paramètres </Text>
         </View>
         <TouchableOpacity style={styles.settingsButton}>
-          <Ionicons name="settings-outline" size={24} color="#333" />
+          <Ionicons name="settings-outline" size={24} color={theme.text} />
         </TouchableOpacity>
       </View>
 
@@ -199,7 +202,7 @@ const Page = () => {
               </View>
               
               <View style={styles.chevronContainer}>
-                <AntDesign name="right" size={18} color="#bbb" />
+                <AntDesign name="right" size={18} color={theme.muted} />
               </View>
             </View>
             <Image style={styles.traditional} source={require("@/assets/images/measure/top-sheet.png")} />
@@ -223,10 +226,10 @@ const Page = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.lightOrange,
+    backgroundColor: theme.background,
   },
   
   header: {
@@ -235,7 +238,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: "none",
+    backgroundColor: "transparent",
     gap: Rs(15),
   },
   errorBanner: {
@@ -244,12 +247,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: '#fff2f2',
+    backgroundColor: theme.goldLight,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#ffcccc',
+    borderColor: theme.border,
   },
   errorBannerText: {
-    color: '#b00020',
+    color: theme.danger,
     fontSize: 13,
     fontWeight: '500',
   },
@@ -259,11 +262,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#333',
+    color: theme.text,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#777',
+    color: theme.muted,
     marginTop: 2,
   },
   settingsButton: {
@@ -274,10 +277,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   storeCard: {
-    backgroundColor: 'white',
+    backgroundColor: theme.card,
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: theme.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -287,13 +290,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: theme.card,
   },
   storeIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#3498db',
+    backgroundColor: theme.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -305,11 +308,11 @@ const styles = StyleSheet.create({
   storeName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.text,
   },
   storeAddress: {
     fontSize: 14,
-    color: '#777',
+    color: theme.muted,
     marginTop: 2,
   },
   statusIndicator: {
@@ -318,20 +321,20 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.available.av_txt,
+    backgroundColor: theme.success,
   },
   statusText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
   },
   quickActionsRow: {
     flexDirection: 'row',
-    backgroundColor: '#f5f7fa',
+    backgroundColor: theme.primaryLight,
     justifyContent: 'space-evenly',
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#e5e5e5',
+    borderTopColor: theme.border,
   },
   quickActionButton: {
     flexDirection: 'row',
@@ -341,12 +344,12 @@ const styles = StyleSheet.create({
   },
   quickActionText: {
     fontSize: 14,
-    color: '#333',
+    color: theme.text,
     marginLeft: 6,
   },
   divider: {
     width: 1,
-    backgroundColor: '#ddd',
+    backgroundColor: theme.border,
   },
   scrollView: {
     flex: 1,
@@ -358,14 +361,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.text,
     marginTop: 10,
     marginBottom: 16,
     paddingLeft: 4,
   },
   categoryCard: {
     position: "relative",
-    backgroundColor: "white",
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
     marginBottom: 12,
     overflow: "hidden"
@@ -400,23 +405,23 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.text,
   },
   badgeContainer: {
-    backgroundColor: '#ff9ff3',
+    backgroundColor: theme.gold,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
     marginLeft: 10,
   },
   badgeText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '500',
   },
   categoryDescription: {
     fontSize: 13,
-    color: '#666',
+    color: theme.muted,
     marginTop: 4,
     lineHeight: 18,
   },
@@ -427,7 +432,7 @@ const styles = StyleSheet.create({
   },
   parameterCount: {
     fontSize: 12,
-    color: '#888',
+    color: theme.muted,
     fontWeight: '500',
   },
   chevronContainer: {
@@ -436,7 +441,7 @@ const styles = StyleSheet.create({
   },
   exportButton: {
     flexDirection: 'row',
-    backgroundColor: '#3498db',
+    backgroundColor: theme.primary,
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 10,
@@ -444,14 +449,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   exportButtonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

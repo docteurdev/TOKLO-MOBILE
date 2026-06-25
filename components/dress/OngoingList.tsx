@@ -1,4 +1,4 @@
-import { Colors } from "@/constants/Colors";
+import { AppTheme, useAppTheme } from "@/hooks/useAppTheme";
 import useChangeOrderStatus from "@/hooks/mutations/useChangeOrderStatus";
 import { QueryKeys } from "@/interfaces/queries-key";
 import { EDressStatus, IOrder } from "@/interfaces/type";
@@ -17,10 +17,10 @@ import BottomSheetCompo from "../BottomSheetCompo";
 import RoundedBtn from "../form/RoundedBtn";
 import DressItem from "./DressItem";
 
-type Props = {};
-
-const OngoingList = (props: Props) => {
+const OngoingList = () => {
   const {setOngoingOrderLength} = useOrderStore()
+  const theme = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
   
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
@@ -28,7 +28,7 @@ const OngoingList = (props: Props) => {
 
   const {user} = useUserStore()
   
-  const { data, isLoading, error, refetch } = useQuery<IOrder[], Error>({
+  const { data, isLoading, refetch } = useQuery<IOrder[], Error>({
     queryKey: QueryKeys.orders.onGoing,
     queryFn: async (): Promise<IOrder[]> => {
       
@@ -106,8 +106,8 @@ const OngoingList = (props: Props) => {
         onRefresh={refetch}
         refreshing={isLoading}
         ListEmptyComponent={() => (
-                 <View style={{ flex: 1, marginTop: Rs(100) , justifyContent: "center", alignItems: "center", }} >
-                   <Text style={{ fontSize: SIZES.md, color: Colors.app.texteLight }}>Pas de commande en cours</Text>
+                 <View style={styles.emptyWrap} >
+                   <Text style={styles.emptyText}>Pas de commande en cours</Text>
                  </View>
           )}
         removeClippedSubviews={true} // Optimisation de performance
@@ -115,8 +115,8 @@ const OngoingList = (props: Props) => {
 
     </View>
       <BottomSheetCompo bottomSheetModalRef={bottomSheetModalRef} snapPoints={[Rs(220)]} >
-          <View style={{height: Rs(150), justifyContent: "center", alignItems: "center", gap: Rs(20), paddingHorizontal: Rs(20)}} >
-             <Text style={{fontSize: SIZES.sm, color: Colors.app.texteLight}}> 
+          <View style={styles.sheetContent} >
+             <Text style={styles.sheetMessage}> 
               { alertMgs.order.order.statussChanging.finish.fr }
             </Text>
             
@@ -129,9 +129,34 @@ const OngoingList = (props: Props) => {
 
 export default OngoingList;
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
+    backgroundColor: theme.background,
     flex: 1,
     paddingTop: 20,
+  },
+  emptyWrap: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    marginTop: Rs(100),
+  },
+  emptyText: {
+    color: theme.muted,
+    fontSize: SIZES.md,
+  },
+  sheetContent: {
+    alignItems: "center",
+    backgroundColor: theme.card,
+    gap: Rs(20),
+    height: Rs(150),
+    justifyContent: "center",
+    paddingHorizontal: Rs(20),
+  },
+  sheetMessage: {
+    color: theme.muted,
+    fontSize: SIZES.sm,
+    lineHeight: Rs(20),
+    textAlign: "center",
   },
 });

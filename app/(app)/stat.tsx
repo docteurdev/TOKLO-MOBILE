@@ -1,11 +1,11 @@
 import BottomSheetCompo from '@/components/BottomSheetCompo';
 import LoadingScreen from '@/components/Loading';
-import { Colors } from '@/constants/Colors';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import { QueryKeys } from '@/interfaces/queries-key';
 import { IStats } from '@/interfaces/type';
 import { useUserStore } from '@/stores/user';
 import { baseURL } from '@/util/axios';
-import { colors, formatXOF, Rs, SCREEN_W, SIZES } from '@/util/comon';
+import { formatXOF, Rs, SCREEN_W, SIZES } from '@/util/comon';
 import { Feather } from '@expo/vector-icons';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useQuery } from '@tanstack/react-query';
@@ -25,11 +25,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 
 const GOLD = '#D8A032';
-const INK = '#211A13';
-const MUTED = '#756B5C';
-const BORDER = '#EADFCB';
-const BEIGE = '#f4e8d380';
-const CARD = '#FFFFFF';
 const CHART_HEIGHT = 128;
 const CHART_WIDTH = 320;
 const WEEK_ACTIVE_CARD_WIDTH = Rs(108);
@@ -63,6 +58,13 @@ const createYearOptions = (currentYear: number) => {
 };
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
+const useStatStyles = () => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  return { styles, theme };
+};
 
 type IconName = keyof typeof Feather.glyphMap;
 
@@ -111,60 +113,80 @@ const getCurrentWeekNumber = (month: number, year: number) => {
   return isSelectedMonth ? Math.ceil(today.getDate() / 7) : 0;
 };
 
-const PatternCorner = () => (
-  <View style={styles.patternCorner}>
-    <View style={styles.patternDiamond} />
-    <View style={[styles.patternDiamond, styles.patternDiamondSmall]} />
-    <View style={styles.patternLine} />
-  </View>
-);
+const PatternCorner = () => {
+  const { styles } = useStatStyles();
 
-const SectionTitle = ({ title }: { title: string }) => (
-  <View style={styles.sectionHeader}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-  </View>
-);
-
-const KpiCard = ({ icon, label, value }: KpiCardProps) => (
-  <View style={styles.kpiCard}>
-    <Image source={require("@/assets/images/measure/app-bar.png")} style={styles.kpiAccent} />
-    <View style={styles.iconCircle}>
-      <Feather name={icon} size={Rs(17)} color={GOLD} />
+  return (
+    <View style={styles.patternCorner}>
+      <View style={styles.patternDiamond} />
+      <View style={[styles.patternDiamond, styles.patternDiamondSmall]} />
+      <View style={styles.patternLine} />
     </View>
+  );
+};
 
-    <Text style={styles.kpiLabel} numberOfLines={2}>
-      {label}
-    </Text>
+const SectionTitle = ({ title }: { title: string }) => {
+  const { styles } = useStatStyles();
 
-    <Text style={styles.kpiValue} numberOfLines={1}>
-      {value}
-    </Text>
-    
-  </View>
-);
-
-const StatusCard = ({ color, icon, label, showDivider = false, value }: StatusCardProps) => (
-  <View style={styles.statusCard}>
-    <View style={[styles.statusIcon, { backgroundColor: `${color}18` }]}>
-      <Feather name={icon} size={Rs(15)} color={color} />
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
     </View>
-    <Text style={styles.statusLabel}>{label}</Text>
-    <Text style={[styles.statusValue, { color }]}>{value}</Text>
-    <View style={{height: 2, width: 30, backgroundColor: color}} />
-    {showDivider && <View style={styles.statusDivider} />}
-  </View>
-);
+  );
+};
 
-const DistributionHeader = () => (
-  <View style={styles.distributionHeader}>
-    <View style={styles.distributionHeaderLeft}>
-      <View style={styles.distributionHeaderIcon}>
-        <Feather name="bar-chart-2" size={Rs(15)} color={GOLD} />
+const KpiCard = ({ icon, label, value }: KpiCardProps) => {
+  const { styles, theme } = useStatStyles();
+
+  return (
+    <View style={styles.kpiCard}>
+      <Image source={require("@/assets/images/measure/app-bar.png")} style={styles.kpiAccent} />
+      <View style={styles.iconCircle}>
+        <Feather name={icon} size={Rs(17)} color={theme.gold} />
       </View>
-      <Text style={styles.sectionTitle}>Répartition par statut</Text>
+
+      <Text style={styles.kpiLabel} numberOfLines={2}>
+        {label}
+      </Text>
+
+      <Text style={styles.kpiValue} numberOfLines={1}>
+        {value}
+      </Text>
+      
     </View>
-  </View>
-);
+  );
+};
+
+const StatusCard = ({ color, icon, label, showDivider = false, value }: StatusCardProps) => {
+  const { styles } = useStatStyles();
+
+  return (
+    <View style={styles.statusCard}>
+      <View style={[styles.statusIcon, { backgroundColor: `${color}18` }]}>
+        <Feather name={icon} size={Rs(15)} color={color} />
+      </View>
+      <Text style={styles.statusLabel}>{label}</Text>
+      <Text style={[styles.statusValue, { color }]}>{value}</Text>
+      <View style={{height: 2, width: 30, backgroundColor: color}} />
+      {showDivider && <View style={styles.statusDivider} />}
+    </View>
+  );
+};
+
+const DistributionHeader = () => {
+  const { styles, theme } = useStatStyles();
+
+  return (
+    <View style={styles.distributionHeader}>
+      <View style={styles.distributionHeaderLeft}>
+        <View style={styles.distributionHeaderIcon}>
+          <Feather name="bar-chart-2" size={Rs(15)} color={theme.gold} />
+        </View>
+        <Text style={styles.sectionTitle}>Répartition par statut</Text>
+      </View>
+    </View>
+  );
+};
 
 const DistributionStatusCard = ({
   color,
@@ -173,21 +195,25 @@ const DistributionStatusCard = ({
   percent,
   value,
   watermarkIcon,
-}: DistributionItem) => (
-  <View style={[styles.distributionStatusCard, { borderColor: `${color}55` }]}>
-    <Feather name={watermarkIcon} size={Rs(52)} color={color} style={styles.watermarkIcon} />
-    <View style={styles.distributionCardTop}>
-      <View style={styles.distributionIconCircle}>
-        <Feather name={icon} size={Rs(17)} color={color} />
+}: DistributionItem) => {
+  const { styles } = useStatStyles();
+
+  return (
+    <View style={[styles.distributionStatusCard, { borderColor: `${color}55` }]}>
+      <Feather name={watermarkIcon} size={Rs(52)} color={color} style={styles.watermarkIcon} />
+      <View style={styles.distributionCardTop}>
+        <View style={styles.distributionIconCircle}>
+          <Feather name={icon} size={Rs(17)} color={color} />
+        </View>
+        <View style={[styles.percentBadge, { backgroundColor: `${color}16` }]}>
+          <Text style={[styles.percentBadgeText, { color }]}>{percent}%</Text>
+        </View>
       </View>
-      <View style={[styles.percentBadge, { backgroundColor: `${color}16` }]}>
-        <Text style={[styles.percentBadgeText, { color }]}>{percent}%</Text>
-      </View>
+      <Text style={styles.distributionCardLabel}>{label}</Text>
+      <Text style={[styles.distributionCardValue, { color }]}>{value}</Text>
     </View>
-    <Text style={styles.distributionCardLabel}>{label}</Text>
-    <Text style={[styles.distributionCardValue, { color }]}>{value}</Text>
-  </View>
-);
+  );
+};
 
 const createChartPaths = (weeks: WeeklyCard[]) => {
   const maxAmount = Math.max(...weeks.map((week) => week.amount), 1);
@@ -211,6 +237,7 @@ const createChartPaths = (weeks: WeeklyCard[]) => {
 };
 
 const WeeklyTrendChart = ({ weeks }: { weeks: WeeklyCard[] }) => {
+  const { styles, theme } = useStatStyles();
   const { areaPath, bottom, linePath, points } = createChartPaths(weeks);
 
   return (
@@ -227,21 +254,21 @@ const WeeklyTrendChart = ({ weeks }: { weeks: WeeklyCard[] }) => {
             x2={CHART_WIDTH - 20}
             y1={20 + line * 24}
             y2={20 + line * 24}
-            stroke="#EFE5D3"
+            stroke={theme.border}
             strokeWidth="1"
           />
         ))}
-        <Path d={areaPath} fill="#FFF4DB" opacity={0.75} />
-        <Path d={linePath} fill="none" stroke={GOLD} strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
+        <Path d={areaPath} fill={theme.goldLight} opacity={0.75} />
+        <Path d={linePath} fill="none" stroke={theme.gold} strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
         {points.map((point, index) => (
-          <Circle key={index} cx={point.x} cy={point.y} r="4" fill={CARD} stroke={GOLD} strokeWidth="2" />
+          <Circle key={index} cx={point.x} cy={point.y} r="4" fill={theme.card} stroke={theme.gold} strokeWidth="2" />
         ))}
         {weeks.map((week, index) => (
           <SvgText
             key={week.weekNumber}
             x={points[index]?.x ?? 20}
             y={bottom + 22}
-            fill={week.isCurrent ? GOLD : MUTED}
+            fill={week.isCurrent ? theme.gold : theme.muted}
             fontSize="11"
             fontWeight={week.isCurrent ? '800' : '600'}
             textAnchor="middle"
@@ -254,30 +281,35 @@ const WeeklyTrendChart = ({ weeks }: { weeks: WeeklyCard[] }) => {
   );
 };
 
-const WeeklyReportCard = ({ amount, count, isCurrent, weekNumber }: WeeklyCard) => (
-  <View style={[styles.weekCard, isCurrent && styles.weekCardCurrent]}>
-    <View style={styles.weekCardTop}>
-      <Text style={[styles.weekTitle, isCurrent && styles.weekTitleCurrent]}>
-        Semaine {weekNumber}
+const WeeklyReportCard = ({ amount, count, isCurrent, weekNumber }: WeeklyCard) => {
+  const { styles } = useStatStyles();
+
+  return (
+    <View style={[styles.weekCard, isCurrent && styles.weekCardCurrent]}>
+      <View style={styles.weekCardTop}>
+        <Text style={[styles.weekTitle, isCurrent && styles.weekTitleCurrent]}>
+          Semaine {weekNumber}
+        </Text>
+        {isCurrent && (
+          <View style={styles.currentBadge}>
+            <View style={styles.currentDot} />
+            <Text style={styles.currentBadgeText}>Actuelle</Text>
+          </View>
+        )}
+      </View>
+      <Text style={[styles.weekAmount, isCurrent && styles.weekAmountCurrent]}>
+        {formatXOF(amount)}
       </Text>
-      {isCurrent && (
-        <View style={styles.currentBadge}>
-          <View style={styles.currentDot} />
-          <Text style={styles.currentBadgeText}>Actuelle</Text>
-        </View>
-      )}
+      <View style={styles.weekDivider} />
+      <Text style={styles.weekOrders}>
+        {count} commande{count > 1 ? 's' : ''}
+      </Text>
     </View>
-    <Text style={[styles.weekAmount, isCurrent && styles.weekAmountCurrent]}>
-      {formatXOF(amount)}
-    </Text>
-    <View style={styles.weekDivider} />
-    <Text style={styles.weekOrders}>
-      {count} commande{count > 1 ? 's' : ''}
-    </Text>
-  </View>
-);
+  );
+};
 
 const WeeklySection = ({ weeks }: { weeks: WeeklyCard[] }) => {
+  const { styles, theme } = useStatStyles();
   const scrollRef = useRef<ScrollView>(null);
   const activeIndex = Math.max(
     weeks.findIndex((week) => week.isCurrent),
@@ -305,7 +337,7 @@ const WeeklySection = ({ weeks }: { weeks: WeeklyCard[] }) => {
         <View style={styles.patternDiamond} />
         <View style={[styles.patternDiamond, styles.patternDiamondSmall]} />
       </View>
-      <Feather name="tool" size={Rs(116)} color={GOLD} style={styles.weekWatermark} />
+      <Feather name="tool" size={Rs(116)} color={theme.gold} style={styles.weekWatermark} />
       <View style={styles.weekSectionHeader}>
         <View>
           <Text style={styles.sectionTitle}>Bilan hebdomadaire</Text>
@@ -330,6 +362,7 @@ const WeeklySection = ({ weeks }: { weeks: WeeklyCard[] }) => {
 };
 
 export default function Page() {
+  const { styles, theme } = useStatStyles();
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
   const monthSheetRef = useRef<BottomSheetModal>(null);
@@ -422,7 +455,14 @@ export default function Page() {
   }, [currentWeekNumber, stat?.data?.weekly]);
 
   if (isLoading) {
-    return <LoadingScreen />;
+    return (
+      <LoadingScreen
+        visible
+        backgroundColor={theme.background}
+        indicatorColor={theme.gold}
+        message=""
+      />
+    );
   }
 
   if (error) {
@@ -444,7 +484,7 @@ export default function Page() {
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={GOLD} />}
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={theme.gold} />}
       >
         <View style={styles.header}>
           <PatternCorner />
@@ -456,7 +496,7 @@ export default function Page() {
               onPress={() => yearSheetRef.current?.present()}
             >
               <Text style={styles.periodText}>{displayYear}</Text>
-              <Feather name="chevron-down" size={Rs(16)} color={GOLD} />
+              <Feather name="chevron-down" size={Rs(16)} color={theme.gold} />
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.8}
@@ -466,7 +506,7 @@ export default function Page() {
               <Text style={styles.periodText}>
                 {selectedMonthName}
               </Text>
-              <Feather name="chevron-down" size={Rs(16)} color={GOLD} />
+              <Feather name="chevron-down" size={Rs(16)} color={theme.gold} />
             </TouchableOpacity>
            
           </View>
@@ -587,13 +627,14 @@ export default function Page() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: theme.background,
   },
   scrollView: {
     flex: 1,
+    backgroundColor: theme.background,
   },
   contentContainer: {
     paddingHorizontal: Rs(16),
@@ -606,9 +647,9 @@ const styles = StyleSheet.create({
     gap: 10
   },
   headerTitle: {
-    color: INK,
-    fontSize: Rs(25),
-    fontWeight: '800',
+    color: theme.text,
+    fontSize: 22,
+    fontWeight: '700',
     letterSpacing: 0,
   },
   periodButton: {
@@ -620,9 +661,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Rs(12),
     paddingVertical: Rs(7),
     borderRadius: Rs(18),
-    backgroundColor: CARD,
+    backgroundColor: theme.card,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: theme.border,
   },
   periodRow: {
     flexDirection: 'row',
@@ -632,12 +673,12 @@ const styles = StyleSheet.create({
     gap: Rs(8),
   },
   periodText: {
-    color: GOLD,
+    color: theme.gold,
     fontSize: SIZES.sm,
     fontWeight: '700',
   },
   headerSubtitle: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: SIZES.xs,
     marginTop: Rs(9),
   },
@@ -656,7 +697,7 @@ const styles = StyleSheet.create({
     width: Rs(14),
     height: Rs(14),
     borderWidth: 1,
-    borderColor: GOLD,
+    borderColor: theme.gold,
     transform: [{ rotate: '45deg' }],
   },
   patternDiamondSmall: {
@@ -671,7 +712,7 @@ const styles = StyleSheet.create({
     right: Rs(8),
     width: Rs(34),
     height: 1,
-    backgroundColor: GOLD,
+    backgroundColor: theme.gold,
   },
   kpiRow: {
     flexDirection: 'row',
@@ -681,14 +722,16 @@ const styles = StyleSheet.create({
   kpiCard: {
     flex: 1,
     minHeight: Rs(140),
-    backgroundColor: CARD,
+    backgroundColor: theme.card,
     borderRadius: Rs(8),
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: theme.border,
     paddingHorizontal: Rs(8),
     paddingVertical: Rs(15),
     overflow: 'hidden',
-    boxShadow: '0px 4px 12px rgba(33, 26, 19, 0.06)',
+    boxShadow: theme.background === '#FFFDF8'
+      ? '0px 4px 12px rgba(33, 26, 19, 0.06)'
+      : '0px 5px 18px rgba(0, 0, 0, 0.28)',
     flexDirection: "column",
     alignItems: "center",
     gap: Rs(6)
@@ -705,32 +748,34 @@ const styles = StyleSheet.create({
     width: Rs(34),
     height: Rs(34),
     borderRadius: Rs(17),
-    backgroundColor: BEIGE,
+    backgroundColor: theme.goldLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Rs(12),
   },
   kpiValue: {
-    color: INK,
+    color: theme.text,
     fontSize: Rs(12),
     fontWeight: '800',
     letterSpacing: 0,
   },
   kpiLabel: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: Rs(10),
     fontWeight: '600',
     marginTop: Rs(6),
     lineHeight: Rs(13),
   },
   card: {
-    backgroundColor: CARD,
+    backgroundColor: theme.card,
     borderRadius: Rs(10),
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: theme.border,
     padding: Rs(14),
     marginBottom: Rs(14),
-    boxShadow: '0px 4px 12px rgba(33, 26, 19, 0.05)',
+    boxShadow: theme.background === '#FFFDF8'
+      ? '0px 4px 12px rgba(33, 26, 19, 0.05)'
+      : '0px 5px 18px rgba(0, 0, 0, 0.28)',
     overflow: 'hidden',
     position: 'relative',
   },
@@ -740,14 +785,14 @@ const styles = StyleSheet.create({
     marginBottom: Rs(12),
   },
   sectionTitle: {
-    color: INK,
+    color: theme.text,
     fontSize: SIZES.sm,
     fontWeight: '800',
   },
   sectionRule: {
     flex: 1,
     height: 1,
-    backgroundColor: BORDER,
+    backgroundColor: theme.border,
     marginLeft: Rs(10),
   },
   statusGrid: {
@@ -758,7 +803,7 @@ const styles = StyleSheet.create({
   statusCard: {
     flex: 1,
     minHeight: Rs(92),
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.card,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Rs(6),
@@ -770,7 +815,7 @@ const styles = StyleSheet.create({
     top: Rs(14),
     bottom: Rs(14),
     width: 1,
-    backgroundColor: '#F0E6D6',
+    backgroundColor: theme.border,
   },
   statusIcon: {
     width: Rs(30),
@@ -785,7 +830,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   statusLabel: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: Rs(9),
     textAlign: 'center',
     marginTop: Rs(3),
@@ -810,19 +855,19 @@ const styles = StyleSheet.create({
     marginRight: Rs(7),
   },
   distributionLabel: {
-    color: INK,
+    color: theme.text,
     fontSize: SIZES.xs,
     fontWeight: '700',
   },
   distributionValue: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: Rs(10),
     fontWeight: '600',
   },
   distributionTrack: {
     height: Rs(7),
     borderRadius: Rs(6),
-    backgroundColor: '#F4EFE7',
+    backgroundColor: theme.primaryLight,
     overflow: 'hidden',
   },
   distributionFill: {
@@ -842,7 +887,7 @@ const styles = StyleSheet.create({
     width: Rs(30),
     height: Rs(30),
     borderRadius: Rs(15),
-    backgroundColor: BEIGE,
+    backgroundColor: theme.goldLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Rs(8),
@@ -850,7 +895,7 @@ const styles = StyleSheet.create({
   distributionHeaderRule: {
     flex: 1,
     height: 1,
-    backgroundColor: BORDER,
+    backgroundColor: theme.border,
     marginLeft: Rs(10),
   },
   distributionGrid: {
@@ -864,7 +909,7 @@ const styles = StyleSheet.create({
     minHeight: Rs(116),
     borderRadius: Rs(16),
     borderWidth: 1,
-    backgroundColor: '#FFFEFB',
+    backgroundColor: theme.card,
     padding: Rs(12),
     overflow: 'hidden',
     position: 'relative',
@@ -879,7 +924,7 @@ const styles = StyleSheet.create({
     width: Rs(34),
     height: Rs(34),
     borderRadius: Rs(17),
-    backgroundColor: BEIGE,
+    backgroundColor: theme.goldLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -893,7 +938,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   distributionCardLabel: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: SIZES.xs,
     fontWeight: '700',
     marginBottom: Rs(5),
@@ -910,13 +955,15 @@ const styles = StyleSheet.create({
     opacity: 0.08,
   },
   weekSectionCard: {
-    backgroundColor: CARD,
+    backgroundColor: theme.card,
     borderRadius: Rs(10),
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: theme.border,
     paddingVertical: Rs(15),
     marginBottom: Rs(14),
-    boxShadow: '0px 4px 12px rgba(33, 26, 19, 0.05)',
+    boxShadow: theme.background === '#FFFDF8'
+      ? '0px 4px 12px rgba(33, 26, 19, 0.05)'
+      : '0px 5px 18px rgba(0, 0, 0, 0.28)',
     overflow: 'hidden',
     position: 'relative',
   },
@@ -926,7 +973,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   weekSectionSubtitle: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: Rs(10),
     fontWeight: '600',
     marginTop: Rs(4),
@@ -941,9 +988,9 @@ const styles = StyleSheet.create({
     width: WEEK_CARD_WIDTH,
     minHeight: Rs(112),
     borderRadius: Rs(18),
-    backgroundColor: '#FFFEFB',
+    backgroundColor: theme.card,
     borderWidth: 1,
-    borderColor: '#F0E6D6',
+    borderColor: theme.border,
     padding: Rs(10),
     justifyContent: 'space-between',
     position: 'relative',
@@ -952,8 +999,8 @@ const styles = StyleSheet.create({
   weekCardCurrent: {
     width: WEEK_ACTIVE_CARD_WIDTH,
     minHeight: Rs(124),
-    backgroundColor: '#FFF8E9',
-    borderColor: GOLD,
+    backgroundColor: theme.goldLight,
+    borderColor: theme.gold,
     boxShadow: '0px 6px 14px rgba(216, 160, 50, 0.16)',
   },
   weekCardTop: {
@@ -961,33 +1008,33 @@ const styles = StyleSheet.create({
     gap: Rs(8),
   },
   weekTitle: {
-    color: INK,
+    color: theme.text,
     fontSize: SIZES.sm,
     fontWeight: '800',
   },
   weekTitleCurrent: {
-    color: GOLD,
+    color: theme.gold,
   },
   weekOrders: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: Rs(9),
     fontWeight: '700',
   },
   weekAmount: {
-    color: INK,
+    color: theme.text,
     fontSize: Rs(11),
     fontWeight: '800',
     letterSpacing: 0,
   },
   weekAmountCurrent: {
     fontSize: Rs(12),
-    color: INK,
+    color: theme.text,
   },
   weekDivider: {
     width: '100%',
     borderTopWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#EFE5D3',
+    borderColor: theme.border,
     marginVertical: Rs(6),
   },
   currentBadge: {
@@ -997,7 +1044,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: Rs(14),
-    backgroundColor: '#F6E4B9',
+    backgroundColor: theme.goldLight,
     paddingHorizontal: Rs(6),
     paddingVertical: Rs(4),
     zIndex: 100,
@@ -1006,11 +1053,11 @@ const styles = StyleSheet.create({
     width: Rs(5),
     height: Rs(5),
     borderRadius: Rs(3),
-    backgroundColor: GOLD,
+    backgroundColor: theme.gold,
     marginRight: Rs(5),
   },
   currentBadgeText: {
-    color: GOLD,
+    color: theme.gold,
     fontSize: Rs(8),
     fontWeight: '800',
   },
@@ -1018,8 +1065,8 @@ const styles = StyleSheet.create({
     marginHorizontal: Rs(14),
     borderRadius: Rs(18),
     borderWidth: 1,
-    borderColor: '#F0E6D6',
-    backgroundColor: '#FFFDF8',
+    borderColor: theme.border,
+    backgroundColor: theme.card,
     paddingTop: Rs(12),
     overflow: 'hidden',
     zIndex: 2,
@@ -1029,12 +1076,12 @@ const styles = StyleSheet.create({
     marginBottom: Rs(4),
   },
   chartTitle: {
-    color: INK,
+    color: theme.text,
     fontSize: SIZES.xs,
     fontWeight: '800',
   },
   chartSubtitle: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: Rs(9),
     fontWeight: '600',
     marginTop: Rs(2),
@@ -1061,22 +1108,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Rs(24),
   },
   errorText: {
-    color: Colors.app.error,
+    color: theme.danger,
     fontSize: SIZES.sm,
     textAlign: 'center',
     marginBottom: Rs(14),
   },
   retryButton: {
-    backgroundColor: GOLD,
+    backgroundColor: theme.gold,
     paddingHorizontal: Rs(18),
     paddingVertical: Rs(10),
     borderRadius: Rs(18),
   },
   retryButtonText: {
-    color: CARD,
+    color: '#FFFFFF',
     fontWeight: '800',
   },
   monthSheet: {
+    backgroundColor: theme.card,
     padding: Rs(20),
     gap: Rs(8),
   },
@@ -1084,20 +1132,20 @@ const styles = StyleSheet.create({
     paddingVertical: Rs(12),
     borderRadius: Rs(14),
     borderWidth: 1,
-    borderColor: BORDER,
-    backgroundColor: CARD,
+    borderColor: theme.border,
+    backgroundColor: theme.card,
   },
   monthItemActive: {
-    borderColor: GOLD,
-    backgroundColor: '#FFF8E9',
+    borderColor: theme.gold,
+    backgroundColor: theme.goldLight,
   },
   monthText: {
-    color: MUTED,
+    color: theme.muted,
     fontSize: SIZES.sm,
     fontWeight: '700',
     textAlign: 'center',
   },
   monthTextActive: {
-    color: GOLD,
+    color: theme.gold,
   },
 });

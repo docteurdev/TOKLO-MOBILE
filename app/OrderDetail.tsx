@@ -4,8 +4,8 @@ import PaymentInterface from '@/components/calendar/CardDetails';
 import PaymentDetails from '@/components/calendar/OrderDetail';
 import BackButton from '@/components/form/BackButton';
 import RoundedBtn from '@/components/form/RoundedBtn';
-import { Colors } from '@/constants/Colors';
 import useChangeOrderStatus from '@/hooks/mutations/useChangeOrderStatus';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import useInvoice from '@/hooks/useInvoice';
 import { QueryKeys } from '@/interfaces/queries-key';
 import { EDressStatus, IOrder, TInvoice } from '@/interfaces/type';
@@ -164,6 +164,8 @@ const dateLikeToString = (value?: Date | string | null) => {
 };
 
 const DressDetail = ({ closeSheet }: Props) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const route = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useUserStore();
@@ -244,8 +246,8 @@ const DressDetail = ({ closeSheet }: Props) => {
     return (
       <LoadingScreen
         visible={isLoading}
-        backgroundColor="#ffffff"
-        indicatorColor="#FFFFFF"
+        backgroundColor={theme.background}
+        indicatorColor={theme.gold}
         indicatorSize={48}
         message=""
         animationType="slide"
@@ -254,16 +256,16 @@ const DressDetail = ({ closeSheet }: Props) => {
   }
 
   if (error) {
-    return <Text>Erreur: {error.message}</Text>;
+    return <Text style={styles.errorText}>Erreur: {error.message}</Text>;
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.backButtonContainer}>
         <BackButton backAction={() => route.replace({ pathname: '/(app)/(tab)/orders' })} />
       </View>
 
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: Rs(50) }}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
           <PaymentDetails
             totalPrice={Number(data?.solde_cal)}
@@ -341,10 +343,18 @@ const DressDetail = ({ closeSheet }: Props) => {
 
 export default DressDetail;
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
+  safeArea: {
+    backgroundColor: theme.background,
+    flex: 1,
+  },
   container: {
+    backgroundColor: theme.background,
     flex: 1,
     paddingVertical: Rs(40),
+  },
+  scrollContent: {
+    paddingBottom: Rs(50),
   },
   backButtonContainer: {
     position: 'absolute',
@@ -367,6 +377,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   bottomSheetContent: {
+    backgroundColor: theme.card,
     height: Rs(150),
     justifyContent: 'center',
     alignItems: 'center',
@@ -375,6 +386,14 @@ const styles = StyleSheet.create({
   },
   bottomSheetText: {
     fontSize: SIZES.sm,
-    color: Colors.app.texteLight,
+    color: theme.muted,
+    textAlign: 'center',
+  },
+  errorText: {
+    backgroundColor: theme.background,
+    color: theme.danger,
+    flex: 1,
+    padding: Rs(20),
+    textAlign: 'center',
   },
 });

@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/Colors';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import { base } from '@/util/axios';
 import { formatXOF, Rs, SCREEN_W, SIZES } from '@/util/comon';
 import { formatHour } from '@/utils';
@@ -293,14 +293,30 @@ const MeasurePartIcon = ({ part, color }: { part: string; color: string }) => {
   );
 };
 
-const TabButton = ({ title, isActive, onTabPress }:{title: string, isActive: string, onTabPress: () => void}) => (
+const TabButton = ({
+  title,
+  isActive,
+  onTabPress,
+  styles,
+}: {
+  title: string;
+  isActive: string;
+  onTabPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+}) => (
 
   <TouchableOpacity onPress={onTabPress} style={[styles.tabButton, isActive === title && styles.activeTab]}>
     <Text style={[styles.tabText, isActive === title && styles.activeTabText]}>{title}</Text>
   </TouchableOpacity>
 );
 
-const CardItem = ({ children }: { children: React.ReactNode }) => (
+const CardItem = ({
+  children,
+  styles,
+}: {
+  children: React.ReactNode;
+  styles: ReturnType<typeof createStyles>;
+}) => (
 
 
   <Animated.View entering={FadeInLeft} exiting={FadeOutRight} style={styles.cardItem}>
@@ -310,6 +326,8 @@ const CardItem = ({ children }: { children: React.ReactNode }) => (
   </Animated.View>
 );
 const PaymentInterface = ({clientfullname, clientphone, dresstype, tissu, fabric, quantity, mesure, price, paid, solde, date_remise,date_depot, deliveryHour}: TPaymentInterface) => {
+ const theme = useAppTheme();
+ const styles = useMemo(() => createStyles(theme), [theme]);
  const [activeTab, setActiveTab] = useState('Détail');
  const [activeMeasurePart, setActiveMeasurePart] = useState('');
  const tabs = ["Détail", "Médias", "Mesures"]
@@ -333,7 +351,7 @@ const PaymentInterface = ({clientfullname, clientphone, dresstype, tissu, fabric
     <View style={styles.container}>
       <View style={styles.header}>
         {tabs.map((tab, index) => (
-          <TabButton title={tab} isActive={activeTab } onTabPress={() => onTabPress(tab)} key={index} />
+          <TabButton title={tab} isActive={activeTab} onTabPress={() => onTabPress(tab)} styles={styles} key={index} />
         ))}
         
       </View>
@@ -341,33 +359,33 @@ const PaymentInterface = ({clientfullname, clientphone, dresstype, tissu, fabric
       <ScrollView style={styles.cardList}>
        {activeTab === 'Détail' &&
         <View>
-         <CardItem>
+         <CardItem styles={styles}>
 
-           <ItemChild label={clientfullname} icon={<UserIcon fill={Colors.app.primary} size={Rs(23)} />} />
-           <ItemChild label={clientphone} icon={<PhoneIcon fill={Colors.app.primary} size={Rs(23)} />} />
+           <ItemChild label={clientfullname} icon={<UserIcon fill={theme.primary} size={Rs(23)} />} />
+           <ItemChild label={clientphone} icon={<PhoneIcon fill={theme.primary} size={Rs(23)} />} />
          </CardItem>
 
-         <CardItem>
+         <CardItem styles={styles}>
 
-           <ItemChild label={`Reception : `+ date_depot} icon={<CalendarDaysIcon fill={Colors.app.primary} size={Rs(23)} />} />
-           <ItemChild label={`Livraison : `+ date_remise} icon={<CalendarIcon fill={Colors.app.primary} size={Rs(23)} />} />
-           <ItemChild label={`Heure de livraison : ${formatHour(deliveryHour)}`} icon={<ClockIcon fill={Colors.app.primary} size={Rs(23)} />} />
+           <ItemChild label={`Reception : `+ date_depot} icon={<CalendarDaysIcon fill={theme.primary} size={Rs(23)} />} />
+           <ItemChild label={`Livraison : `+ date_remise} icon={<CalendarIcon fill={theme.primary} size={Rs(23)} />} />
+           <ItemChild label={`Heure de livraison : ${formatHour(deliveryHour)}`} icon={<ClockIcon fill={theme.primary} size={Rs(23)} />} />
          </CardItem>
 
-         <CardItem>
-           <ItemChild label={`Vêtement: ${dresstype}`} icon={<SunIcon fill={Colors.app.primary} size={Rs(23)} />} />
+         <CardItem styles={styles}>
+           <ItemChild label={`Vêtement: ${dresstype}`} icon={<SunIcon fill={theme.primary} size={Rs(23)} />} />
           
-           <ItemChild label={`Quantité: ( ${quantity} )`} icon={<Square3Stack3DIcon fill={Colors.app.primary} size={Rs(23)} />} />
-           <ItemChild label={`Total: ${formatXOF(Number(price))}`} icon={<BanknotesIcon fill={Colors.app.primary} size={Rs(23)} />} />
-           <ItemChild label={`Prix unitaire: ${formatXOF(Number(price))}`} icon={<BanknotesIcon fill={Colors.app.primary} size={Rs(23)} />} />
-           <ItemChild label={`Avance: ( ${formatXOF(Number(paid))} )`} icon={<MinusCircleIcon fill={Colors.app.primary} size={Rs(23)} />} />
-           <ItemChild label={`Solde: ( ${formatXOF(Number(solde))} )`} icon={<Bars2Icon fill={Colors.app.primary} size={Rs(23)} />} />
+           <ItemChild label={`Quantité: ( ${quantity} )`} icon={<Square3Stack3DIcon fill={theme.primary} size={Rs(23)} />} />
+           <ItemChild label={`Total: ${formatXOF(Number(price))}`} icon={<BanknotesIcon fill={theme.primary} size={Rs(23)} />} />
+           <ItemChild label={`Prix unitaire: ${formatXOF(Number(price))}`} icon={<BanknotesIcon fill={theme.primary} size={Rs(23)} />} />
+           <ItemChild label={`Avance: ( ${formatXOF(Number(paid))} )`} icon={<MinusCircleIcon fill={theme.primary} size={Rs(23)} />} />
+           <ItemChild label={`Solde: ( ${formatXOF(Number(solde))} )`} icon={<Bars2Icon fill={theme.primary} size={Rs(23)} />} />
          </CardItem>
         </View>
 }
-       {activeTab === 'Médias' && <CardItem>
+       {activeTab === 'Médias' && <CardItem styles={styles}>
 
-          <Text>Tissu</Text>
+          <Text style={styles.mediaTitle}>Tissu</Text>
 
              {tissu ? (
                  <Image style={styles.mediaImage}
@@ -376,7 +394,7 @@ const PaymentInterface = ({clientfullname, clientphone, dresstype, tissu, fabric
                <Text style={styles.mediaEmptyText}>Aucune photo du tissu</Text>
              )}
 
-         <Text>Modèle</Text>
+         <Text style={styles.mediaTitle}>Modèle</Text>
 
          {fabric ? (
              <Image style={styles.mediaImage}
@@ -388,13 +406,13 @@ const PaymentInterface = ({clientfullname, clientphone, dresstype, tissu, fabric
         </CardItem>}
 
          {activeTab === 'Mesures' &&
-          <CardItem>
+         <CardItem styles={styles}>
 
            {hasMeasurePartTabs && (
              <View style={styles.measureTabs}>
                {measureSections.map((section) => {
                  const isActive = section.key === activeMeasureSection?.key;
-                 const tabColor = isActive ? 'white' : Colors.app.texteLight;
+                 const tabColor = isActive ? '#FFFFFF' : theme.muted;
 
                  return (
                    <TouchableOpacity
@@ -470,13 +488,17 @@ const PaymentInterface = ({clientfullname, clientphone, dresstype, tissu, fabric
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: '#FFF5F5',
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     padding: 16,
     borderRadius: Rs(12),
-    boxShadow: Colors.shadow.card
+    boxShadow: theme.background === '#FFFDF8'
+      ? '0px 4px 6px rgba(0, 0, 0, 0.1), 0px 1px 3px rgba(0, 0, 0, 0.06)'
+      : '0px 5px 18px rgba(0, 0, 0, 0.28)',
     
   },
   header: {
@@ -490,14 +512,14 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: '#000',
+    borderBottomColor: theme.primary,
   },
   tabText: {
-    color: '#666',
+    color: theme.muted,
     fontSize: 14,
   },
   activeTabText: {
-    color: '#000',
+    color: theme.text,
     fontWeight: '600',
   },
   cardList: {
@@ -511,7 +533,7 @@ const styles = StyleSheet.create({
     gap: Rs(20),
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    borderBottomColor: theme.border,
   },
   measureGrid: {
     flexDirection: "row",
@@ -526,7 +548,7 @@ const styles = StyleSheet.create({
   measureTabs: {
     flexDirection: 'row',
     gap: Rs(8),
-    backgroundColor: Colors.app.secondary,
+    backgroundColor: theme.primaryLight,
     borderRadius: Rs(8),
     padding: Rs(4),
   },
@@ -540,10 +562,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   measureTabActive: {
-    backgroundColor: Colors.app.primary,
+    backgroundColor: theme.primary,
   },
   measureTabText: {
-    color: Colors.app.texteLight,
+    color: theme.muted,
     fontSize: SIZES.sm - 1,
     fontWeight: '600',
   },
@@ -551,7 +573,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   measureEmptyText: {
-    color: Colors.app.texteLight,
+    color: theme.muted,
     fontSize: SIZES.sm,
     textAlign: 'center',
     paddingVertical: Rs(12),
@@ -563,12 +585,17 @@ const styles = StyleSheet.create({
     borderRadius: Rs(10),
   },
   mediaEmptyText: {
-    color: Colors.app.texteLight,
+    color: theme.muted,
     fontSize: SIZES.sm,
     textAlign: 'center',
     paddingVertical: Rs(20),
-    backgroundColor: Colors.app.secondary,
+    backgroundColor: theme.primaryLight,
     borderRadius: Rs(10),
+  },
+  mediaTitle: {
+    color: theme.text,
+    fontSize: SIZES.sm,
+    fontWeight: '700',
   },
   cardLeft: {
     flexDirection: 'row',
@@ -578,7 +605,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: theme.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -596,7 +623,7 @@ const styles = StyleSheet.create({
   },
   cardSubtitle: {
     fontSize: 12,
-    color: '#666',
+    color: theme.muted,
     marginTop: 2,
   },
   cardRight: {
@@ -605,11 +632,11 @@ const styles = StyleSheet.create({
   },
   balance: {
     fontSize: 14,
-    color: '#666',
+    color: theme.muted,
     marginRight: 8,
   },
   cardCountBadge: {
-    backgroundColor: '#8B0000',
+    backgroundColor: theme.danger,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -628,7 +655,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: theme.card,
     padding: 16,
     borderRadius: 12,
   },
@@ -647,14 +674,14 @@ const styles = StyleSheet.create({
   },
   pointsSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: theme.muted,
   },
   pointsAmount: {
     fontSize: 14,
     fontWeight: '500',
   },
   payButton: {
-    backgroundColor: '#4A0404',
+    backgroundColor: theme.primary,
     borderRadius: 24,
     padding: 16,
     flexDirection: 'row',
@@ -699,7 +726,7 @@ const styles = StyleSheet.create({
   bonusText: {
     textAlign: 'center',
     fontSize: 14,
-    color: '#666',
+    color: theme.muted,
   },
 });
 
