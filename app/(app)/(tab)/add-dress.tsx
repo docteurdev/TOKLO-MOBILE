@@ -37,6 +37,7 @@ import { Rs, SCREEN_H, SIZES } from "@/util/comon";
 import ActiveToklomanCompo from "@/components/ActiveToklomanCompo";
 import BottomSheetCompo from "@/components/BottomSheetCompo";
 import LastAppointment from "@/components/LastAppointment";
+import PaymentResult from "@/components/PaymentResult";
 import SubscriptionCompo from "@/components/SubscriptionCompo";
 import BackButton from "@/components/form/BackButton";
 import OtherInput from "@/components/form/OtherInput";
@@ -410,6 +411,7 @@ const Page = (props: Props) => {
 
   const subscribeBottomSheet = useRef<BottomSheetModal>(null);
   const claimeActiveAccountBottomSheet = useRef<BottomSheetModal>(null);
+  const activationResultBottomSheetRef = useRef<BottomSheetModal>(null);
 
   const { mutate, isPending } = useCreateOrder({
     closeBottomSheet,
@@ -597,9 +599,8 @@ const Page = (props: Props) => {
   };
 
   const presentShooseFileSheet = async () => {
-    // await chooseFileSheet.current?.present();
     await bottomSheetModalRef?.current?.present();
-    console.log("horray! sheet has been presented 💩");
+    
   };
 
   // Dismiss the sheet ✅
@@ -622,7 +623,7 @@ const Page = (props: Props) => {
   }
 
   function handleChosenDress(dress: IDress) {
-    console.log(dress);
+    
     setSelectedDress(dress);
     setInputValues({});
     setisDressTypeShowModal(false);
@@ -664,9 +665,6 @@ const Page = (props: Props) => {
 
 
       <Animated.View entering={FadeInDown} style={styles.pageContainer} >
-       
-         {/* {!subscribe && <PaymentLottieCompo />} */}
-
 
         <ScrollView
         ref={scrollViewRef}
@@ -1097,9 +1095,37 @@ const Page = (props: Props) => {
              {/* payement bottomsheet */}
 
              <BottomSheetCompo bottomSheetModalRef={claimeActiveAccountBottomSheet} snapPoints={['40%']} >
-               <ActiveToklomanCompo closeBottomSheet={() => claimeActiveAccountBottomSheet?.current?.dismiss()} />
+               <ActiveToklomanCompo
+                closeBottomSheet={() => claimeActiveAccountBottomSheet?.current?.dismiss()}
+                onActivationSuccess={() => {
+                  claimeActiveAccountBottomSheet?.current?.dismiss();
+                  activationResultBottomSheetRef.current?.present();
+                }}
+               />
               </BottomSheetCompo>
-             {/* payement bottomsheet */}
+             {/* Activation account */}
+
+      <BottomSheetCompo
+        bottomSheetModalRef={activationResultBottomSheetRef}
+        snapPoints={['100%']}
+      >
+        <PaymentResult
+          title="Activation"
+          subtitle="réussie"
+          cardTile="Détail de l'activation"
+          amount={0}
+          paidAt={new Date().toISOString()}
+          paymentMethod="Activation gratuite"
+          planName="Mois gratuit Toklo"
+          transactionId="Activation gratuite"
+          onPrimaryPress={() => {
+            activationResultBottomSheetRef.current?.dismiss();
+          }}
+          onSecondaryPress={() => {
+            activationResultBottomSheetRef.current?.dismiss();
+          }}
+        />
+      </BottomSheetCompo>
 
         </ScrollView>
       </Animated.View>

@@ -3,13 +3,13 @@ import { formatXOF, Rs, SIZES } from "@/util/comon";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { ComponentProps, useMemo } from "react";
 import {
-    Image,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    View
+  Image,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
 import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -23,6 +23,9 @@ type PaymentResultProps = {
   paymentMethod?: string;
   planName?: string;
   transactionId?: string;
+  title?: string
+  subtitle?: string
+  cardTile?:string,
   onPrimaryPress?: () => void;
   onSecondaryPress?: () => void;
 };
@@ -64,8 +67,12 @@ const PaymentResult = ({
   paymentMethod,
   planName,
   transactionId,
+  title='Paiement',
+  subtitle='réussi',
+  cardTile: cardTitle='Détails du paiement',
   onPrimaryPress,
   onSecondaryPress,
+
 }: PaymentResultProps) => {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -95,14 +102,14 @@ const PaymentResult = ({
         </Animated.View>
 
         <Animated.Text entering={FadeIn.delay(200).duration(450)} style={styles.title}>
-          Paiement <Text style={styles.titleAccent}>réussi</Text> !
+          {title} <Text style={styles.titleAccent}>{subtitle}</Text> !
         </Animated.Text>
         <Animated.Text entering={FadeIn.delay(260).duration(450)} style={styles.subtitle}>
           Votre abonnement {safePlanName} a été activé avec succès.
         </Animated.Text>
 
         <Animated.View entering={FadeInDown.delay(300).duration(500).springify()} style={styles.detailsCard}>
-          <Text style={styles.cardTitle}>Détails du paiement</Text>
+          <Text style={styles.cardTitle}>{cardTitle}</Text>
           <View style={styles.detailsList}>
             {details.map((item, index) => (
               <View
@@ -126,7 +133,8 @@ const PaymentResult = ({
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(400).duration(500).springify()} style={styles.secureCard}>
+       {amount && amount > 0 ? (
+       <Animated.View entering={FadeInDown.delay(400).duration(500).springify()} style={styles.secureCard}>
           <View style={styles.secureIcon}>
             <MaterialCommunityIcons name="shield-check-outline" size={Rs(23)} color={theme.primary} />
           </View>
@@ -137,7 +145,7 @@ const PaymentResult = ({
           <View style={styles.lockWrap}>
             <Image style={{height: 20, width: 20}} source={require("@/assets/souscription/jko_logo.jpeg")} />
           </View>
-        </Animated.View>
+        </Animated.View>) : <></>}
 
        <View style={{marginTop: Rs(10)}}>
 

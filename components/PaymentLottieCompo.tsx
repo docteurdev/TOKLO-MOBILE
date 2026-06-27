@@ -1,6 +1,6 @@
-import { useRef, useEffect } from 'react';
-import { Button, StyleSheet, View } from 'react-native';
 import LottieView from 'lottie-react-native';
+import { useEffect, useRef } from 'react';
+import { StyleSheet } from 'react-native';
 
 export default function PaymentLottieCompo() {
   const animation = useRef<LottieView>(null);
@@ -31,7 +31,7 @@ export default function PaymentLottieCompo() {
 
 const styles = StyleSheet.create({
   animationContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: 'red',
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,

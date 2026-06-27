@@ -74,8 +74,27 @@ const ClientList = ({ isShowModal, closeModal, setSelectedUser }: Props) => {
 
   // Memoize EmptyComponent
   const ListEmptyComponent = useCallback(
-    () => <Text style={styles.emptyText}>{error ? error.message : "Pas de client trouvé"}</Text>,
-    [error, styles.emptyText]
+    () => (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyText}>
+          {error ? error.message : "Aucun client trouvé"}
+        </Text>
+        <Pressable
+          onPress={() => setIsShowAddClient(true)}
+          style={styles.emptyActionButton}
+        >
+          <MaterialIcons name="person-add" size={Rs(18)} color="#FFFFFF" />
+          <Text style={styles.emptyActionText}>Ajouter un client</Text>
+        </Pressable>
+      </View>
+    ),
+    [
+      error,
+      styles.emptyActionButton,
+      styles.emptyActionText,
+      styles.emptyState,
+      styles.emptyText,
+    ],
   );
 
   function handleShowAddClient() {
@@ -218,8 +237,29 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
   emptyText: {
     color: theme.muted,
     fontSize: SIZES.sm,
-    paddingVertical: Rs(16),
     textAlign: "center",
+  },
+  emptyState: {
+    alignItems: "center",
+    gap: Rs(12),
+    justifyContent: "center",
+    paddingHorizontal: Rs(16),
+    paddingVertical: Rs(34),
+  },
+  emptyActionButton: {
+    alignItems: "center",
+    backgroundColor: theme.primary,
+    borderRadius: Rs(10),
+    flexDirection: "row",
+    gap: Rs(8),
+    justifyContent: "center",
+    minHeight: Rs(42),
+    paddingHorizontal: Rs(16),
+  },
+  emptyActionText: {
+    color: "#FFFFFF",
+    fontSize: SIZES.sm,
+    fontWeight: "800",
   },
   avatarContainer: {
     alignItems: "center",

@@ -5,7 +5,7 @@ import { AppTheme, useAppTheme } from "@/hooks/useAppTheme";
 import { QueryKeys } from "@/interfaces/queries-key";
 import { IPlan, ISubscription } from "@/interfaces/type";
 import { useUserStore } from "@/stores/user";
-import { baseURL } from "@/util/axios";
+import { base, baseURL } from "@/util/axios";
 import { formatXOF, Rs } from "@/util/comon";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -66,7 +66,7 @@ type SubscriptionCompoProps = {
 };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-const JEKO_PAYMENT_BASE_URL = __DEV__ ? "http://192.168.1.232:3344/api" : baseURL;
+const JEKO_PAYMENT_BASE_URL =  baseURL;
 const JEKO_ASSET_BASE_URL = JEKO_PAYMENT_BASE_URL.replace(/\/api\/?$/, "");
 const PAYMENT_POLL_INTERVAL = 3344;
 const PAYMENT_POLL_MAX_DURATION = 120000;
@@ -82,6 +82,14 @@ const getPaymentMethodLogoUrl = (logo?: string | null) => {
   if (!logo) return undefined;
   if (/^https?:\/\//i.test(logo)) return logo;
   return `${JEKO_ASSET_BASE_URL}/${logo.replace(/^\/+/, "")}`;
+};
+
+const getPlanIconUrl = (icon?: string | null) => {
+  if (!icon) return undefined;
+  if (/^https?:\/\//i.test(icon)) return icon;
+
+  const cleanIcon = icon.replace(/^\/+/, "");
+  return `${base}${cleanIcon.startsWith("uploads/") ? cleanIcon : `uploads/${cleanIcon}`}`;
 };
 
 const normalizePlanName = (name?: string) => name?.trim().toLowerCase() ?? "";
@@ -499,8 +507,6 @@ const SubscriptionCompo = ({ redirectURL, closeBottomSheet }: SubscriptionCompoP
     <View style={styles.container}>
       <StatusBar barStyle={statusBarStyle} backgroundColor={theme.background} />
       {showSuccess && <PaymentLottieCompo />}
-      <Pattern source="top" style={styles.topLeftPattern} />
-      <Pattern source="bottom" style={styles.topRightPattern} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -683,10 +689,10 @@ const PaymentMethodSheet = ({
     <View style={styles.paymentSheetContent}>
       <View style={styles.paymentSheetHeader}>
         <View>
-          <Text style={styles.paymentSheetTitle}>Moyen de paiement</Text>
-          <Text style={styles.paymentSheetSubtitle}>
+          <Text style={styles.paymentSheetTitle}>
             {selectedPlan?.name ?? "Plan"} · {formatXOF(Number(selectedPlan?.price ?? 0))}
           </Text>
+          <Text style={styles.paymentSheetSubtitle}>Moyen de paiement</Text>
         </View>
 
         <Pressable
@@ -745,6 +751,7 @@ const PlanCard = ({ index, plan, isSelected, width, onSelect }: PlanCardProps) =
   const kind = getPlanKind(plan);
   const isPro = kind === "pro";
   const icon = getPlanIcon(plan);
+  const planIconUrl = getPlanIconUrl(plan.icon);
 
   useEffect(() => {
     scale.value = withSpring(isSelected ? 1.02 : 1, { damping: 15, stiffness: 170 });
@@ -773,10 +780,15 @@ const PlanCard = ({ index, plan, isSelected, width, onSelect }: PlanCardProps) =
           <Text style={styles.selectedBadgeText}>Sélectionné</Text>
         </View>
       )}
-      {(kind === "basic" || kind === "premium") && <Pattern source="top" style={styles.cardPattern} />}
 
       <View style={styles.planIconCircle}>
-        {kind === "basic" ? (
+        {planIconUrl ? (
+          <Image
+            resizeMode="contain"
+            source={{ uri: planIconUrl }}
+            style={styles.planSewingMachine}
+          />
+        ) : kind === "basic" ? (
           <Image
             resizeMode="contain"
             source={require("@/assets/souscription/sewing-machine.png")}
@@ -814,7 +826,6 @@ const FeatureCard = ({ selectedPlan }: FeatureCardProps) => {
 
   return (
   <Animated.View entering={FadeInDown.delay(260).duration(520).springify()} style={styles.comparisonCard}>
-    <Pattern source="bottom" style={styles.comparisonPattern} />
     <View style={styles.featureSectionHeader}>
       <Text style={styles.comparisonTitle}>Fonctionnalités</Text>
       <Text style={styles.selectedPlanPill}>{selectedPlan?.name ?? "Plan"}</Text>
@@ -823,7 +834,10 @@ const FeatureCard = ({ selectedPlan }: FeatureCardProps) => {
     {selectedPlan?.items.map((item) => (
       <View key={item.feature} style={styles.tableRow}>
         <View style={styles.tableFeatureCell}>
-          <Text>{item.icon}</Text>
+          <View style={styles.featureIconBubble}>
+           <Text>{item.icon}</Text>
+          </View>
+            
           <Text style={styles.tableFeatureText}>{item.feature}</Text>
         </View>
         <TableValue value={valueForPlan(item)} />
@@ -872,17 +886,29 @@ const SelectedPlanFooter = ({
 }: SelectedPlanFooterProps) => {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const selectedPlanIconUrl = getPlanIconUrl(selectedPlan?.icon);
+  const selectedPlanIcon = getPlanIcon(selectedPlan);
 
   return (
     <Animated.View entering={FadeInDown.delay(360).duration(500)} style={styles.footerWrap}>
       <View style={styles.footerCard}>
         <View style={styles.footerLeft}>
           <View style={styles.footerIconCircle}>
-            <Image
-              resizeMode="contain"
-              source={require("@/assets/souscription/sewing-machine.png")}
-              style={styles.footerSewingMachine}
-            />
+            {selectedPlanIconUrl ? (
+              <Image
+                resizeMode="contain"
+                source={{ uri: selectedPlanIconUrl }}
+                style={styles.footerSewingMachine}
+              />
+            ) : selectedPlan ? (
+              <MaterialCommunityIcons name={selectedPlanIcon} size={Rs(15)} color={theme.gold} />
+            ) : (
+              <Image
+                resizeMode="contain"
+                source={require("@/assets/souscription/sewing-machine.png")}
+                style={styles.footerSewingMachine}
+              />
+            )}
           </View>
 
           <View style={styles.footerTextWrap}>
@@ -943,7 +969,12 @@ const premiumFont = Platform.select({
   default: undefined,
 });
 
-const createStyles = (theme: AppTheme) => StyleSheet.create({
+const createStyles = (theme: AppTheme) => {
+  const isDarkMode = theme.background !== BG;
+  const planAccent = isDarkMode ? theme.primary : theme.gold;
+  const planAccentSoft = isDarkMode ? theme.primaryLight : theme.goldLight;
+
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.background,
@@ -994,7 +1025,7 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     paddingHorizontal: Rs(14),
   },
   hero: {
-    // minHeight: Rs(128),
+    marginTop: Rs(8),
     paddingBottom: Rs(6),
     paddingTop: Rs(6),
     position: "relative",
@@ -1010,7 +1041,7 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
   },
   heroLabel: {
     color: theme.gold,
-    fontSize: Rs(9),
+    fontSize: Rs(12),
     fontWeight: "900",
     letterSpacing: 1.2,
   },
@@ -1068,19 +1099,19 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     padding: Rs(7),
   },
   proPlanCard: {
-    borderColor: theme.gold,
+    borderColor: planAccent,
     borderWidth: 1.5,
     height: Rs(150),
     paddingTop: Rs(8),
   },
   selectedPlanCard: {
-    backgroundColor: theme.goldLight,
-    borderColor: theme.gold,
+    backgroundColor: planAccentSoft,
+    borderColor: planAccent,
   },
   selectedBadge: {
     alignItems: "center",
-    backgroundColor: theme.card,
-    borderColor: theme.border,
+    backgroundColor: isDarkMode ? theme.background : theme.card,
+    borderColor: isDarkMode ? theme.primary : theme.border,
     borderRadius: Rs(999),
     borderWidth: 1,
     flexDirection: "row",
@@ -1093,13 +1124,13 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     zIndex: 2,
   },
   selectedBadgeText: {
-    color: theme.gold,
+    color: planAccent,
     fontSize: Rs(7),
     fontWeight: "900",
   },
   popularBadge: {
     alignSelf: "flex-start",
-    backgroundColor: theme.goldLight,
+    backgroundColor: planAccentSoft,
     borderColor: theme.border,
     borderRadius: Rs(999),
     borderWidth: 1,
@@ -1108,14 +1139,14 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     paddingVertical: Rs(3),
   },
   popularBadgeText: {
-    color: theme.gold,
+    color: planAccent,
     fontSize: Rs(6),
     fontWeight: "900",
     letterSpacing: 0,
   },
   planIconCircle: {
     alignItems: "center",
-    backgroundColor: theme.goldLight,
+    // backgroundColor: planAccentSoft,
     borderRadius: Rs(18),
     height: Rs(28),
     justifyContent: "center",
@@ -1123,13 +1154,13 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     width: Rs(28),
   },
   planSewingMachine: {
-    height: Rs(23),
-    tintColor: theme.gold,
-    width: Rs(23),
+    height: Rs(80),
+    // tintColor: planAccent,
+    width: Rs(80),
   },
   planName: {
     color: theme.text,
-    fontSize: Rs(12),
+    fontSize: Rs(9),
     fontWeight: "900",
     letterSpacing: 0,
     marginBottom: Rs(3),
@@ -1183,14 +1214,14 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
   },
   planButtonOutline: {
     backgroundColor: "transparent",
-    borderColor: theme.gold,
+    borderColor: planAccent,
   },
   planButtonFilled: {
-    backgroundColor: theme.gold,
-    borderColor: theme.gold,
+    backgroundColor: planAccent,
+    borderColor: planAccent,
   },
   planButtonText: {
-    color: theme.gold,
+    color: planAccent,
     fontSize: Rs(9),
     fontWeight: "600",
     textAlign: "center",
@@ -1413,8 +1444,18 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     alignItems: "center",
     flex: 1.45,
     flexDirection: "row",
-    gap: Rs(6),
+    gap: Rs(8),
     paddingRight: Rs(6),
+  },
+  featureIconBubble: {
+    alignItems: "center",
+    backgroundColor: theme.primaryLight,
+    borderColor: theme.border,
+    borderRadius: Rs(35),
+    borderWidth: StyleSheet.hairlineWidth,
+    height: Rs(27),
+    justifyContent: "center",
+    width: Rs(27),
   },
   tableFeatureText: {
     color: theme.text,
@@ -1475,9 +1516,8 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     width: Rs(30),
   },
   footerSewingMachine: {
-    height: Rs(40),
-    tintColor: theme.gold,
-    width: Rs(40),
+    height: Rs(90),
+    width: Rs(90),
   },
   footerTextWrap: {
     flex: 1,
@@ -1550,6 +1590,7 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     right: Rs(-38),
     width: Rs(160),
   },
-});
+  });
+};
 
 export default SubscriptionCompo;
