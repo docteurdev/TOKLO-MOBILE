@@ -302,7 +302,7 @@ const StoreInfo = ({handleClose, isNOtBack}: {handleClose: () => void, isNOtBack
       <StatusBar barStyle={statusBarStyle} backgroundColor={statusBarBackgroundColor} />
       
       <View style={styles.header}>
-       {!isNOtBack && <BackButton icon={ <XMarkIcon size={20} color={theme.text} /> } backAction={() => router.back()} />}
+       {!isNOtBack && <BackButton backAction={() => router.back()} />}
         <Text style={styles.headerTitle}>Paramètre boutique</Text>
       </View>
       

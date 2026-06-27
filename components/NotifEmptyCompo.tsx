@@ -1,6 +1,5 @@
-import { Colors } from '@/constants/Colors';
-import { colors } from '@/util/comon';
-import React from 'react';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -12,12 +11,23 @@ import Animated, {
   withTiming
 } from 'react-native-reanimated';
 
+type NotifEmptyCompoProps = {
+  title?: string;
+  message?: string;
+  iconColor?: string;
+  primaryColor?: string;
+};
+
 const NotifEmptyCompo = ({ 
   title = "No Notifications",
   message = "You're all caught up! We'll notify you when something new arrives.",
-  iconColor = "#9CA3AF",
-  primaryColor = Colors.app.primary 
-}) => {
+  iconColor,
+  primaryColor,
+}: NotifEmptyCompoProps) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const resolvedIconColor = iconColor ?? theme.muted;
+  const resolvedPrimaryColor = primaryColor ?? theme.primary;
   // Reanimated shared values
   const opacity = useSharedValue(0);
   const bellRotation = useSharedValue(0);
@@ -40,7 +50,7 @@ const NotifEmptyCompo = ({
       -1, // -1 for infinite repeats
       false // don't reverse the animation
     );
-  }, []);
+  }, [bellRotation, opacity]);
   
   // Animated styles
   const containerAnimatedStyle = useAnimatedStyle(() => {
@@ -70,7 +80,7 @@ const NotifEmptyCompo = ({
           borderBottomLeftRadius: 5,
           borderBottomRightRadius: 5,
           borderWidth: 2,
-          borderColor: iconColor,
+          borderColor: resolvedIconColor,
           position: 'relative',
         }} />
         
@@ -82,7 +92,7 @@ const NotifEmptyCompo = ({
           borderTopRightRadius: 8,
           borderWidth: 2,
           borderBottomWidth: 0,
-          borderColor: iconColor,
+          borderColor: resolvedIconColor,
           marginTop: -2,
         }} />
         
@@ -90,7 +100,7 @@ const NotifEmptyCompo = ({
         <View style={{
           width: 2,
           height: 10,
-          backgroundColor: iconColor,
+          backgroundColor: resolvedIconColor,
           marginTop: 2,
         }} />
       </View>
@@ -105,17 +115,17 @@ const NotifEmptyCompo = ({
         </Animated.View>
         
         {/* Decorative circles */}
-        <View style={[styles.circle, { backgroundColor: primaryColor + '20' }]} />
+        <View style={[styles.circle, { backgroundColor: `${resolvedPrimaryColor}20` }]} />
         <View 
           style={[
             styles.smallCircle, 
-            { backgroundColor: primaryColor + '40', left: 20, top: -15 }
+            { backgroundColor: `${resolvedPrimaryColor}40`, left: 20, top: -15 }
           ]} 
         />
         <View 
           style={[
             styles.smallCircle, 
-            { backgroundColor: primaryColor + '30', right: 25, top: 10 }
+            { backgroundColor: `${resolvedPrimaryColor}30`, right: 25, top: 10 }
           ]} 
         />
       </View>
@@ -128,12 +138,14 @@ const NotifEmptyCompo = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'white',
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 16,
     marginHorizontal: 16,
     marginVertical: 20,
@@ -163,13 +175,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
+    color: theme.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   message: {
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.muted,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
@@ -178,7 +190,7 @@ const styles = StyleSheet.create({
   line: {
     width: 60,
     height: 4,
-    backgroundColor: colors.orange,
+    backgroundColor: theme.primary,
     borderRadius: 2,
     marginTop: 8,
   },

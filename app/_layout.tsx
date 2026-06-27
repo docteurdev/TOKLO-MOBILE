@@ -52,13 +52,22 @@ const alertTextBodyStyle = {
   lineHeight: 18,
 };
 
+const FOREGROUND_NOTIFICATION_DATA_KEY = "__tokloForegroundNotification";
+
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
+  handleNotification: async (notification) => {
+    const isForegroundFallback =
+      notification.request.content.data?.[FOREGROUND_NOTIFICATION_DATA_KEY] === true;
+
+    return {
+    shouldShowAlert: isForegroundFallback,
+    shouldShowBanner: isForegroundFallback,
+    shouldShowList: isForegroundFallback,
+    shouldPlaySound: isForegroundFallback,
     shouldSetBadge: true,
-  }),
+    priority: Notifications.AndroidNotificationPriority.MAX,
+    };
+  },
 });
 
 export default function Root() {
@@ -75,6 +84,30 @@ export default function Root() {
     [router],
   );
 
+  const showForegroundNotification = useCallback(
+    async (notification: Notifications.Notification) => {
+      const content = notification.request.content;
+      if (content.data?.[FOREGROUND_NOTIFICATION_DATA_KEY] === true) return;
+
+      const title = content.title?.trim() || "Toklo";
+      const body = content.body?.trim() || "Vous avez une nouvelle notification.";
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data: {
+            ...content.data,
+            [FOREGROUND_NOTIFICATION_DATA_KEY]: true,
+          },
+          sound: "default",
+        },
+        trigger: null,
+      });
+    },
+    [],
+  );
+
   useEffect(() => {
     registerForPushNotificationsAsync().then((token) => {
       if (token) {
@@ -87,10 +120,16 @@ export default function Root() {
         redirect(response.notification);
       });
 
+    const foregroundListener =
+      Notifications.addNotificationReceivedListener((notification) => {
+        showForegroundNotification(notification);
+      });
+
     return () => {
       responseListener.remove();
+      foregroundListener.remove();
     };
-  }, [redirect, setNotifyToken]);
+  }, [redirect, setNotifyToken, showForegroundNotification]);
 
   async function registerForPushNotificationsAsync() {
     let token;

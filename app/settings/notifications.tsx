@@ -18,6 +18,7 @@ import {
   Animated,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -84,6 +85,20 @@ const resolveNotificationTime = (
 const Page = () => {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const isDarkMode = theme.background !== "#FFFDF8";
+  const statusBarStyle = isDarkMode ? "light-content" : "dark-content";
+  const reminderColors = useMemo(
+    () => isDarkMode
+      ? [theme.primary, theme.gold, theme.success, theme.primaryLight]
+      : ["#5A67D8", "#7367F0", "#9F7AEA", "#B794F4"],
+    [isDarkMode, theme.gold, theme.primary, theme.primaryLight, theme.success],
+  );
+  const momentColors = useMemo(
+    () => isDarkMode
+      ? [theme.gold, theme.primary, theme.muted]
+      : ["#ED8936", "#DD6B20", "#667EEA"],
+    [isDarkMode, theme.gold, theme.muted, theme.primary],
+  );
   // Animation References
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -93,8 +108,7 @@ const Page = () => {
     queryFn: async (): Promise<Toklomen> => {  // Explicit return type
       try {
         const resp = await axios.get(`${baseURL}/tokloMen/${Number(user?.id)}`);
-        //  console.log("tokloMen°°°°°°", resp.data)
-        return resp.data; // Ensure `resp.data` is returned
+        return resp.data; 
       } catch (error) {
         console.error(error);
         throw new Error("Failed to fetch clients"); // Rethrow to handle error properly
@@ -231,24 +245,17 @@ const Page = () => {
       : null;
 
     const settings: Partial<Toklomen> = {
-      notif_remind_seven: sevenDaysBefore? 7 : 0,
+      notif_remind_seven: sevenDaysBefore ? 7 : 0,
       notif_remind_three: threeDaysBefore ? 3 : 0,
       notif_remind_two: twoDaysBefore ? 2 : 0,
       notif_remind_one: oneDayBefore ? 1 : 0,
 
-      notif_time_one: morningValue,
-      notif_time_two: afternoonValue,
-      notif_time_three: eveningValue,
-
       notif_monrning: morningValue,
       notif_midday: afternoonValue,
       notif_evening: eveningValue,
-      
-      
     };
     
-     mutate(settings)
-    console.log('Paramètres de notification sauvegardés:', settings);
+    mutate(settings);
   };
 
   // Rendu d'une option avec animation
@@ -262,6 +269,7 @@ const Page = () => {
   ) => {
     const normalizedTime = timeSlot ? normalizeTime(getTimeValue(timeSlot)) : "";
     const displayTitle = timeSlot && normalizedTime ? `${title} : ${normalizedTime}` : title;
+    const iconBackgroundColor = isDarkMode ? `${iconColor}33` : `${iconColor}20`;
 
     return (
       <>
@@ -276,18 +284,11 @@ const Page = () => {
           onPress={() => timeSlot && setActiveTimePicker(timeSlot)}
           style={styles.optionLeft}
         >
-          <View style={[styles.iconContainer, { backgroundColor: iconColor + '20' }]}>
+          <View style={[styles.iconContainer, { backgroundColor: iconBackgroundColor }]}>
             {icon}
           </View>
           <Text style={styles.optionText}>{displayTitle}</Text>
         </TouchableOpacity>
-        {/* <Switch
-          value={value}
-          onValueChange={setValue}
-          trackColor={{ false: '#e0e0e0', true: iconColor + '80' }}
-          thumbColor={value ? iconColor : '#f4f3f4'}
-          ios_backgroundColor="#e0e0e0"
-        /> */}
         <SwitchCompo
           label=''
           value={value}
@@ -315,6 +316,9 @@ const Page = () => {
                 is24Hour={true}
                 display="spinner"
                 onChange={onTimeChange}
+                accentColor={theme.primary}
+                textColor={theme.text}
+                themeVariant={isDarkMode ? "dark" : "light"}
               />
             </Animated.View>
           )}
@@ -324,9 +328,9 @@ const Page = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} >
+      <StatusBar barStyle={statusBarStyle} backgroundColor={theme.background} />
 
       <View
-        // colors={['#f9f9ff', '#e8f0ff']}
         style={styles.container}
       >
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -351,34 +355,34 @@ const Page = () => {
             
             {renderOption(
               "7 jours avant", 
-              <MaterialIcons name="event" size={20} color="#5A67D8" />, 
+              <MaterialIcons name="event" size={20} color={reminderColors[0]} />, 
               sevenDaysBefore, 
               setSevenDaysBefore,
-              "#5A67D8"
+              reminderColors[0]
             )}
             
             {renderOption(
               "3 jours avant", 
-              <MaterialIcons name="event" size={20} color="#7367F0" />,
+              <MaterialIcons name="event" size={20} color={reminderColors[1]} />,
               threeDaysBefore, 
               setThreeDaysBefore,
-              "#7367F0"
+              reminderColors[1]
             )}
             
             {renderOption(
               "2 jours avant", 
-              <MaterialIcons name="event" size={20} color="#9F7AEA" />,
+              <MaterialIcons name="event" size={20} color={reminderColors[2]} />,
               twoDaysBefore, 
               setTwoDaysBefore,
-              "#9F7AEA"
+              reminderColors[2]
             )}
             
             {renderOption(
               "1 jour avant", 
-              <MaterialIcons name="event" size={20} color="#B794F4" />,
+              <MaterialIcons name="event" size={20} color={reminderColors[3]} />,
               oneDayBefore, 
               setOneDayBefore,
-              "#B794F4"
+              reminderColors[3]
             )}
           </Animated.View>
           
@@ -395,40 +399,31 @@ const Page = () => {
             
             {renderOption(
               "Matin",
-              <FontAwesome5 name="cloud-sun" size={18} color="#ED8936" />,
+              <FontAwesome5 name="cloud-sun" size={18} color={momentColors[0]} />,
               morningNotif, 
               setMorningNotif,
-              "#ED8936",
+              momentColors[0],
               "morning",
             )}
             
             {renderOption(
               "Après-midi",
-              <Ionicons name="sunny-outline" size={20} color="#DD6B20" />,
+              <Ionicons name="sunny-outline" size={20} color={momentColors[1]} />,
               afternoonNotif, 
               setAfternoonNotif,
-              "#DD6B20",
+              momentColors[1],
               "afternoon",
             )}
             
             {renderOption(
               "Soirée",
-              <FontAwesome5 name="moon" size={18} color="#667EEA" />,
+              <FontAwesome5 name="moon" size={18} color={momentColors[2]} />,
               eveningNotif, 
               setEveningNotif,
-              "#667EEA",
+              momentColors[2],
               "evening",
             )}
             
-            {/* {renderOption(
-              "Heure personnalisée", 
-              <MaterialIcons name="schedule" size={20} color="#4C51BF" />,
-              customTimeEnabled, 
-              setCustomTimeEnabled,
-              "#4C51BF"
-            )} */}
-            
-          
           </Animated.View>
           
           <Animated.View 

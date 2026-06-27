@@ -258,7 +258,7 @@ export interface IPlan {
   name: string;
   price: number;
   description: string;
-  type: string;
+  type: "basic" | "pro" | "premium";
   items: {
     icon: string;
     feature: string;
@@ -269,6 +269,7 @@ export interface IPlan {
   numb_order: number;
   numb_catalog: number;
   duration?: number;
+  icon: string;
 }
 
 export interface ISubscription {

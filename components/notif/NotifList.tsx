@@ -1,8 +1,7 @@
-import { Colors } from '@/constants/Colors';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import { TNotif } from '@/interfaces/type';
-import { colors } from '@/util/comon';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Alert,
   Dimensions,
@@ -99,6 +98,8 @@ const NotifItem: React.FC<NotificationItemProps> = ({
   onDelete,
   onPress,
 }) => {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const translateX = useSharedValue(0);
   const itemHeight = useSharedValue(NOTIFICATION_HEIGHT);
   const opacity = useSharedValue(1);
@@ -200,8 +201,8 @@ const NotifItem: React.FC<NotificationItemProps> = ({
               android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
             >
               <View style={styles.iconContainer}>
-                <View style={styles.iconBackground}>
-                  <Feather name="bell" size={20} color={Colors.app.primary} />
+                  <View style={styles.iconBackground}>
+                  <Feather name="bell" size={20} color={theme.primary} />
                 </View>
               </View>
               
@@ -209,7 +210,7 @@ const NotifItem: React.FC<NotificationItemProps> = ({
                 <View style={styles.header}>
                   <Text style={styles.orderText}>Order #{notification.orderId}</Text>
                   <View style={styles.timeContainer}>
-                    <MaterialIcons name="schedule" size={14} color="#6b7280" />
+                    <MaterialIcons name="schedule" size={14} color={theme.muted} />
                     <Text style={styles.timeText}>
                       {formatTime(notification.remind_time)}
                     </Text>
@@ -220,7 +221,7 @@ const NotifItem: React.FC<NotificationItemProps> = ({
                 
                 <View style={styles.footer}>
                   <View style={styles.phoneContainer}>
-                    <Feather name="phone" size={14} color="#6b7280" />
+                    <Feather name="phone" size={14} color={theme.muted} />
                     <Text style={styles.phoneText}>{notification.phone}</Text>
                   </View>
                   <Text style={styles.dateText}>{formatDate(notification.remind_date)}</Text>
@@ -228,7 +229,7 @@ const NotifItem: React.FC<NotificationItemProps> = ({
               </View>
               
               <View style={styles.chevron}>
-                <MaterialIcons name="chevron-right" size={24} color="#d1d5db" />
+                <MaterialIcons name="chevron-right" size={24} color={theme.border} />
               </View>
             </Pressable>
           </Animated.View>
@@ -238,16 +239,16 @@ const NotifItem: React.FC<NotificationItemProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.background,
     paddingTop: 50,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: theme.text,
     marginBottom: 20,
     marginHorizontal: 16,
   },
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     elevation: 1,
-    shadowColor: '#000',
+    shadowColor: theme.text,
     shadowOffset: {
       width: 0,
       height: 1,
@@ -279,13 +280,15 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   deleteText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
     marginTop: 4,
   },
   notification: {
-    backgroundColor: 'white',
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
     overflow: 'hidden',
     zIndex: 2,
@@ -306,7 +309,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.lightOrange,
+    backgroundColor: theme.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -322,7 +325,7 @@ const styles = StyleSheet.create({
   orderText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.app.primary,
+    color: theme.primary,
   },
   timeContainer: {
     flexDirection: 'row',
@@ -330,13 +333,13 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: theme.muted,
     marginLeft: 4,
   },
   fullName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: theme.text,
     marginBottom: 6,
   },
   footer: {
@@ -350,12 +353,12 @@ const styles = StyleSheet.create({
   },
   phoneText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: theme.muted,
     marginLeft: 4,
   },
   dateText: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: theme.muted,
   },
   chevron: {
     marginLeft: 8,

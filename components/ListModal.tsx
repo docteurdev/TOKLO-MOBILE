@@ -1,8 +1,8 @@
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React from "react";
-import { MagnifyingGlassIcon, XMarkIcon  } from "react-native-heroicons/solid";
 import { AppTheme, useAppTheme } from "@/hooks/useAppTheme";
 import { Rs, SIZES } from "@/util/comon";
+import React from "react";
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { MagnifyingGlassIcon, XMarkIcon } from "react-native-heroicons/solid";
 import OtherInput from "./form/OtherInput";
 
 
