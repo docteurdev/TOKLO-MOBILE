@@ -5,9 +5,8 @@ import {
   TextInput,
   View,
   TextInputProps,
-  Platform,
 } from 'react-native';
-import { Colors } from '@/constants/Colors';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 
 interface OtherInputProps extends TextInputProps {
   label?: string;
@@ -25,6 +24,9 @@ const OtherInput: React.FC<OtherInputProps> = memo(({
   setValue,
   ...props
 }) => {
+  const theme = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
+
   return (
     <View style={styles.container}>
       {label && (
@@ -44,7 +46,7 @@ const OtherInput: React.FC<OtherInputProps> = memo(({
           ]}
           value={value}
           onChangeText={setValue}
-          placeholderTextColor={Colors.app.disabled}
+          placeholderTextColor={theme.muted}
           numberOfLines={1}
           autoCapitalize="none"
           autoCorrect={false}
@@ -57,25 +59,25 @@ const OtherInput: React.FC<OtherInputProps> = memo(({
 
 OtherInput.displayName = 'OtherInput';
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     marginVertical: 8,
   },
   label: {
     fontSize: 14,
     marginBottom: 8,
-    color: Colors.app.texteLight,
+    color: theme.muted,
   },
   required: {
-    color: 'red',
+    color: theme.danger,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.app.disabled,
+    borderColor: theme.border,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: theme.background,
     paddingHorizontal: 12,
   },
   iconContainer: {
@@ -85,7 +87,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     fontSize: 16,
-    color: Colors.app.texteLight,
+    color: theme.text,
   },
   // Platform specific optimizations
   iosInput: {

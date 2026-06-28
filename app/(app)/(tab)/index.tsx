@@ -13,11 +13,14 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import React, { useMemo, useRef, useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Image, InteractionManager, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AgendaList, Calendar, LocaleConfig } from 'react-native-calendars';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import ActiveToklomanCompo from '@/components/ActiveToklomanCompo';
+import PaymentResult from '@/components/PaymentResult';
+import useToklomantSubscribeStatus from '@/hooks/mutations/useToklomantSubscribeStatus';
 import { useUserStore } from '@/stores/user';
 import { formatHour } from '@/utils';
 
@@ -345,10 +348,25 @@ const DeliveredList = () => {
   const { setDeliveredOrderLength } = useOrderStore();
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const claimeActiveAccountBottomSheet = useRef<BottomSheetModal>(null);
+  const activationResultBottomSheetRef = useRef<BottomSheetModal>(null);
+  const [shouldShowActivationSheet, setShouldShowActivationSheet] = useState(false);
+ 
+  const {user} = useUserStore()
 
   const [selectedOrder, setSelectedOrder] = useState<IOrder | null>(null);
 
-  const {user} = useUserStore()
+  const requestActivationSheet = useCallback(() => {
+    setShouldShowActivationSheet(true);
+  }, []);
+
+  const { mutate: checkSubscribeStatus } = useToklomantSubscribeStatus(requestActivationSheet);
+
+  useEffect(() => {
+    if (user?.id) {
+      checkSubscribeStatus();
+    }
+  }, [checkSubscribeStatus, user?.id]);
 
   const { data, isLoading, error } = useQuery<IOrder[], Error>({
     queryKey: QueryKeys.orders.calendar,
@@ -427,24 +445,75 @@ const DeliveredList = () => {
       ]
     : [];
 
-  if (isLoading) {
-    return  <LoadingScreen 
-            visible={isLoading}
-            indicatorColor={theme.gold}
-            indicatorSize={48}
-            message=""
-            animationType="slide"
-          />
-  }
+  useEffect(() => {
+    if (!shouldShowActivationSheet || isLoading) {
+      return;
+    }
 
-  if (error) {
-    return <Text style={styles.errorText}>Error: {error.message}</Text>;
-  }
-  
+    const interactionTask = InteractionManager.runAfterInteractions(() => {
+      requestAnimationFrame(() => {
+        claimeActiveAccountBottomSheet.current?.present();
+        setShouldShowActivationSheet(false);
+      });
+    });
 
-  return (
+    return () => interactionTask.cancel();
+  }, [isLoading, shouldShowActivationSheet]);
 
-    <ScreenWrapper>
+  const activationBottomSheets = (
+    <>
+      <BottomSheetCompo enablePanDownToClose={false} closeOnBackdropPress={false} bottomSheetModalRef={claimeActiveAccountBottomSheet} snapPoints={['40%']} >
+        <ActiveToklomanCompo
+          closeBottomSheet={() => claimeActiveAccountBottomSheet?.current?.dismiss()}
+          onActivationSuccess={() => {
+            claimeActiveAccountBottomSheet?.current?.dismiss();
+            activationResultBottomSheetRef.current?.present();
+          }}
+        />
+      </BottomSheetCompo>
+
+      <BottomSheetCompo
+        bottomSheetModalRef={activationResultBottomSheetRef}
+        snapPoints={['100%']}
+      >
+        <PaymentResult
+          title="Activation"
+          subtitle="réussie"
+          cardTile="Détail de l'activation"
+          amount={0}
+          paidAt={new Date().toISOString()}
+          paymentMethod="Activation gratuite"
+          planName="Mois gratuit Toklo"
+          transactionId="Activation gratuite"
+          onPrimaryPress={() => {
+            activationResultBottomSheetRef.current?.dismiss();
+          }}
+          onSecondaryPress={() => {
+            activationResultBottomSheetRef.current?.dismiss();
+          }}
+        />
+      </BottomSheetCompo>
+    </>
+  );
+
+  const screenContent = (() => {
+    if (isLoading) {
+      return (
+        <LoadingScreen
+          visible={isLoading}
+          indicatorColor={theme.gold}
+          indicatorSize={48}
+          message=""
+          animationType="slide"
+        />
+      );
+    }
+
+    if (error) {
+      return <Text style={styles.errorText}>Error: {error.message}</Text>;
+    }
+
+    return (
       <View style={styles.agendaContainer}>
         <AgendaList
           sections={sections}
@@ -466,6 +535,7 @@ const DeliveredList = () => {
           renderItem={({ item }) => (
             <OrderCard item={item} onPress={handleOpenSheet} styles={styles} theme={theme} />
           )}
+
           ListEmptyComponent={
             <Animated.View
             entering={FadeInDown.duration(350)}
@@ -483,6 +553,12 @@ const DeliveredList = () => {
           showsVerticalScrollIndicator={false}
         />
       </View>
+    );
+  })();
+
+  return (
+    <ScreenWrapper>
+      {screenContent}
 
       <BottomSheetCompo bottomSheetModalRef={bottomSheetModalRef} snapPoints={[Rs(750)]}>
         
@@ -515,7 +591,11 @@ const DeliveredList = () => {
          />
         </View>
       </BottomSheetCompo>
-          
+
+       {/* Activation account */}
+      {activationBottomSheets}
+
+ 
     </ScreenWrapper>
   );
 };

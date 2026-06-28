@@ -42,7 +42,6 @@ const ClientList = ({ isShowModal, closeModal, setSelectedUser }: Props) => {
       // Explicit return type
       try {
         const resp = await axios.post(baseURL+ "/clients/by-toklo-menId", {Toklo_menId: user?.id});
-        //  console.log("ààààààààààààààà", resp.data)
         return resp.data?.reverse(); // Ensure `resp.data` is returned
       } catch (error) {
         console.error(error);
@@ -146,7 +145,7 @@ const ClientList = ({ isShowModal, closeModal, setSelectedUser }: Props) => {
               <Pressable onPress={() => handleShowAddClient()} style={styles.avatar}>
                 <MaterialIcons name="person" size={20} color={theme.primary} />
                 <View style={[styles.addIconContainer,]}>
-                 {!isShowAddClient? <MaterialIcons
+                 {isShowAddClient? <MaterialIcons
                     name="add-circle"
                     size={24}
                     color={theme.primary}

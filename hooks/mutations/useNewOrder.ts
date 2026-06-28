@@ -53,7 +53,15 @@ const handleOrderAccessError = ({
   if (isFreeTimeInactive) {
     setSubscribe(false);
 
-    claimActiveFreeTime?.();
+    if (claimActiveFreeTime) {
+      claimActiveFreeTime();
+    } else {
+      handleNotification(
+        "error",
+        "Activation",
+        "Veuillez activer votre mois gratuit depuis l'accueil avant de créer une commande",
+      );
+    }
     return true;
   }
 

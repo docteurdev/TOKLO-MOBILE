@@ -1,4 +1,4 @@
-import { Colors } from "@/constants/Colors";
+import { AppTheme, useAppTheme } from "@/hooks/useAppTheme";
 import { base } from "@/util/axios";
 import { Rs, SIZES } from "@/util/comon";
 import React, { memo, useState } from "react";
@@ -33,6 +33,8 @@ const resolveImageUrl = (url?: string) => {
 };
 
 const ModifMeasure = ({ image, title, value, onChangeValue, measurementKey, onFocus }: TmodifMeasure) => {
+  const theme = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
   const imageUrl = resolveImageUrl(image);
   const [hasImageError, setHasImageError] = useState(false);
   const showImage = Boolean(imageUrl) && !hasImageError;
@@ -50,7 +52,7 @@ const ModifMeasure = ({ image, title, value, onChangeValue, measurementKey, onFo
             onError={() => setHasImageError(true)}
           />
         ) : (
-          <PhotoIcon fill={Colors.app.primary} size={Rs(26)} />
+          <PhotoIcon fill={theme.primary} size={Rs(26)} />
         )}
       </View>
 
@@ -75,16 +77,20 @@ const ModifMeasure = ({ image, title, value, onChangeValue, measurementKey, onFo
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.app.secondary,
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 8,
     padding: Rs(6),
     width: "48%",
     height: Rs(66),
-    boxShadow: Colors.shadow.card,
+    boxShadow: theme.background === "#FFFDF8"
+      ? "0px 4px 6px rgba(0, 0, 0, 0.1), 0px 1px 3px rgba(0, 0, 0, 0.06)"
+      : "0px 5px 18px rgba(0, 0, 0, 0.28)",
     position: "relative",
   },
   imageContainer: {
@@ -118,19 +124,19 @@ const styles = StyleSheet.create({
     marginTop: -3,
     fontFamily: "fontMedium",
     fontSize: 12,
-    color: Colors.app.texteLight,
+    color: theme.muted,
   },
   input: {
     marginLeft: 6,
     fontFamily: "fontRegular",
-    backgroundColor: "white",
+    backgroundColor: theme.background,
     textAlign: "center",
     borderRadius: 8,
-    color: Colors.app.texteLight,
+    color: theme.text,
     fontSize: SIZES.sm - 2,
     paddingHorizontal: 6,
     borderWidth: 1,
-    borderColor: Colors.app.disabled,
+    borderColor: theme.border,
     height: Rs(35),
   },
 });

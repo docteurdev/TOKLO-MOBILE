@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { AppTheme, useAppTheme } from '@/hooks/useAppTheme'
 import { useUserStore } from '@/stores/user'
+import { useCurrentPlanStore } from '@/stores/user-current-plan'
 import { Rs, SIZES } from '@/util/comon'
 import CustomButton from '../form/CustomButton'
 import ProfileShower from './drawer/ProfileShower'
@@ -32,6 +33,52 @@ type MenuItemProps = {
   theme: AppTheme
 }
 
+type PlanType = 'basic' | 'pro' | 'premium'
+
+type DrawerLink = {
+  type: PlanType
+  link: string
+  label: string
+  icon: (props: MenuIconProps) => React.ReactNode
+}
+
+const planRank: Record<PlanType, number> = {
+  basic: 0,
+  pro: 1,
+  premium: 2,
+}
+
+type PersistedCurrentPlanShape = {
+  status?: boolean | string
+  subscriptiontype?: {
+    type?: PlanType
+  }
+  subscription?: {
+    id_subscriptiontype?: number
+  }
+}
+
+const getPlanTypeFromSubscriptionTypeId = (subscriptionTypeId?: number): PlanType => {
+  if (subscriptionTypeId === 2) return 'pro'
+  if (subscriptionTypeId === 3) return 'premium'
+
+  return 'basic'
+}
+
+const getCurrentPlanType = (currentPlan?: PersistedCurrentPlanShape | null): PlanType => {
+  if (!currentPlan) return 'basic'
+
+  if (currentPlan.subscriptiontype?.type) {
+    return currentPlan.subscriptiontype.type
+  }
+
+  if (currentPlan.status === 'subscribe') {
+    return getPlanTypeFromSubscriptionTypeId(currentPlan.subscription?.id_subscriptiontype)
+  }
+
+  return 'basic'
+}
+
 const CustomDrawer = (props: any) => {
   const currentRouteName = props.state.routes[props.state.index].name
   const router = useRouter()
@@ -40,44 +87,55 @@ const CustomDrawer = (props: any) => {
   const styles = React.useMemo(() => createStyles(theme), [theme])
 
   const { clearToken, setSubscribe, clearTokloUser } = useUserStore()
-
-  const linkList = [
+  const { current_plan } = useCurrentPlanStore()
+  const currentPlanType = getCurrentPlanType(current_plan)
+  
+  const linkList: DrawerLink[] = [
     {
+      type:"basic",
       link: 'stat',
       label: 'Statistiques',
       icon: ({ color }: MenuIconProps) => <ChartBarSquareIcon fill={color} size={24} />,
     },
     {
+      type:"basic",
       link: 'users',
       label: 'Client',
       icon: ({ color }: MenuIconProps) => <UserGroupIcon fill={color} size={24} />,
     },
-    {
+    { 
+      type:"basic",
       link: 'gallery',
       label: 'Catalogue',
       icon: ({ color }: MenuIconProps) => <PhotoIcon fill={color} size={24} />,
     },
-    // {
+    // { type:"pro",
     //   link: '(store)',
     //   label: 'Ma boutique',
     //   icon: ({ color }: MenuIconProps) => <ShoppingBagIcon fill={color} size={24} />,
     // },
-    // {
+    // { type:"basic",
     //   link: 'toklo-market',
     //   label: 'Toklo market',
     //   icon: ({ color }: MenuIconProps) => <ShoppingCartIcon fill={color} size={24} />,
     // },
-    {
+    { 
+      type:"basic",
       link: 'settings',
       label: 'Paramètres',
       icon: ({ color }: MenuIconProps) => <Cog6ToothIcon fill={color} size={24} />,
     },
-    {
+    { 
+      type:"basic",
       link: 'pricing',
       label: 'Abonnement',
       icon: ({ color }: MenuIconProps) => <BanknotesIcon fill={color} size={24} />,
     },
   ]
+
+  const visibleLinks = linkList.filter((item) => {
+    return planRank[currentPlanType] >= planRank[item.type]
+  })
 
   function handleNav(link: string) {
     const splitedPath = link.split('/')
@@ -114,7 +172,7 @@ const CustomDrawer = (props: any) => {
           theme={theme}
         />
 
-        {linkList.map((item) => (
+        {visibleLinks.map((item) => (
           <DrawerMenuItem
             key={item.link}
             focused={currentRouteName.includes(item.link)}
@@ -145,6 +203,7 @@ const CustomDrawer = (props: any) => {
 }
 
 const DrawerMenuItem = ({ focused, icon, label, onPress, styles, theme }: MenuItemProps) => {
+  
   return (
     <Pressable
       onPress={onPress}

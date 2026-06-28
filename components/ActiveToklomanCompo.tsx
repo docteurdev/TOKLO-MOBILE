@@ -29,11 +29,7 @@ const ActiveToklomanCompo = ({ closeBottomSheet, onActivationSuccess }: Props) =
      await subscribeMutate();
      setShowPaymentLottie(true);
      setIsActivationSuccess(true);
-     handleNotification(
-       "success",
-       "Activation",
-       "Votre compte a bien été activé",
-     );
+     
      setTimeout(() => {
        onActivationSuccess?.();
      }, 900);

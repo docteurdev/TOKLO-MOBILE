@@ -281,7 +281,40 @@ export interface ISubscription {
   numb_order: number;
   numb_catalog: number;
   updatedat: string;
+  subscriptiontype: {
+    id: number;
+    name: "Forfait Basique";
+    price: number;
+    description: string;
+    icon: string;
+    type: "basic" | "pro" | "premium";
+  };
 }
+
+type ToklomantSubscription = {
+  id: number;
+  start_date: string;
+  end_date: string;
+  days_since_expiration: number;
+  numb_order: number;
+  numb_catalog: number;
+  amount: number;
+  id_subscriptiontype: 1 | 2 | 3 | number;
+};
+
+export type ToklomantSubscribeStatusResponse =
+  | {
+      status: "subscribe";
+      message: string;
+      isActiveFreeTime: true;
+      subscription: ToklomantSubscription;
+    }
+  | {
+      status: "unsubscribe";
+      message: string;
+      isActiveFreeTime: false;
+      subscription?: undefined;
+    };
 
 export enum EStatsPeriode {
   daily = "daily",

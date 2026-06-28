@@ -960,7 +960,7 @@ const Page = (props: Props) => {
 
 
           </View>
-
+     {/* facturation */}
           <View style={[styles.screen, {  padding: Rs(16) }]}>
             <KeyboardAvoidingView
               behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -980,11 +980,7 @@ const Page = (props: Props) => {
                 <Text style={styles.stepSubtitle}>
                   Quantité, montant et avance
                 </Text>
-                <Image
-                  source={require('@/assets/images/measure/double-arrow.png')}
-                  resizeMode="cover"
-                  style={styles.doubleArrow}
-                />
+                
 
                 <View style={styles.billingCard}>
                   <View style={{ marginHorizontal: 20 }}>
@@ -1125,7 +1121,7 @@ const Page = (props: Props) => {
             activationResultBottomSheetRef.current?.dismiss();
           }}
         />
-      </BottomSheetCompo>
+      </BottomSheetCompo> 
 
         </ScrollView>
       </Animated.View>

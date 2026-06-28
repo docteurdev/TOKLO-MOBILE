@@ -1,6 +1,12 @@
 import DrawerHeader from '@/components/CustomHeaders/DrawerHeader';
 import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
+import { QueryKeys } from '@/interfaces/queries-key';
+import { ISubscription } from '@/interfaces/type';
 import { useUserStore } from '@/stores/user';
+import { useCurrentPlanStore } from '@/stores/user-current-plan';
+import { baseURL } from '@/util/axios';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 import { Redirect } from 'expo-router';
 import { Drawer } from "expo-router/drawer";
 import React from 'react';
@@ -12,11 +18,32 @@ import { ChartBarSquareIcon, Cog6ToothIcon, HomeIcon, UserGroupIcon } from "reac
 
 const AppLayout = () => {
 
-  const { token } = useUserStore();
+  const { token, user } = useUserStore();
+  const { setCurrentPlan, clearCurrentPlan} = useCurrentPlanStore();
   const theme = useAppTheme();
   const styles = React.useMemo(() => createStyles(theme), [theme]);
   const statusBarStyle = theme.background === "#FFFDF8" ? "dark-content" : "light-content";
 
+  // current plan
+  const { data: currentPlan } = useQuery<ISubscription>({
+    queryKey: [QueryKeys.tokloman.subscriptionType, user?.id],
+    queryFn: async (): Promise<ISubscription> => {
+      const response = await axios.get(`${baseURL}/subscriptions/last/${user?.id}`);
+      return response.data;
+    },
+    enabled: Boolean(token && user?.id),
+  });
+
+  React.useEffect(() => {
+    if (currentPlan) {
+      setCurrentPlan(currentPlan);
+      return;
+    }
+
+    if (!token || !user?.id) {
+      clearCurrentPlan();
+    }
+  }, [clearCurrentPlan, currentPlan, setCurrentPlan, token, user?.id]);
 
   if (!token) {
     return <Redirect href="/login" />;
