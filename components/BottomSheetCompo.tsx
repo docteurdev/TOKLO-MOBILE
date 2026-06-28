@@ -13,6 +13,7 @@ interface Props extends Partial<BottomSheetModalProps> {
   children: React.ReactNode;
   snapPoints?: (string | number)[];
   onChange?: (index: number) => void;
+  closeOnBackdropPress?: boolean;
 }
 
 const BottomSheetCompo = ({
@@ -20,6 +21,7 @@ const BottomSheetCompo = ({
   children,
   snapPoints: customSnapPoints,
   onChange,
+  closeOnBackdropPress = true,
   ...props
 }: Props) => {
   const theme = useAppTheme();
@@ -33,9 +35,10 @@ const BottomSheetCompo = ({
         disappearsOnIndex={-1} // This ensures the backdrop disappears when the sheet is closed
         appearsOnIndex={0} // This ensures the backdrop appears when the sheet is open
         opacity={theme.background === '#FFFDF8' ? 0.5 : 0.72}
+        pressBehavior={closeOnBackdropPress ? "close" : "none"}
       />
     ),
-    [theme.background]
+    [closeOnBackdropPress, theme.background]
   );
 
   return (

@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/Colors';
+import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import React, { memo } from 'react';
 import {
   Pressable,
@@ -31,6 +31,8 @@ const OtherInputIncrement: React.FC<OtherInputProps> = memo(({
   step = 1,
   ...props
 }) => {
+  const theme = useAppTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
   const currentValue = Number(value);
   const canDecrement = !Number.isFinite(currentValue) || currentValue > min;
   const canIncrement = max === undefined || !Number.isFinite(currentValue) || currentValue < max;
@@ -70,7 +72,7 @@ const OtherInputIncrement: React.FC<OtherInputProps> = memo(({
           ]}
           value={value}
           onChangeText={setValue}
-          placeholderTextColor={Colors.app.disabled}
+          placeholderTextColor={theme.muted}
           numberOfLines={1}
           autoCapitalize="none"
           autoCorrect={false}
@@ -96,25 +98,25 @@ const OtherInputIncrement: React.FC<OtherInputProps> = memo(({
 
 OtherInputIncrement.displayName = 'OtherInputIncrement';
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => StyleSheet.create({
   container: {
     marginVertical: 8,
   },
   label: {
     fontSize: 14,
     marginBottom: 8,
-    color: Colors.app.texteLight,
+    color: theme.muted,
   },
   required: {
-    color: 'red',
+    color: theme.danger,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.app.disabled,
+    borderColor: theme.border,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: theme.background,
     overflow: 'hidden',
   },
   actionButton: {
@@ -122,18 +124,18 @@ const styles = StyleSheet.create({
     height: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.app.secondary,
+    backgroundColor: theme.primaryLight,
   },
   leftActionButton: {
     borderRightWidth: 1,
-    borderRightColor: Colors.app.disabled,
+    borderRightColor: theme.border,
   },
   rightActionButton: {
     borderLeftWidth: 1,
-    borderLeftColor: Colors.app.disabled,
+    borderLeftColor: theme.border,
   },
   pressedButton: {
-    backgroundColor: Colors.app.light,
+    backgroundColor: theme.goldLight,
   },
   disabledButton: {
     opacity: 0.45,
@@ -142,16 +144,16 @@ const styles = StyleSheet.create({
     fontSize: 24,
     lineHeight: 28,
     fontWeight: '700',
-    color: Colors.app.primary,
+    color: theme.primary,
   },
   disabledText: {
-    color: Colors.app.disabled,
+    color: theme.muted,
   },
   input: {
     flex: 1,
     height: 48,
     fontSize: 16,
-    color: Colors.app.texteLight,
+    color: theme.text,
     textAlign: "center",
     fontWeight: "700"
   },

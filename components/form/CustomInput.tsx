@@ -19,7 +19,21 @@ interface Props extends TextInputProps {
   placeholder?: string;
 }
 
-const CustomInput = ({ isDescr, label, value, handleOnBlur, handleChange, error, touched, keyboardType, isPassword, placeholder }: Props) => {
+const CustomInput = ({
+  isDescr,
+  label,
+  value,
+  handleOnBlur,
+  handleChange,
+  error,
+  touched,
+  keyboardType,
+  isPassword,
+  placeholder,
+  onBlur,
+  onFocus,
+  ...textInputProps
+}: Props) => {
   const theme = useAppTheme();
   const styles = React.useMemo(() => createStyles(theme), [theme]);
   const [isPw, setIsPw] = React.useState(isPassword);
@@ -31,6 +45,7 @@ const CustomInput = ({ isDescr, label, value, handleOnBlur, handleChange, error,
     <View style={{ position: 'relative', width: "100%", height: 83, marginBottom: 10 }}>
       <Text style={styles.label}>{label} <Text style={styles.required}>*</Text></Text>
       <TextInput
+        {...textInputProps}
         ref={inputRef}
         keyboardType={keyboardType}
         secureTextEntry={isPw}
@@ -47,10 +62,12 @@ const CustomInput = ({ isDescr, label, value, handleOnBlur, handleChange, error,
         onBlur={(e) => {
           setIsFocused(false);
           handleOnBlur(e);
+          onBlur?.(e);
         }}
-        onFocus={() => {
+        onFocus={(e) => {
           setIsFocused(true);
           formScroll?.scrollToInput(inputRef);
+          onFocus?.(e);
         }}
       />
       {isPassword && (

@@ -1,32 +1,16 @@
+import { ToklomantSubscribeStatusResponse } from "@/interfaces/type";
 import { useUserStore } from "@/stores/user";
 import { baseURL } from "@/util/axios";
 import { useMutation } from "@tanstack/react-query";
 import axios, { isAxiosError } from "axios";
 import useNotif from "../useNotification";
 
-type ToklomantSubscription = {
-  id: number;
-  start_date: string;
-  end_date: string;
-  days_since_expiration: number;
-  numb_order: number;
-  numb_catalog: number;
-  amount: number;
+type ToklomantSubscribeStatusErrorResponse = {
+  code?: "FREE_TIME_INACTIVE" | string;
+  status?: "free_time_inactive" | "unsubscribe" | string;
+  message?: string;
+  isActiveFreeTime?: boolean;
 };
-
-export type ToklomantSubscribeStatusResponse =
-  | {
-      status: "subscribe";
-      message: string;
-      isActiveFreeTime: true;
-      subscription: ToklomantSubscription;
-    }
-  | {
-      status: "unsubscribe";
-      message: string;
-      isActiveFreeTime: false;
-      subscription?: undefined;
-    };
 
 const useToklomantSubscribeStatus = (subcribeBottomSheet: () => void) => {
   const { handleNotification } = useNotif();
@@ -54,8 +38,30 @@ const useToklomantSubscribeStatus = (subcribeBottomSheet: () => void) => {
       }
     },
     onError: (error) => {
-      if (isAxiosError(error)) {
-        console.error("Subscription status error:", error.response?.status);
+      if (isAxiosError<ToklomantSubscribeStatusErrorResponse>(error)) {
+        const statusCode = error.response?.status;
+        const errorData = error.response?.data;
+        const shouldOpenActivation =
+          statusCode === 402 ||
+          statusCode === 403 ||
+          statusCode === 404 ||
+          errorData?.code === "FREE_TIME_INACTIVE" ||
+          errorData?.status === "free_time_inactive" ||
+          errorData?.status === "unsubscribe" ||
+          errorData?.isActiveFreeTime === false ||
+          errorData?.message === "No subscription found for this Toklo Man" ||
+          errorData?.message === "Subscription is not active";
+
+        console.error("Subscription status error:", {
+          status: statusCode,
+          data: errorData,
+        });
+
+        if (shouldOpenActivation) {
+          setSubscribe(false);
+          subcribeBottomSheet();
+        }
+
         return;
       }
 

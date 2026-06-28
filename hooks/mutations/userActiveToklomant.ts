@@ -1,4 +1,6 @@
+import { ISubscription } from "@/interfaces/type";
 import { useUserStore } from "@/stores/user";
+import { useCurrentPlanStore } from "@/stores/user-current-plan";
 import { baseURL } from "@/util/axios";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
@@ -11,6 +13,7 @@ type ActiveToklomanResponse = {
 
 const useUserActiveToklomant = () => {
   const { user, setSubscribe } = useUserStore();
+  const { setCurrentPlan } = useCurrentPlanStore();
 
   return useMutation({
     mutationFn: async () => {
@@ -34,11 +37,21 @@ const useUserActiveToklomant = () => {
         );
       }
 
-      console.log("response", response.data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setSubscribe(true);
+
+      if (!user?.id) {
+        return;
+      }
+
+      const response = await axios.get<ISubscription>(
+        `${baseURL}/subscriptions/last/${user.id}`,
+      );
+      console.log("responsexxxxxxx--------xxx---x-----", response.data);
+
+      setCurrentPlan(response.data);
     },
   });
 };
