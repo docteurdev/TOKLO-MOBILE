@@ -1,7 +1,7 @@
 import { Colors } from '@/constants/Colors'
 import { SIZES } from '@/util/comon'
 import React from 'react'
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text } from 'react-native'
+import { ActivityIndicator, Image, Pressable, StyleProp, StyleSheet, Text, TextStyle, ViewStyle } from 'react-native'
 import Animated from 'react-native-reanimated'
 
 type Props = {
@@ -10,18 +10,20 @@ type Props = {
  disabled?: boolean,
  pressDisabled?: boolean,
  loading?: boolean
+ style?: StyleProp<ViewStyle>
+ labelStyle?: StyleProp<TextStyle>
 }
 
 const AnimatedButton = Animated.createAnimatedComponent(Pressable)
 
-const CustomButton = ({label, action, disabled, pressDisabled, loading}:Props) => {
+const CustomButton = ({label, action, disabled, pressDisabled, loading, style, labelStyle}:Props) => {
   const isPressDisabled = Boolean(loading || pressDisabled);
   
   return (
-   <AnimatedButton onPress={isPressDisabled ? undefined : action} disabled={isPressDisabled} style={[styles.button, {backgroundColor: !disabled? '#A9C2B5' : Colors.app.primary}]} >
+   <AnimatedButton onPress={isPressDisabled ? undefined : action} disabled={isPressDisabled} style={[styles.button, {backgroundColor: !disabled? '#A9C2B5' : Colors.app.primary}, style]} >
     <Image style={[styles.africanTouchSheet, {left: -50, top: -90}]} source={require("@/assets/images/measure/down-sheet.png")} />
     
-    {!loading? <Text style={[styles.label, {color:"#F8FAF9"}]} > {label} </Text> :
+    {!loading? <Text style={[styles.label, {color:"#F8FAF9"}, labelStyle]} > {label} </Text> :
      <ActivityIndicator size="small" color='#ffffff' />
      }
     <Image style={[styles.africanTouchSheet, {top: -5, right: -50}]} source={require("@/assets/images/measure/top-sheet.png")} />

@@ -1,6 +1,6 @@
 import { AppTheme, useAppTheme } from '@/hooks/useAppTheme';
 import React, { useCallback, useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleProp, StyleSheet, ViewStyle } from 'react-native';
 import {
   BottomSheetModal,
   BottomSheetModalProps,
@@ -14,6 +14,7 @@ interface Props extends Partial<BottomSheetModalProps> {
   snapPoints?: (string | number)[];
   onChange?: (index: number) => void;
   closeOnBackdropPress?: boolean;
+  scrollContentContainerStyle?: StyleProp<ViewStyle>;
 }
 
 const BottomSheetCompo = ({
@@ -22,6 +23,7 @@ const BottomSheetCompo = ({
   snapPoints: customSnapPoints,
   onChange,
   closeOnBackdropPress = true,
+  scrollContentContainerStyle,
   ...props
 }: Props) => {
   const theme = useAppTheme();
@@ -61,7 +63,7 @@ const BottomSheetCompo = ({
       >
         <BottomSheetScrollView 
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.contentContainer}
+          contentContainerStyle={[styles.contentContainer, scrollContentContainerStyle]}
           showsVerticalScrollIndicator={false}
           style={styles.scrollView}
           bounces={false}
