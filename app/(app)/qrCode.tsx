@@ -66,7 +66,7 @@ const Page = () => {
 
   React.useEffect(() => {
     if (qrValue) {
-      console.log(qrValue, "-----");
+     
     }
   }, [qrValue]);
   return (

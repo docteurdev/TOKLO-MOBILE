@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
@@ -21,8 +22,7 @@ import {
   MinusCircleIcon,
   PhotoIcon,
   TrashIcon,
-  UserIcon,
-  XMarkIcon
+  UserIcon
 } from "react-native-heroicons/solid";
 
 import CameraComponent from "@/components/CameraCompo";
@@ -38,8 +38,7 @@ import ActiveToklomanCompo from "@/components/ActiveToklomanCompo";
 import BottomSheetCompo from "@/components/BottomSheetCompo";
 import LastAppointment from "@/components/LastAppointment";
 import PaymentResult from "@/components/PaymentResult";
-import SubscriptionCompo from "@/components/SubscriptionCompo";
-import BackButton from "@/components/form/BackButton";
+import RenewSubscription from "@/components/RenewSubscription";
 import OtherInput from "@/components/form/OtherInput";
 import OtherInputIncrement from "@/components/form/OtherInputIncrement";
 import ClientList from "@/components/takeOrder/ClientList";
@@ -203,7 +202,7 @@ const Page = (props: Props) => {
   const [isShowModal, setisShowModal] = useState(false);
   const [isDressTypeShowModal, setisDressTypeShowModal] = useState(false);
   const [isOpeningCamera, setIsOpeningCamera] = useState(false);
-
+  const route = useRouter()
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
   const {user, notify_token} = useUserStore()
@@ -1074,19 +1073,18 @@ const Page = (props: Props) => {
           </BottomSheetCompo>
           {/* payement bottomsheet */}
 
-          <BottomSheetCompo bottomSheetModalRef={subscribeBottomSheet} snapPoints={["100%"]} >
-                <View style={styles.subscribeIntro} >
-                  <View style={{flexDirection: "row", alignItems: "center", justifyContent: "space-between"}} >
-                  <Text style={styles.subscribeTitle}>
-                    Votre abonnement a expiré.
-                  </Text>
-                  <BackButton backAction={() => subscribeBottomSheet?.current?.dismiss() } icon={<XMarkIcon fill={theme.text} size={Rs(20)} />} />
-                  </View>
-                  <Text style={styles.subscribeText}> 
-                    Pour continuer à profiter de tous nos services et fonctionnalités, veuillez renouveler votre abonnement.
-                  </Text>
-                </View>
-                <SubscriptionCompo redirectURL="(tab)/add-dress" closeBottomSheet={() => subscribeBottomSheet?.current?.dismiss()} />
+          <BottomSheetCompo
+            bottomSheetModalRef={subscribeBottomSheet}
+            snapPoints={[500]}
+            scrollContentContainerStyle={styles.renewSubscriptionSheetContent}
+          >
+            <RenewSubscription
+             onPressLater={() => subscribeBottomSheet?.current?.close()}
+             onPressRenew={() => {
+              route.push('/(app)/pricing')
+              subscribeBottomSheet?.current?.close()
+            }}
+              />
           </BottomSheetCompo>
              {/* payement bottomsheet */}
 
@@ -1175,6 +1173,11 @@ const createStyles = (theme: AppTheme) => StyleSheet.create({
     flex: 1,
     paddingBottom: Rs(12),
     paddingTop: Rs(10),
+  },
+  renewSubscriptionSheetContent: {
+    flexGrow: 1,
+    backgroundColor: theme.background,
+    paddingBottom: 0,
   },
   validationError: {
     color: theme.danger,
